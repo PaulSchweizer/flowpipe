@@ -11,13 +11,15 @@ class FlowNode(object):
     flow_outs = list()
 
     def __init__(self):
+        self.name = self.__class__.__name__
+        self.is_dirty = True
         self.connections = dict()
         self.downstream_nodes = list()
         self.upstream_nodes = list()
     # end def __init__
 
     def __str__(self):
-        pretty = self.__class__.__name__
+        pretty = self.name
         pretty += ''.join(['\n\t(IN) {0} ({1})'.format(i, getattr(self, i))
                            for i in self.flow_ins])
         pretty += ''.join(['\n\t(OUT) {0} ({1})'.format(i, getattr(self, i))
@@ -50,6 +52,7 @@ class FlowNode(object):
             # end for
         # end for
         print(self)
+        self.is_dirty = False
     # end def evaluate
 
     @abstractmethod

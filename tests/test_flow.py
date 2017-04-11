@@ -73,4 +73,117 @@ email_app = EmailApp(['Me', 'You', 'Her'], 'The Text of the email')
 engine = FlowEngine()
 engine.load_app(email_app)
 
+# engine.evaluate()
+
+
+# ---------------------------------------------------------------------
+# Publishing an Asset
+# ---------------------------------------------------------------------
+
+
+class NextVersion(FlowNode):
+
+    flow_ins = ['asset']
+    flow_outs = ['next_version']
+
+    def compute(self):
+        self.next_version = 'NextVersion'
+
+
+class SaveFile(FlowNode):
+
+    flow_ins = ['asset_file']
+
+    def compute(self):
+        self.saved_asset_file = self.asset_file
+
+
+class SaveNotes(FlowNode):
+
+    flow_ins = ['notes', 'asset_file']
+
+    def compute(self):
+        pass
+
+class SaveToUnity(FlowNode):
+
+    flow_ins = ['asset_file']
+
+    def compute(self):
+        pass
+
+
+class Publish(FlowNode):
+
+    flow_ins = ['asset']
+    flow_outs = ['published_file']
+
+    def compute(self):
+        self.published_file = self.asset.next_version
+
+
+# ---------------------------------------------------------------------
+# Tests
+# ---------------------------------------------------------------------
+
+
+class PublisherApp(FlowApp):
+    """Publish a new version of an Asset."""
+
+    def __init__(self, asset, notes):
+        """@todo documentation for __init__."""
+
+        # Build the network
+        next_version = NextVersion()
+        save_file = SaveFile()
+        save_notes = SaveNotes()
+        save_to_unity = SaveToUnity()
+
+        self.nodes = [next_version, save_file, save_notes, save_to_unity]
+
+        # Connect the nodes
+        next_version.connect('next_version', save_file, 'asset_file')
+        next_version.connect('next_version', save_notes, 'asset_file')
+        next_version.connect('next_version', save_to_unity, 'asset_file')
+
+        # Set the initial values
+        next_version.asset = asset
+        save_notes.notes = notes
+    # end def __init__
+# end class PublisherApp
+
+
+asset = {'project': 'MyProject', 'name': 'Tiger', 'kind': 'model'}
+notes = 'MyNotes'
+
+
+publisher_app = PublisherApp(asset, notes)
+
+
+engine = FlowEngine()
+
+engine.load_app(publisher_app)
+
 engine.evaluate()
+
+engine.evaluate()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

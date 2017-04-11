@@ -15,7 +15,9 @@ class FlowEngine(object):
     def evaluate(self):
         """Evaluate the registered nodes."""
         for node in self.evaluation_sequence:
-            node.evaluate()
+            if node.is_dirty:
+                node.evaluate()
+            # end if
         # end for
     # end def evaluate
 
