@@ -1,3 +1,4 @@
+*.pyc
 .tinypipeline*
 
 # Windows image file caches
