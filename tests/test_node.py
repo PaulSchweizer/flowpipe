@@ -9,6 +9,13 @@ from flowpipe.engine import FlowEngine
 
 class TestNode(FlowNode):
     """This is the description"""
+
+    inputA = None
+    outputA = None
+
+    flow_ins = ['inputA']
+    flow_outs = ['outputA']
+
     def compute(self):
         pass
 
@@ -19,15 +26,21 @@ class TestFlowNode(unittest.TestCase):
     def test_init(self):
         """"""
         node = TestNode()
-        node.inputA = None
-        node.outputA = None
-
-        node.flow_ins = ['inputA']
-        node.flow_outs = ['outputA']
-
         print(node)
-
     # end def test_init
+
+    def test_change_input_sets_dirty(self):
+        """@todo documentation for test_change_input_sets_dirty."""
+        node = TestNode()
+
+        self.assertTrue(node.is_dirty)
+        node.evaluate()
+        self.assertFalse(node.is_dirty)
+
+        node.inputA = 'NewValue'
+        self.assertTrue(node.is_dirty)
+
+    # end def test_change_input_sets_dirty
 # end class TestFlowNode
 
 
