@@ -20,6 +20,8 @@ class FlowNode(object):
 
     def __str__(self):
         pretty = self.name
+        if self.__doc__ is not None:
+            pretty += '\n\t{}'.format(self.__doc__)
         pretty += ''.join(['\n\t(IN) {0} ({1})'.format(i, getattr(self, i))
                            for i in self.flow_ins])
         pretty += ''.join(['\n\t(OUT) {0} ({1})'.format(i, getattr(self, i))
