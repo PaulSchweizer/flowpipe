@@ -1,112 +1,22 @@
 """Nodes manipulate incoming data and provide the outgoing data."""
 from abc import ABCMeta, abstractmethod
-__all__ = ['FlowNode']
+__all__ = ['INode']
 
 
-class OutputPlug(object):
-    """A OutputPlug for a Connection."""
-
-    def __init__(self, name, node):
-        """Initialize the OutputPlug.
-
-        @param name The name of the plug
-        @param node The Node holding the OutputPlug
-        """
-        self.name = name
-        self.node = node
-        self.node.outputs[self.name] = self
-        self.connections = list()
-    # end def __init__
-
-    def __unicode__(self):
-        """@todo documentation for __unicode__."""
-        pretty = u'\u2190 {0} (OUT)'.format(self.name)
-        pretty += u''.join([u'\n\t\t\u2192 {0}.{1}'.format(
-            c.name, c.node.name) for c in self.connections])
-        return pretty
-    # end def __unicode__
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-    def __rshift__(self, other):
-        """Create a Connection to the given InputPlug.
-
-        @param other The InputPlug
-        """
-        if isinstance(other, InputPlug):
-            self.connect(other)
-        # end if
-    # end def __rshift__
-
-    def connect(self, plug):
-        """@todo documentation for connect."""
-        if plug not in self.connections:
-            self.connections.append(plug)
-        if self not in plug.connections:
-            plug.connections.append(self)
-    # end def connect
-# end class OutputPlug
-
-
-class InputPlug(object):
-    """A InputPlug for a Connection."""
-
-    def __init__(self, name, node):
-        """Initialize the InputPlug.
-
-        @param name The name of the plug
-        @param node The Node holding the InputPlug
-        """
-        self.name = name
-        self.node = node
-        self.node.inputs[self.name] = self
-        self.connections = list()
-    # end def __init__
-
-    def __unicode__(self):
-        """@todo documentation for __unicode__."""
-        pretty = u'\u2192 {0} (IN)'.format(self.name)
-        pretty += u''.join([u'\n\t\t\u2190 {0}.{1}'.format(
-            c.name, c.node.name) for c in self.connections])
-        return pretty
-    # end def __unicode__
-
-    def __str__(self):
-        return unicode(self).encode('utf-8')
-
-    def __lshift__(self, other):
-        """Create a Connection to the given OutputPlug.
-
-        @param other The OutputPlug
-        """
-        if isinstance(other, OutputPlug):
-            self.connect(other)
-        # end if
-    # end def __rshift__
-
-    def connect(self, plug):
-        """@todo documentation for connect."""
-        if plug not in self.connections:
-            self.connections.append(plug)
-        if self not in plug.connections:
-            plug.connections.append(self)
-    # end def connect
-# end class InputPlug
-
-
-class FlowNode(object):
+class INode(object):
+    """Holds inputs, outputs and a method for computing."""
 
     __metaclass__ = ABCMeta
 
     def __init__(self, name=None):
+        """Initialize the input and output dictionaries and the name.
+
+        Args:
+            name (str): If not provided, the class name is taken.
+        """
         self.name = name if name is not None else self.__class__.__name__
-        self.is_dirty = True
         self.inputs = dict()
         self.outputs = dict()
-        self.connections = dict()
-        self.downstream_nodes = list()
-        self.upstream_nodes = list()
     # end def __init__
 
     def __unicode__(self):
@@ -121,39 +31,51 @@ class FlowNode(object):
     # end def __unicode__
 
     def __str__(self):
+        """@todo documentation for __str__."""
         return unicode(self).encode('utf-8')
+    # end def __str__
 
-    def connect(self, flow_out, in_node, flow_in):
-        if flow_out not in self.connections.keys():
-            self.connections[flow_out] = list()
-        self.connections[flow_out].append((in_node, flow_in))
-        in_node.add_upstream_node(self)
-        self.add_downstream_node(in_node)
-    # end def connect
+    @property
+    def is_dirty(self):
+        """@todo documentation for is_dirty."""
+        for input_ in self.inputs.values():
+            if input_.is_dirty:
+                return True
+        # end for
+        return False
+    # end def is_dirty
 
-    def add_upstream_node(self, node):
-        if node not in self.upstream_nodes:
-            self.upstream_nodes.append(node)
-    # end def add_upstream_node
+    @property
+    def upstream_nodes(self):
+        """@todo documentation for upstream_nodes."""
+        upstream_nodes = list()
+        for input_ in self.inputs.values():
+            upstream_nodes += [c.node for c in input_.connections]
+        # end for
+        return list(set(upstream_nodes))
+    # end def upstream_nodes
 
-    def add_downstream_node(self, node):
-        if node not in self.downstream_nodes:
-            self.downstream_nodes.append(node)
-    # end def add_downstream_node
+    @property
+    def downstream_nodes(self):
+        """@todo documentation for downstream_nodes."""
+        downstream_nodes = list()
+        for output in self.outputs.values():
+            downstream_nodes += [c.node for c in output.connections]
+        # end for
+        return list(set(downstream_nodes))
+    # end def downstream_nodes
 
     def evaluate(self):
+        """@todo documentation for evaluate."""
         self.compute()
-        for flow_out, inputs in self.connections.items():
-            for flow_in in inputs:
-                setattr(flow_in[0], flow_in[1], getattr(self, flow_out))
-            # end for
+        for input_ in self.inputs.values():
+            input_.is_dirty = False
         # end for
         print(self)
-        self.is_dirty = False
     # end def evaluate
 
     @abstractmethod
     def compute(self):
         pass
     # end def compute
-# end class FlowNode
+# end class INode

@@ -1,0 +1,5 @@
+ratings:
+  paths:
+  - "**.py"
+exclude_paths:
+  - setup.py

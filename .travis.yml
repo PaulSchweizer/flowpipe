@@ -1,0 +1,45 @@
+language: python
+
+python:
+  - "2.7"
+  - "3.3"
+  - "3.4"
+  - "3.5"
+  - "3.6"
+
+# command to install dependencies
+install:
+    - pip install -r requirements.txt
+    - python setup.py install
+
+# command to run tests
+script:
+    - nosetests --with-coverage --cover-erase --cover-html --cover-package=flowpipe
+
+after_success:
+    - codeclimate-test-reporter
+    - coverage xml
+    - python-codacy-coverage -r coverage.xml
+    - cd $TRAVIS_BUILD_DIR
+    - chmod +x .deploy_doxygen.sh
+    - ./.deploy_doxygen.sh
+
+# Blacklist
+branches:
+  except:
+    - gh-pages
+
+# Install dependencies
+addons:
+  apt:
+    packages:
+      - doxygen
+      - doxygen-doc
+      - doxygen-latex
+      - doxygen-gui
+      - graphviz
+
+# Environment variables
+env:
+  global:
+    - DOXYFILE: $TRAVIS_BUILD_DIR/config.dox
