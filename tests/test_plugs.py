@@ -95,6 +95,16 @@ class TestPlugs(unittest.TestCase):
         self.assertTrue(in_plug.is_dirty)
         self.assertEqual(in_plug.value, out_plug.value)
     # end def test_set_output_pushes_value_to_connected_input
+
+    def test_assign_initial_value_to_input_plug(self):
+        """Assign an initial value to an InputPlug."""
+        n = TestNode()
+        in_plug = InputPlug('in', n)
+        self.assertIsNone(in_plug.value)
+
+        in_plug = InputPlug('in', n, 123)
+        self.assertEqual(123, in_plug.value)
+    # end def test_assign_initial_value_to_input_plug
 # end class TestPlugs
 
 

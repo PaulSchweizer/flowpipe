@@ -40,10 +40,23 @@ class Engine(object):
     @staticmethod
     def evaluate(nodes):
         """Evaluate the dirty nodes in the graph."""
-        for node in Engine.evaluation_sequence(nodes):
-            if node.is_dirty:
+        sequence = Engine.evaluation_sequence(nodes)
+        dirty_nodes = Engine.get_dirty_nodes(sequence)
+        while dirty_nodes:
+            for node in dirty_nodes:
                 node.evaluate()
-            # end if
-        # end for
+            dirty_nodes = Engine.get_dirty_nodes(sequence)
     # end def evaluate
+
+    @staticmethod
+    def get_dirty_nodes(nodes):
+        """Test whether any of the given nodes needs evaluation."""
+        return [n for n in nodes if n.is_dirty]
+    # end def get_dirty_nodes
+
+    @staticmethod
+    def graph_is_dirty(nodes):
+        """Test whether any of the given nodes needs evaluation."""
+        return True in [n.is_dirty for n in nodes]
+    # end def graph_is_dirty
 # end class Engine

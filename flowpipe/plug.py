@@ -138,7 +138,7 @@ class OutputPlug(IPlug):
 class InputPlug(IPlug):
     """Receives data from an OutputPlug."""
 
-    def __init__(self, name, node):
+    def __init__(self, name, node, value=None):
         """Initialize the InputPlug.
 
         Can be connected to an OutputPlug.
@@ -147,6 +147,8 @@ class InputPlug(IPlug):
             node (INode): The Node holding the Plug.
         """
         super(InputPlug, self).__init__(name, node, (OutputPlug, ))
+        self.value = value
+        self.is_dirty = False
         self.node.inputs[self.name] = self
     # end def __init__
 
