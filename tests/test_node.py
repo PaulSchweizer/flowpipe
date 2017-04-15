@@ -32,7 +32,7 @@ class TestPlugs(unittest.TestCase):
     """Test the INode."""
 
     def test_downstream_upstream_nodes(self):
-        """@todo documentation for test_downstream_upstream_nodes."""
+        """Verify downstream and upstream Nodes."""
         node_a = SquareNode('NodeA')
         node_b = SquareNode('NodeB')
         node_c = SquareNode('NodeC')
@@ -48,7 +48,7 @@ class TestPlugs(unittest.TestCase):
     # end def test_downstream_upstream_nodes
 
     def test_evaluate(self):
-        """@todo documentation for test_evaluate."""
+        """Evaluate the Node will push the new data to it's output."""
         node = SquareNode()
         test_input = 2
         self.assertIsNone(node.outputs['out'].value)
@@ -58,7 +58,7 @@ class TestPlugs(unittest.TestCase):
     # end def test_evaluate
 
     def test_dirty_depends_on_inputs(self):
-        """@todo documentation for test_dirty_depends_on_inputs."""
+        """Dirty status of a Node depends on it's Plugs."""
         node = SquareNode()
         self.assertFalse(node.is_dirty)
         node.inputs['in'].value = 2
@@ -66,7 +66,7 @@ class TestPlugs(unittest.TestCase):
     # end def test_dirty_depends_on_inputs
 
     def test_evaluate_sets_all_inputs_clean(self):
-        """@todo documentation for test_evaluate_sets_all_inputs_clean."""
+        """After the evaluation, the inputs are considered clean."""
         node = SquareNode()
         node.inputs['in'].value = 2
         self.assertTrue(node.is_dirty)

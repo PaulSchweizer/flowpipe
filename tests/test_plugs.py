@@ -21,8 +21,8 @@ class TestPlugs(unittest.TestCase):
     def test_connect_and_dicsonnect_nodes(self):
         """Connect and disconnect nodes."""
         n = TestNode()
-        out_plug_a = OutputPlug('in', n)
-        out_plug_b = OutputPlug('in', n)
+        out_plug_a = OutputPlug('out', n)
+        out_plug_b = OutputPlug('out', n)
         in_plug_a = InputPlug('in', n)
         in_plug_b = InputPlug('in', n)
 

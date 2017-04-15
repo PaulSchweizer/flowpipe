@@ -4,7 +4,7 @@ __all__ = ['INode']
 
 
 class INode(object):
-    """Holds inputs, outputs and a method for computing."""
+    """Holds input and output Plugs and a method for computing."""
 
     __metaclass__ = ABCMeta
 
@@ -12,7 +12,7 @@ class INode(object):
         """Initialize the input and output dictionaries and the name.
 
         Args:
-            name (str): If not provided, the class name is taken.
+            name (str): If not provided, the class name is used.
         """
         self.name = name if name is not None else self.__class__.__name__
         self.inputs = dict()
@@ -20,7 +20,7 @@ class INode(object):
     # end def __init__
 
     def __unicode__(self):
-        """@todo documentation for __unicode__."""
+        """Show all input and output Plugs."""
         pretty = '--- ' + self.name + ' -----------------------------'
         if self.__doc__ is not None:
             pretty += '\n\t{}'.format(self.__doc__)
@@ -31,51 +31,51 @@ class INode(object):
     # end def __unicode__
 
     def __str__(self):
-        """@todo documentation for __str__."""
-        return unicode(self).encode('utf-8')
+        """Show all input and output Plugs."""
+        return self.__unicode__().encode('utf-8')
     # end def __str__
 
     @property
     def is_dirty(self):
-        """@todo documentation for is_dirty."""
+        """Whether any of the input Plug data has changed and is dirty."""
         for input_ in self.inputs.values():
             if input_.is_dirty:
                 return True
-        # end for
         return False
     # end def is_dirty
 
     @property
     def upstream_nodes(self):
-        """@todo documentation for upstream_nodes."""
+        """The upper level Nodes that feed inputs into this Node."""
         upstream_nodes = list()
         for input_ in self.inputs.values():
             upstream_nodes += [c.node for c in input_.connections]
-        # end for
         return list(set(upstream_nodes))
     # end def upstream_nodes
 
     @property
     def downstream_nodes(self):
-        """@todo documentation for downstream_nodes."""
+        """The next level Nodes that this Node feed outputs into."""
         downstream_nodes = list()
         for output in self.outputs.values():
             downstream_nodes += [c.node for c in output.connections]
-        # end for
         return list(set(downstream_nodes))
     # end def downstream_nodes
 
     def evaluate(self):
-        """@todo documentation for evaluate."""
+        """Compute this Node, log it and clean the input Plugs."""
         self.compute()
         for input_ in self.inputs.values():
             input_.is_dirty = False
-        # end for
         print(self)
     # end def evaluate
 
     @abstractmethod
     def compute(self):
+        """Implement the data manipulation in the subclass.
+
+        Also update the output Plugs through this function.
+        """
         pass
     # end def compute
 # end class INode
