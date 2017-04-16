@@ -1,5 +1,7 @@
 """Nodes manipulate incoming data and provide the outgoing data."""
 from abc import ABCMeta, abstractmethod
+
+from flowpipe.log_observer import LogObserver
 __all__ = ['INode']
 
 
@@ -67,7 +69,7 @@ class INode(object):
         self.compute()
         for input_ in self.inputs.values():
             input_.is_dirty = False
-        print(self)
+        LogObserver.push_message(self)
     # end def evaluate
 
     @abstractmethod
