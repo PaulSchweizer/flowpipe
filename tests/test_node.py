@@ -60,7 +60,11 @@ class TestPlugs(unittest.TestCase):
     def test_dirty_depends_on_inputs(self):
         """Dirty status of a Node depends on it's Plugs."""
         node = SquareNode()
+        self.assertTrue(node.is_dirty)
+
+        node.inputs['in'].is_dirty = False
         self.assertFalse(node.is_dirty)
+
         node.inputs['in'].value = 2
         self.assertTrue(node.is_dirty)
     # end def test_dirty_depends_on_inputs

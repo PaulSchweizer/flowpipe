@@ -107,8 +107,10 @@ class TestEngine(unittest.TestCase):
         n1.outputs['out'] >> n3.inputs['in1']
         n2.outputs['out'] >> n3.inputs['in2']
 
-        n1.outputs['out'].value = 2
-        n2.outputs['out'].value = 3
+        n1.inputs['in1'].value = 1
+        n1.inputs['in2'].value = 2
+        n2.inputs['in1'].value = 1
+        n2.inputs['in2'].value = 3
 
         nodes = [n1, n2, n3]
 
@@ -116,7 +118,7 @@ class TestEngine(unittest.TestCase):
         self.assertEqual(6, n3.outputs['out'].value)
 
         # Change input value from 3 to 4, result will be 8
-        n2.outputs['out'].value = 4
+        n2.inputs['in2'].value = 4
         Engine.evaluate(nodes)
         self.assertEqual(8, n3.outputs['out'].value)
     # end def test_simple_evaluate

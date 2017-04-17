@@ -58,7 +58,7 @@ class TestPlugs(unittest.TestCase):
         out_plug = OutputPlug('in', n)
         in_plug = InputPlug('in', n)
 
-        self.assertFalse(in_plug.is_dirty)
+        in_plug.is_dirty = False
         out_plug >> in_plug
         self.assertTrue(in_plug.is_dirty)
 
@@ -72,6 +72,7 @@ class TestPlugs(unittest.TestCase):
         n = TestNode()
         in_plug = InputPlug('in', n)
 
+        in_plug.is_dirty = False
         self.assertFalse(in_plug.is_dirty)
         in_plug.value = 'NewValue'
         self.assertTrue(in_plug.is_dirty)
