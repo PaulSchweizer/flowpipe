@@ -1,4 +1,5 @@
 """Evaluate a graph of Nodes."""
+from __future__ import print_function
 __all__ = ['Engine']
 
 
@@ -12,13 +13,11 @@ class Engine(object):
 
         for node in nodes:
             Engine._sort_node(node, levels, level=0)
-        # end for
 
         sequence = list()
         for level in sorted(list(set(levels.values()))):
             for node in [n for n in levels if levels[n] == level]:
                 sequence.append(node)
-        # end for
 
         return sequence
     # end def evaluation_sequence
@@ -34,7 +33,6 @@ class Engine(object):
 
         for downstream_node in node.downstream_nodes:
             Engine._sort_node(downstream_node, parent, level=level + 1)
-        # end for
     # end def _sort_node
 
     @staticmethod

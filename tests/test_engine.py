@@ -22,7 +22,7 @@ class TestNode(INode):
 
 
 class TestEngine(unittest.TestCase):
-    """Test the Plugs."""
+    """Test the Engine."""
 
     def test_linar_evaluation_sequence(self):
         """Connect and disconnect nodes."""

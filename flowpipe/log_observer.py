@@ -2,6 +2,7 @@
 
 Allows to easily pipe logs and messages to a UI.
 """
+from __future__ import print_function
 import logging
 
 from flowpipe import logger

@@ -1,4 +1,5 @@
 """Nodes manipulate incoming data and provide the outgoing data."""
+from __future__ import print_function
 from abc import ABCMeta, abstractmethod
 
 from flowpipe.log_observer import LogObserver

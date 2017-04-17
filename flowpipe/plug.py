@@ -1,5 +1,7 @@
 """Plugs are ins and outs for Nodes through which they exchange data."""
+from __future__ import print_function
 from abc import abstractmethod
+__all__ = ['OutputPlug', 'InputPlug']
 
 
 class IPlug(object):
@@ -148,7 +150,7 @@ class InputPlug(IPlug):
         """
         super(InputPlug, self).__init__(name, node, (OutputPlug, ))
         self.value = value
-        self.is_dirty = False
+        self.is_dirty = True
         self.node.inputs[self.name] = self
     # end def __init__
 
