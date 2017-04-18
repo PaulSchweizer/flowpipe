@@ -72,7 +72,7 @@ class IPlug(object):
         return self._is_dirty
     # end def is_dirty
 
-    @value.setter
+    @is_dirty.setter
     def is_dirty(self, status):
         """Set the Plug dirty informs the node this Plug belongs to."""
         self._is_dirty = status
