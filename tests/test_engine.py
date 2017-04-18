@@ -1,9 +1,11 @@
 from __future__ import print_function
 
+import mock
 import unittest
 
 from flowpipe.node import INode
 from flowpipe.plug import InputPlug, OutputPlug
+from flowpipe.graph import Graph
 from flowpipe.engine import Engine
 
 
@@ -21,81 +23,76 @@ class TestNode(INode):
         self.outputs['out'].value = result
 
 
+class TestCounterNode(INode):
+
+    def __init__(self, name=None):
+        super(TestCounterNode, self).__init__(name)
+        OutputPlug('out', self)
+        InputPlug('in1', self)
+        InputPlug('in2', self)
+        self.counter = 0
+
+    def compute(self):
+        """Multiply the two inputs."""
+        self.counter += 1
+
+
 class TestEngine(unittest.TestCase):
     """Test the Engine."""
 
-    def test_linar_evaluation_sequence(self):
-        """Connect and disconnect nodes."""
-        n1 = TestNode('n1')
-        n2 = TestNode('n2')
-        n3 = TestNode('n3')
-
-        n1.outputs['out'] >> n2.inputs['in1']
-        n2.outputs['out'] >> n3.inputs['in1']
-
-        seq = [s.name for s in Engine.evaluation_sequence([n2, n1, n3])]
-
-        self.assertEqual(['n1', 'n2', 'n3'], seq)
-    # end def test_linar_evaluation_sequence
-
-    def test_branching_evaluation_sequence(self):
-        """Connect and disconnect nodes."""
-        n1 = TestNode('n1')
-        n2 = TestNode('n2')
-        n3 = TestNode('n3')
-
-        n1.outputs['out'] >> n2.inputs['in1']
+    def test_evaluate_entire_graph(self):
+        """Evaluate the entire graph ignoring the dirty status."""
+        n1 = TestCounterNode('n1')
+        n2 = TestCounterNode('n2')
+        n3 = TestCounterNode('n3')
         n1.outputs['out'] >> n3.inputs['in1']
+        n2.outputs['out'] >> n3.inputs['in2']
+        graph = Graph([n1, n2, n3])
 
-        seq = [s.name for s in Engine.evaluation_sequence([n3, n1, n2])]
+        # All nodes are dirty
+        for n in graph.nodes:
+            self.assertTrue(n.is_dirty)
 
-        self.assertEqual('n1', seq[0])
-        self.assertIn('n2', seq[1:])
-        self.assertIn('n3', seq[1:])
-    # end def test_branching_evaluation_sequence
+        # Evaluate all
+        Engine.evaluate_entire_graph(graph)
+        self.assertEqual(3, sum([n.counter for n in graph.nodes]))
 
-    def test_complex_branching_evaluation_sequence(self):
-        """Connect and disconnect nodes."""
-        # The Nodes
-        start = TestNode('start')
-        n11 = TestNode('11')
-        n12 = TestNode('12')
-        n21 = TestNode('21')
-        n31 = TestNode('31')
-        n32 = TestNode('32')
-        n33 = TestNode('33')
-        end = TestNode('end')
+        # All nodes are now clean
+        for n in graph.nodes:
+            self.assertFalse(n.is_dirty)
 
-        # Connect them
-        start.outputs['out'] >> n11.inputs['in1']
-        start.outputs['out'] >> n21.inputs['in1']
-        start.outputs['out'] >> n31.inputs['in1']
+        # Evaluate all
+        Engine.evaluate_entire_graph(graph)
+        self.assertEqual(6, sum([n.counter for n in graph.nodes]))
+    # end def test_evaluate_entire_graph
 
-        n31.outputs['out'] >> n32.inputs['in1']
-        n32.outputs['out'] >> n33.inputs['in1']
+    def test_evaluate_dirty_nodes(self):
+        """@todo documentation for test_evaluate_dirty_nodes."""
+        n1 = TestCounterNode('n1')
+        n2 = TestCounterNode('n2')
+        n3 = TestCounterNode('n3')
+        n1.outputs['out'] >> n3.inputs['in1']
+        n2.outputs['out'] >> n3.inputs['in2']
+        graph = Graph([n1, n2, n3])
 
-        n11.outputs['out'] >> n12.inputs['in1']
-        n33.outputs['out'] >> n12.inputs['in2']
+        # All nodes are dirty
+        for n in graph.nodes:
+            self.assertTrue(n.is_dirty)
 
-        n12.outputs['out'] >> end.inputs['in1']
-        n21.outputs['out'] >> end.inputs['in2']
+        # Evaluate all
+        Engine.evaluate_dirty_nodes(graph)
+        self.assertEqual(3, sum([n.counter for n in graph.nodes]))
 
-        seq = [s.name for s in Engine.evaluation_sequence([start, n11,
-                                                          n12, n21, n31,
-                                                          n32, n33, end])]
+        # All nodes are now clean
+        for n in graph.nodes:
+            self.assertFalse(n.is_dirty)
 
-        self.assertEqual('start', seq[0])
+        graph.nodes[1].inputs['in1'].is_dirty = True
 
-        self.assertIn('11', seq[1:4])
-        self.assertIn('21', seq[1:4])
-        self.assertIn('31', seq[1:4])
-
-        self.assertIn('32', seq[4:6])
-        self.assertIn('33', seq[4:6])
-
-        self.assertEqual('12', seq[-2])
-        self.assertEqual('end', seq[-1])
-    # end def test_complex_branching_evaluation_sequence
+        # Evaluate all
+        Engine.evaluate_dirty_nodes(graph)
+        self.assertEqual(4, sum([n.counter for n in graph.nodes]))
+    # end def test_evaluate_dirty_nodes
 
     def test_simple_evaluate(self):
         """Evaluate a simple graph of nodes."""
@@ -112,14 +109,14 @@ class TestEngine(unittest.TestCase):
         n2.inputs['in1'].value = 1
         n2.inputs['in2'].value = 3
 
-        nodes = [n1, n2, n3]
+        graph = Graph([n1, n2, n3])
 
-        Engine.evaluate(nodes)
+        Engine.evaluate_dirty_nodes(graph)
         self.assertEqual(6, n3.outputs['out'].value)
 
         # Change input value from 3 to 4, result will be 8
         n2.inputs['in2'].value = 4
-        Engine.evaluate(nodes)
+        Engine.evaluate_dirty_nodes(graph)
         self.assertEqual(8, n3.outputs['out'].value)
     # end def test_simple_evaluate
 
@@ -151,9 +148,7 @@ class TestEngine(unittest.TestCase):
         r2.outputs['out'] >> result.inputs['in1']
         r3.outputs['out'] >> result.inputs['in2']
 
-        nodes = [v11, v12, r1, v21, r2, v31, v32, r3, result]
-
-        seq = [s.name for s in Engine.evaluation_sequence(nodes)]
+        graph = Graph([v11, v12, r1, v21, r2, v31, v32, r3, result])
 
         # Calculate an initial value
         v11.inputs['in1'].value = 1
@@ -171,11 +166,11 @@ class TestEngine(unittest.TestCase):
         v32.inputs['in1'].value = 1
         v32.inputs['in2'].value = 6
 
-        Engine.evaluate(nodes)
+        Engine.evaluate_dirty_nodes(graph)
         self.assertEqual(24*30, result.outputs['out'].value)
 
         v11.inputs['in2'].value = 3
-        Engine.evaluate(nodes)
+        Engine.evaluate_dirty_nodes(graph)
         self.assertEqual(36*30, result.outputs['out'].value)
     # end def test_evaluate_only_dirty_nodes
 
