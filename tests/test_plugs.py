@@ -54,9 +54,10 @@ class TestPlugs(unittest.TestCase):
 
     def test_change_connections_sets_plug_dirty(self):
         """Connecting and disconnecting sets the plug dirty."""
-        n = TestNode()
-        out_plug = OutputPlug('in', n)
-        in_plug = InputPlug('in', n)
+        n1 = TestNode()
+        n2 = TestNode()
+        out_plug = OutputPlug('in', n1)
+        in_plug = InputPlug('in', n2)
 
         in_plug.is_dirty = False
         out_plug >> in_plug
