@@ -16,10 +16,7 @@ class Engine(object):
     @staticmethod
     def evaluate_dirty_nodes(graph):
         """Evaluate the dirty nodes in the graph."""
-        dirty_nodes = graph.dirty_nodes
-        while dirty_nodes:
-            for node in dirty_nodes:
-                node.evaluate()
-            dirty_nodes = graph.dirty_nodes
+        for node in graph.dirty_nodes:
+            node.evaluate()
     # end def evaluate_dirty_nodes
 # end class Engine
