@@ -76,7 +76,8 @@ class IPlug(object):
     def is_dirty(self, status):
         """Set the Plug dirty informs the node this Plug belongs to."""
         self._is_dirty = status
-        self.node.input_plug_set_dirty(self)
+        if not status:
+            self.node.on_input_plug_set_dirty(self)
     # end def is_dirty
     
     @abstractmethod
