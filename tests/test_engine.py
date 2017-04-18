@@ -89,9 +89,9 @@ class TestEngine(unittest.TestCase):
 
         graph.nodes[1].inputs['in1'].is_dirty = True
 
-        # Evaluate all
+        # Evaluate only the dirty nodes
         Engine.evaluate_dirty_nodes(graph)
-        self.assertEqual(4, sum([n.counter for n in graph.nodes]))
+        self.assertEqual(5, sum([n.counter for n in graph.nodes]))
     # end def test_evaluate_dirty_nodes
 
     def test_simple_evaluate(self):
