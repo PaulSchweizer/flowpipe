@@ -142,7 +142,7 @@ class OutputPlug(IPlug):
         Set both participating Plugs dirty.
         """
         if plug.node is self.node:
-            raise Excpetion('Can\'t connect Plugs that are part of the same Node.')
+            raise Exception('Can\'t connect Plugs that are part of the same Node.')
             
         if plug not in self.connections:
             self.connections.append(plug)
@@ -184,6 +184,9 @@ class InputPlug(IPlug):
 
         Set both participating Plugs dirty.
         """
+        if plug.node is self.node:
+            raise Exception('Can\'t connect Plugs that are part of the same Node.')
+        
         self.connections = [plug]
         self.is_dirty = True
         if self not in plug.connections:
