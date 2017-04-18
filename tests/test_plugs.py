@@ -20,11 +20,12 @@ class TestPlugs(unittest.TestCase):
 
     def test_connect_and_dicsonnect_nodes(self):
         """Connect and disconnect nodes."""
-        n = TestNode()
-        out_plug_a = OutputPlug('out', n)
-        out_plug_b = OutputPlug('out', n)
-        in_plug_a = InputPlug('in', n)
-        in_plug_b = InputPlug('in', n)
+        n1 = TestNode()
+        n2 = TestNode()
+        out_plug_a = OutputPlug('out', n1)
+        out_plug_b = OutputPlug('out', n1)
+        in_plug_a = InputPlug('in', n2)
+        in_plug_b = InputPlug('in', n2)
 
         # Connect the out to the in
         out_plug_a >> in_plug_a
@@ -81,9 +82,10 @@ class TestPlugs(unittest.TestCase):
 
     def test_set_output_pushes_value_to_connected_input(self):
         """OutPlugs push their values to their connected input plugs."""
-        n = TestNode()
-        out_plug = OutputPlug('in', n)
-        in_plug = InputPlug('in', n)
+        n1 = TestNode()
+        n2 = TestNode()
+        out_plug = OutputPlug('in', n1)
+        in_plug = InputPlug('in', n2)
 
         out_plug.value = 'OldValue'
         self.assertNotEqual(in_plug.value, out_plug.value)
