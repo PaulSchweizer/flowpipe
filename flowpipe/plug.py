@@ -25,7 +25,7 @@ class IPlug(object):
         self.connections = list()
         self.accepted_plugs = accepted_plugs
         self._value = None
-        self.is_dirty = False
+        self._is_dirty = True
     # end def __init__
 
     def __str__(self):
@@ -52,7 +52,7 @@ class IPlug(object):
         if isinstance(other, self.accepted_plugs):
             self.disconnect(other)
     # end def __rshift__
-
+    
     @property
     def value(self):
         """Access to the value on this Plug."""
@@ -66,6 +66,19 @@ class IPlug(object):
         self.is_dirty = True
     # end def value
 
+    @property
+    def is_dirty(self):
+        """Access to the dirty status on this Plug."""
+        return self._is_dirty
+    # end def is_dirty
+
+    @value.setter
+    def is_dirty(self, status):
+        """Set the Plug dirty informs the node this Plug belongs to."""
+        self._is_dirty = status
+        self.node.input_plug_set_dirty(self)
+    # end def is_dirty
+    
     @abstractmethod
     def connect(self, plug):
         """Has to be implemented in the subclass."""
