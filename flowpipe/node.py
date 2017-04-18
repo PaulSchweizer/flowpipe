@@ -81,4 +81,15 @@ class INode(object):
         """
         pass
     # end def compute
+    
+    def _input_plug_set_dirty(self, input_plug):
+        """Propagate the dirty state to the connected downstream nodes. 
+        
+        Args:
+            input_plug (IPlug): The Plug that got set dirty.
+        """
+        for output_plug in self.outputs.values():
+            for connected_plug in output_plug.connections:
+                connected_plug.is_dirty = True
+    # end def _input_plug_set_dirty
 # end class INode
