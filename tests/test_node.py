@@ -81,7 +81,7 @@ class TestPlugs(unittest.TestCase):
     def test_cannot_connect_node_to_itself(self):
         """A node can not create a cycle by connecting to itself."""
         node = SquareNode()
-        self.assertRaises(Exception):
+        with self.assertRaises(Exception):
             node.outputs['out'] >> node.inputs['in']
     # end def test_cannot_connect_node_to_itself
 # end class TestPlugs
