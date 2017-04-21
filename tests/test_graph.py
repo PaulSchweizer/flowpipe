@@ -137,6 +137,25 @@ class TestGraph(unittest.TestCase):
 # end class TestGraph
 
 
+class TestSubGraphs(unittest.TestCase):
+    """Test using Graphs like nodes, as subgraphs."""
+    
+    def test_dynamic_graph_inputs(self):
+        """A Graph can accept inputs, just like a Node.
+        
+        This creates them dynamically.
+        """
+        g1_start = TestNode('g1_start')
+        g1_node = TestNode('g1_node') 
+        g1_start.outputs['out'] >> g1_node.inputs['in1']
+        graph1 = Graph([g1_start, g1_node])
+           
+        # Adding Input Plugs
+        InputPlug('in', graph1)
+
+    # def test_dynamic_graph_inputs
+# end class TestSubGraphs
+
 if __name__ == '__main__':
     unittest.main()
 # end if
