@@ -15,11 +15,11 @@ class TestNode(INode):
         InputPlug('in1', self, 0)
         InputPlug('in2', self, 0)
 
-    def compute(self):
+    def compute(self, in1, in2):
         """Multiply the two inputs."""
-        result = self.inputs['in1'].value * self.inputs['in2'].value
+        print(self.name, in1, in2)
+        result = in1 * in2
         self.outputs['out'].value = result
-        print(result)
 
 
 class TestGraph(unittest.TestCase):
@@ -164,7 +164,7 @@ class TestSubGraphs(unittest.TestCase):
         graph2.outputs['out'] = g2_node.outputs['out']
 
         # Connecting Input Plugs
-        graph2.inputs['in'] >> g2_start.inputs['in1']
+        # graph2.inputs['in'] >> g2_start.inputs['in1']
         graph1.outputs['out'] >> graph2.inputs['in']
         g2_node.outputs['out'] >> graph2.outputs['out']
 
@@ -178,6 +178,8 @@ class TestSubGraphs(unittest.TestCase):
         g1_node.inputs['in2'].value = 1
         g2_start.inputs['in2'].value = 1
         g2_node.inputs['in2'].value = 1
+
+        # print([s.name for s in graphGraph.evaluation_sequence])
 
         graph.evaluate()
         self.assertEqual(6, g2_node.outputs['out'].value)

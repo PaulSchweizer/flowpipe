@@ -67,24 +67,25 @@ class INode(object):
 
     def evaluate(self):
         """Compute this Node, log it and clean the input Plugs."""
-        self.compute()
+        inputs = {name: plug.value for name, plug in self.inputs.items()}
+        self.compute(**inputs)
         for input_ in self.inputs.values():
             input_.is_dirty = False
         LogObserver.push_message(self)
     # end def evaluate
 
     @abstractmethod
-    def compute(self):
+    def compute(self, **args):
         """Implement the data manipulation in the subclass.
 
         Also update the output Plugs through this function.
         """
         pass
     # end def compute
-    
+
     def on_input_plug_set_dirty(self, input_plug):
-        """Propagate the dirty state to the connected downstream nodes. 
-        
+        """Propagate the dirty state to the connected downstream nodes.
+
         Args:
             input_plug (IPlug): The Plug that got set dirty.
         """

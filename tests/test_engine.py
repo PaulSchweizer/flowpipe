@@ -17,9 +17,9 @@ class TestNode(INode):
         InputPlug('in1', self, 0)
         InputPlug('in2', self, 0)
 
-    def compute(self):
+    def compute(self, in1, in2):
         """Multiply the two inputs."""
-        result = self.inputs['in1'].value * self.inputs['in2'].value
+        result = in1 * in2
         self.outputs['out'].value = result
 
 
@@ -32,7 +32,7 @@ class TestCounterNode(INode):
         InputPlug('in2', self)
         self.counter = 0
 
-    def compute(self):
+    def compute(self, **args):
         """Multiply the two inputs."""
         self.counter += 1
 

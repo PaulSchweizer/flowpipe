@@ -35,6 +35,18 @@ class Graph(INode):
     # end def dirty_nodes
 
     @property
+    def all_nodes(self):
+        """Return all nodes, also from subgraphs."""
+        all_nodes = list()
+        for node in self.nodes:
+            if isinstance(node, INode):
+                all_nodes.append(node)
+            elif isinstance(node, Graph):
+                all_nodes += node.nodes
+        return all_nodes
+    # end def nodes
+
+    @property
     def evaluation_grid(self):
         """The nodes sorted into a 2D grid based on their dependency.
 
@@ -46,7 +58,8 @@ class Graph(INode):
             (list of list of INode): Each sub list represents a row.
         """
         levels = dict()
-        for node in self.nodes:
+
+        for node in self.all_nodes:
             self._sort_node(node, levels, level=0)
 
         grid = list()
@@ -70,7 +83,7 @@ class Graph(INode):
         return [node for row in self.evaluation_grid for node in row]
     # end def evaluation_sequence
 
-    def compute(self):
+    def compute(self, **args):
         """Evaluate all sub nodes."""
         for node in self.evaluation_sequence:
             node.evaluate()
