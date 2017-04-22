@@ -47,7 +47,7 @@ class TestEngine(unittest.TestCase):
         n3 = TestCounterNode('n3')
         n1.outputs['out'] >> n3.inputs['in1']
         n2.outputs['out'] >> n3.inputs['in2']
-        graph = Graph([n1, n2, n3])
+        graph = Graph(nodes=[n1, n2, n3])
 
         # All nodes are dirty
         for n in graph.nodes:
@@ -67,13 +67,13 @@ class TestEngine(unittest.TestCase):
     # end def test_evaluate_entire_graph
 
     def test_evaluate_dirty_nodes(self):
-        """@todo documentation for test_evaluate_dirty_nodes."""
+        """Only evaluate the dirty nodes."""
         n1 = TestCounterNode('n1')
         n2 = TestCounterNode('n2')
         n3 = TestCounterNode('n3')
         n1.outputs['out'] >> n3.inputs['in1']
         n2.outputs['out'] >> n3.inputs['in2']
-        graph = Graph([n1, n2, n3])
+        graph = Graph(nodes=[n1, n2, n3])
 
         # All nodes are dirty
         for n in graph.nodes:
@@ -109,7 +109,7 @@ class TestEngine(unittest.TestCase):
         n2.inputs['in1'].value = 1
         n2.inputs['in2'].value = 3
 
-        graph = Graph([n1, n2, n3])
+        graph = Graph(nodes=[n1, n2, n3])
 
         Engine.evaluate_dirty_nodes(graph)
         self.assertEqual(6, n3.outputs['out'].value)
@@ -148,7 +148,7 @@ class TestEngine(unittest.TestCase):
         r2.outputs['out'] >> result.inputs['in1']
         r3.outputs['out'] >> result.inputs['in2']
 
-        graph = Graph([v11, v12, r1, v21, r2, v31, v32, r3, result])
+        graph = Graph(nodes=[v11, v12, r1, v21, r2, v31, v32, r3, result])
 
         # Calculate an initial value
         v11.inputs['in1'].value = 1

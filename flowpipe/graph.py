@@ -1,15 +1,26 @@
 """A Graph of Nodes."""
 from __future__ import print_function
+
+from flowpipe.node import INode
 __all__ = ['Graph']
 
 
-class Graph(object):
+class Graph(INode):
     """A graph of Nodes."""
 
-    def __init__(self, nodes=list()):
+    def __init__(self, name=None, nodes=list()):
         """Initialize the list of Nodes."""
+        super(Graph, self).__init__(name=name)
         self.nodes = nodes
     # end def __init__
+
+    def __unicode__(self):
+        """Show all input and output Plugs."""
+        pretty = super(Graph, self).__unicode__()
+        for node in self.nodes:
+            pretty += u'\n\t{}'.format(node)
+        return pretty
+    # end def __unicode__
 
     @property
     def is_dirty(self):
@@ -58,6 +69,12 @@ class Graph(object):
         """
         return [node for row in self.evaluation_grid for node in row]
     # end def evaluation_sequence
+
+    def compute(self):
+        """Evaluate all sub nodes."""
+        for node in self.evaluation_sequence:
+            node.evaluate()
+    # end def compute
 
     def _sort_node(self, node, parent, level):
         """Sort the node into the correct level."""

@@ -52,7 +52,7 @@ class IPlug(object):
         if isinstance(other, self.accepted_plugs):
             self.disconnect(other)
     # end def __rshift__
-    
+
     @property
     def value(self):
         """Access to the value on this Plug."""
@@ -79,7 +79,7 @@ class IPlug(object):
         if not status:
             self.node.on_input_plug_set_dirty(self)
     # end def is_dirty
-    
+
     @abstractmethod
     def connect(self, plug):
         """Has to be implemented in the subclass."""
@@ -117,7 +117,7 @@ class OutputPlug(IPlug):
         """Show this Plug's type and it's connections."""
         pretty = u'\u2190 {0} (OUT)'.format(self.name)
         pretty += u''.join([u'\n\t\t\u2192 {0}.{1}'.format(
-            c.name, c.node.name) for c in self.connections])
+            c.node.name, c.name) for c in self.connections])
         return pretty
     # end def __unicode__
 
@@ -143,7 +143,7 @@ class OutputPlug(IPlug):
         """
         if plug.node is self.node:
             raise Exception('Can\'t connect Plugs that are part of the same Node.')
-            
+
         if plug not in self.connections:
             self.connections.append(plug)
             plug.value = self.value
@@ -175,7 +175,7 @@ class InputPlug(IPlug):
         """Show this Plug's type and it's connections."""
         pretty = u'\u2192 {0} (IN) {1}'.format(self.name, self.is_dirty)
         pretty += u''.join([u'\n\t\t\u2190 {0}.{1}'.format(
-                c.name, c.node.name) for c in self.connections])
+                c.node.name, c.name) for c in self.connections])
         return pretty
     # end def __unicode__
 
@@ -186,7 +186,7 @@ class InputPlug(IPlug):
         """
         if plug.node is self.node:
             raise Exception('Can\'t connect Plugs that are part of the same Node.')
-        
+
         self.connections = [plug]
         self.is_dirty = True
         if self not in plug.connections:
