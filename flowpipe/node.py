@@ -68,10 +68,17 @@ class INode(object):
     def evaluate(self):
         """Compute this Node, log it and clean the input Plugs."""
         inputs = {name: plug.value for name, plug in self.inputs.items()}
-        self.compute(**inputs)
+
+        # Compute and redirect the output to the output plugs
+        outputs = self.compute(**inputs) or dict()
+        for name, value in outputs.items():
+            self.outputs[name].value = value
+
+        # Set the inputs clean
         for input_ in self.inputs.values():
             input_.is_dirty = False
-        LogObserver.push_message(self)
+
+        LogObserver.push_message('Computed: {}'.format(self.name))
     # end def evaluate
 
     @abstractmethod

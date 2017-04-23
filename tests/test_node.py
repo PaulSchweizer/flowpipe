@@ -23,7 +23,7 @@ class SquareNode(INode):
 
     def compute(self, in1):
         """Square the given input and send to the output."""
-        self.outputs['out'].value = in1**2
+        return {'out': in1**2}
     # end def compute
 # end class SquareNode
 

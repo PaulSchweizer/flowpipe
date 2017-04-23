@@ -14,8 +14,8 @@ class ValueNode(INode):
         OutputPlug('value', self)
     # end def __init__
 
-    def compute(self):
+    def compute(self, value):
         """Propagate the input value to the output."""
-        self.outputs['value'].value = self.inputs['value'].value
+        self.outputs['value'].value = value
     # end def compute
 # end class ValueNode

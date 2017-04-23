@@ -17,9 +17,7 @@ class TestNode(INode):
 
     def compute(self, in1, in2):
         """Multiply the two inputs."""
-        print(self.name, in1, in2)
-        result = in1 * in2
-        self.outputs['out'].value = result
+        return {'out': in1 * in2}
 
 
 class TestGraph(unittest.TestCase):
