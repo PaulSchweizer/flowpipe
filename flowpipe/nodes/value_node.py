@@ -16,6 +16,6 @@ class ValueNode(INode):
 
     def compute(self, value):
         """Propagate the input value to the output."""
-        self.outputs['value'].value = value
+        return {'value': value}
     # end def compute
 # end class ValueNode
