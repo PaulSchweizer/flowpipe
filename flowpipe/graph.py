@@ -17,8 +17,8 @@ class Graph(INode):
     def __unicode__(self):
         """Show all input and output Plugs."""
         pretty = super(Graph, self).__unicode__()
-        for node in self.nodes:
-            pretty += u'\n\t{}'.format(node)
+        for row in self.evaluation_grid:
+            pretty += '\n' + ' | '.join([n.name for n in row])
         return pretty
     # end def __unicode__
 
@@ -39,10 +39,10 @@ class Graph(INode):
         """Return all nodes, also from subgraphs."""
         all_nodes = list()
         for node in self.nodes:
-            if isinstance(node, INode):
-                all_nodes.append(node)
-            elif isinstance(node, Graph):
+            if isinstance(node, Graph):
                 all_nodes += node.nodes
+            elif isinstance(node, INode):
+                all_nodes.append(node)
         return all_nodes
     # end def nodes
 

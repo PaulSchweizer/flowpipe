@@ -179,8 +179,6 @@ class TestSubGraphs(unittest.TestCase):
         g2_start.inputs['in2'].value = 1
         g2_node.inputs['in2'].value = 1
 
-        # print([s.name for s in graphGraph.evaluation_sequence])
-
         graph.evaluate()
         self.assertEqual(6, g2_node.outputs['out'].value)
     # def test_dynamic_graph_inputs
