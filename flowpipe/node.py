@@ -41,7 +41,7 @@ class INode(object):
             pretty += 'o {input_:{width}}|'.format(input_=input_, width=width-1)
             
         # Outputs
-        for i, output in enumerate(outputs):
+        for i, output in enumerate(self.outputs.keys()):
             pretty += '\n{offset}|{output:>{width}} o'.format(offset=offset, output=output, width=width-1)
             if self.outputs[output].connections:
                 pretty += '-->'
