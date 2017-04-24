@@ -120,6 +120,12 @@ class TestNode(unittest.TestCase):
         with self.assertRaises(Exception):
             node.outputs['out'] >> node.inputs['in1']
     # end def test_cannot_connect_node_to_itself
+    
+    def test_string_representation(self):
+        """Print the node."""
+        node = SquareNode()
+        print(node)
+    # def test_string_representation
 # end class TestNode
 
 
