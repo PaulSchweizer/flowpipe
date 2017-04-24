@@ -24,12 +24,25 @@ class INode(object):
 
     def __unicode__(self):
         """Show all input and output Plugs."""
-        pretty = '--- ' + self.name + ' -----------------------------'
-        if self.__doc__ is not None:
-            pretty += '\n\t{}'.format(self.__doc__)
-        pretty += u''.join([u'\n\t{}'.format(i) for i in self.inputs.values()])
-        pretty += u''.join([u'\n\t{}'.format(i)
-                            for i in self.outputs.values()])
+        offset = ''
+        if [i for i self.inputs.values() if i.connections]:
+            offset = ' '*3
+        width = len(max(self.inputs.keys() + self.outputs.keys() + [self.name], key=len)) + 2
+        pretty = offset + '+' + '-'*width + '+'
+        pretty += '\n{offset}|{name:/^{width}}|'.format(offset=offset, name=' '+name+' ', width=width)
+        pretty += '\n' + offset + '|' + '-'*width + '|'
+        # Inputs
+        for i, input_ in enumerate(self.inputs.keys()):
+            pretty += '\n'
+            pretty += offset
+            pretty += 'o {input_:{width}}|'.format(input_=input_, width=width-1)
+            
+        # Outputs
+        for i, output in enumerate(outputs):
+            pretty += '\n{offset}|{output:>{width}} o'.format(offset=offset, output=output, width=width-1)
+        
+        pretty += '\n' + offset + '+' + '-'*width + '+'     
+
         return pretty
     # end def __unicode__
 
