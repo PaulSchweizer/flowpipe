@@ -25,7 +25,7 @@ class INode(object):
     def __unicode__(self):
         """Show all input and output Plugs."""
         offset = ''
-        if [i for i self.inputs.values() if i.connections]:
+        if [i for i in self.inputs.values() if i.connections]:
             offset = ' '*3
         width = len(max(self.inputs.keys() + self.outputs.keys() + [self.name], key=len)) + 2
         pretty = offset + '+' + '-'*width + '+'
@@ -34,13 +34,18 @@ class INode(object):
         # Inputs
         for i, input_ in enumerate(self.inputs.keys()):
             pretty += '\n'
-            pretty += offset
+            if self.inputs[input_].connections:
+                pretty += '-->'
+            else:
+                pretty += offset
             pretty += 'o {input_:{width}}|'.format(input_=input_, width=width-1)
             
         # Outputs
         for i, output in enumerate(outputs):
             pretty += '\n{offset}|{output:>{width}} o'.format(offset=offset, output=output, width=width-1)
-        
+            if self.outputs[output].connections:
+                pretty += '-->'
+            
         pretty += '\n' + offset + '+' + '-'*width + '+'     
 
         return pretty
