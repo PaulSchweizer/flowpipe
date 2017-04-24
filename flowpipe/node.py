@@ -29,7 +29,7 @@ class INode(object):
             offset = ' '*3
         width = len(max(self.inputs.keys() + self.outputs.keys() + [self.name], key=len)) + 2
         pretty = offset + '+' + '-'*width + '+'
-        pretty += '\n{offset}|{name:/^{width}}|'.format(offset=offset, name=' '+name+' ', width=width)
+        pretty += '\n{offset}|{name:/^{width}}|'.format(offset=offset, name=' ' + self.name + ' ', width=width)
         pretty += '\n' + offset + '|' + '-'*width + '|'
         # Inputs
         for i, input_ in enumerate(self.inputs.keys()):
