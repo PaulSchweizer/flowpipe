@@ -1,6 +1,8 @@
 """Plugs are ins and outs for Nodes through which they exchange data."""
 from __future__ import print_function
 from abc import abstractmethod
+
+from marshmallow import Schema
 __all__ = ['OutputPlug', 'InputPlug']
 
 
@@ -30,7 +32,7 @@ class IPlug(object):
 
     def __str__(self):
         """The Plug as a pretty string."""
-        return self.__unicode__().encode('utf-8')
+        return self.__unicode__().encode('utf-8').decode()
     # end def __str__
 
     def __rshift__(self, other):

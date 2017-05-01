@@ -53,7 +53,7 @@ class INode(object):
 
     def __str__(self):
         """Show all input and output Plugs."""
-        return self.__unicode__().encode('utf-8')
+        return self.__unicode__().encode('utf-8').decode()
     # end def __str__
 
     @property
@@ -97,13 +97,15 @@ class INode(object):
             input_.is_dirty = False
 
         LogObserver.push_message('Computed: {}'.format(self.name))
+
+        self.dump()
     # end def evaluate
 
     @abstractmethod
     def compute(self, **args):
         """Implement the data manipulation in the subclass.
 
-        Also update the output Plugs through this function.
+        Return a dictionary with the outputs from this function.
         """
         pass
     # end def compute
@@ -118,4 +120,13 @@ class INode(object):
             for connected_plug in output_plug.connections:
                 connected_plug.is_dirty = True
     # end def on_input_plug_set_dirty
+
+    def dump(self):
+        """@todo documentation for dump."""
+        return {
+            'name': self.name,
+            'inputs': {name: plug.value for name, plug in self.inputs.items()},
+            'outputs': {name: plug.value for name, plug in self.outputs.items()}
+        }
+    # end def dump
 # end class INode
