@@ -1,8 +1,6 @@
 """Plugs are ins and outs for Nodes through which they exchange data."""
 from __future__ import print_function
 from abc import abstractmethod
-
-from marshmallow import Schema
 __all__ = ['OutputPlug', 'InputPlug']
 
 
