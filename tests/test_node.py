@@ -1,4 +1,5 @@
 from __future__ import print_function
+import json
 
 import unittest
 import mock
@@ -10,22 +11,15 @@ from flowpipe.plug import InputPlug, OutputPlug
 class SquareNode(INode):
     """Square the given value."""
 
-    def __init__(self, name=None):
+    def __init__(self, name=None, identifier=None):
         """Init the node."""
-        super(SquareNode, self).__init__(name)
-
-        # Inputs
+        super(SquareNode, self).__init__(name, identifier)
         InputPlug('in1', self)
-
-        # Outputs
         OutputPlug('out', self)
-    # end def __init__
 
     def compute(self, in1):
         """Square the given input and send to the output."""
         return {'out': in1**2}
-    # end def compute
-# end class SquareNode
 
 
 class SimpleNode(INode):
@@ -33,19 +27,16 @@ class SimpleNode(INode):
 
     called_args = None
 
-    def __init__(self, name=None):
+    def __init__(self, name=None, identifier=None):
         """Init the node."""
-        super(SimpleNode, self).__init__(name)
+        super(SimpleNode, self).__init__(name, identifier)
         InputPlug('in1', self)
         InputPlug('in2', self)
         InputPlug('in3', self)
-    # end def __init__
 
     def compute(self, **args):
         """Don't do anything."""
         SimpleNode.called_args = args
-    # end def compute
-# end class SimpleNode
 
 
 class TestNode(unittest.TestCase):
@@ -65,7 +56,6 @@ class TestNode(unittest.TestCase):
 
         self.assertEqual(1, len(node_b.upstream_nodes))
         self.assertIn(node_a, node_b.upstream_nodes)
-    # end def test_downstream_upstream_nodes
 
     def test_evaluate(self):
         """Evaluate the Node will push the new data to it's output."""
@@ -75,9 +65,7 @@ class TestNode(unittest.TestCase):
         node.inputs['in1'].value = test_input
         node.evaluate()
         self.assertEqual(test_input**2, node.outputs['out'].value)
-    # end def test_evaluate
 
-    # @mock.patch('flowpipe.node.INode.compute')
     def test_compute_receives_inputs(self):
         """The values from the inputs are sent to compute."""
         node = SimpleNode()
@@ -91,7 +79,6 @@ class TestNode(unittest.TestCase):
         self.assertEqual(len(test.keys()), len(SimpleNode.called_args.keys()))
         for k, v in SimpleNode.called_args.items():
             self.assertEqual(test[k], v)
-    # end def test_compute_receives_inputs
 
     def test_dirty_depends_on_inputs(self):
         """Dirty status of a Node depends on it's Plugs."""
@@ -103,7 +90,6 @@ class TestNode(unittest.TestCase):
 
         node.inputs['in1'].value = 2
         self.assertTrue(node.is_dirty)
-    # end def test_dirty_depends_on_inputs
 
     def test_evaluate_sets_all_inputs_clean(self):
         """After the evaluation, the inputs are considered clean."""
@@ -112,23 +98,36 @@ class TestNode(unittest.TestCase):
         self.assertTrue(node.is_dirty)
         node.evaluate()
         self.assertFalse(node.is_dirty)
-    # end def test_evaluate_sets_all_inputs_clean
 
     def test_cannot_connect_node_to_itself(self):
         """A node can not create a cycle by connecting to itself."""
         node = SquareNode()
         with self.assertRaises(Exception):
             node.outputs['out'] >> node.inputs['in1']
-    # end def test_cannot_connect_node_to_itself
-    
+
     def test_string_representation(self):
         """Print the node."""
         node = SquareNode()
         print(node)
-    # def test_string_representation
-# end class TestNode
 
+    def test_node_has_unique_identifier(self):
+        """A Node gets a unique identifiers assigned."""
+        ids = [SquareNode().identifier for n in range(1000)]
+        self.assertTrue(len(ids), len(set(ids)))
+
+    def test_node_identifier_can_be_set_explicitely(self):
+        """The identifier can be set manually."""
+        self.assertEqual('Explicit',
+                         SquareNode(identifier='Explicit').identifier)
+
+    def test_serialize_node_also_serializes_connections(self):
+        """Serialize the node to json with it's connections."""
+        node1 = SquareNode('Node1')
+        node2 = SquareNode('Node2')
+        node1.inputs['in1'].value = 1
+        node1.outputs['out'] >> node2.inputs['in1']
+
+        print(json.dumps(node1.serialize(), indent=2))
 
 if __name__ == '__main__':
     unittest.main()
-# end if

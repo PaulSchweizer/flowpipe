@@ -51,7 +51,6 @@ class TestPlugs(unittest.TestCase):
         self.assertEqual(out_plug_a, in_plug_a.connections[0])
         out_plug_b >> in_plug_a
         self.assertEqual(out_plug_b, in_plug_a.connections[0])
-    # end def test_connect_and_dicsonnect_nodes
 
     def test_change_connections_sets_plug_dirty(self):
         """Connecting and disconnecting sets the plug dirty."""
@@ -67,7 +66,6 @@ class TestPlugs(unittest.TestCase):
         in_plug.is_dirty = False
         out_plug << in_plug
         self.assertTrue(in_plug.is_dirty)
-    # end def test_change_connections_sets_plug_dirty
 
     def test_set_value_sets_plug_dirty(self):
         """Connecting and disconnecting sets the plug dirty."""
@@ -78,7 +76,6 @@ class TestPlugs(unittest.TestCase):
         self.assertFalse(in_plug.is_dirty)
         in_plug.value = 'NewValue'
         self.assertTrue(in_plug.is_dirty)
-    # end def test_set_value_sets_plug_dirty
 
     def test_set_output_pushes_value_to_connected_input(self):
         """OutPlugs push their values to their connected input plugs."""
@@ -98,7 +95,6 @@ class TestPlugs(unittest.TestCase):
         out_plug.value = 'NewValue'
         self.assertTrue(in_plug.is_dirty)
         self.assertEqual(in_plug.value, out_plug.value)
-    # end def test_set_output_pushes_value_to_connected_input
 
     def test_assign_initial_value_to_input_plug(self):
         """Assign an initial value to an InputPlug."""
@@ -108,10 +104,26 @@ class TestPlugs(unittest.TestCase):
 
         in_plug = InputPlug('in', n, 123)
         self.assertEqual(123, in_plug.value)
-    # end def test_assign_initial_value_to_input_plug
-# end class TestPlugs
+
+    def test_serialize(self):
+        """Serialize the Plug to json."""
+        n1 = TestNode()
+        n2 = TestNode()
+        out_plug = OutputPlug('out', n1)
+        in_plug = InputPlug('in', n2)
+        out_plug >> in_plug
+
+        in_serialized = in_plug.serialize()
+        out_serialized = out_plug.serialize()
+
+        self.assertEqual(n2.identifier, in_serialized['node'])
+        self.assertEqual(in_plug.name, in_serialized['name'])
+        self.assertEqual('out', in_serialized['connections'][out_plug.node.identifier])
+
+        self.assertEqual(n1.identifier, out_serialized['node'])
+        self.assertEqual(out_plug.name, out_serialized['name'])
+        self.assertEqual('in', out_serialized['connections'][in_plug.node.identifier])
 
 
 if __name__ == '__main__':
     unittest.main()
-# end if

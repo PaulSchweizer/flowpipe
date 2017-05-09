@@ -95,6 +95,12 @@ class IPlug(object):
             plug.connections.pop(plug.connections.index(self))
             plug.is_dirty = True
     # end def disconnect
+
+    def serialize(self):
+        return {
+            'name': self.name,
+        }
+    # end def serialize
 # end class IPlug
 
 
