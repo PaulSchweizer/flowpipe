@@ -97,8 +97,11 @@ class IPlug(object):
     # end def disconnect
 
     def serialize(self):
+        """Serialize the Plug containing all it's connections."""
         return {
             'name': self.name,
+            'node': self.node.identifier,
+            'connections': {c.node.identifier: c.name for c in self.connections}
         }
     # end def serialize
 # end class IPlug

@@ -1,6 +1,7 @@
 """Nodes manipulate incoming data and provide the outgoing data."""
 from __future__ import print_function
 from abc import ABCMeta, abstractmethod
+import uuid
 
 from flowpipe.log_observer import LogObserver
 __all__ = ['INode']
@@ -11,13 +12,15 @@ class INode(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, name=None):
+    def __init__(self, name=None, identifier=None):
         """Initialize the input and output dictionaries and the name.
 
         Args:
             name (str): If not provided, the class name is used.
         """
         self.name = name if name is not None else self.__class__.__name__
+        self.identifier = (identifier if identifier is not None
+                           else '{0}-{1}'.format(self.name, uuid.uuid4()))
         self.inputs = dict()
         self.outputs = dict()
     # end def __init__
@@ -39,14 +42,14 @@ class INode(object):
             else:
                 pretty += offset
             pretty += 'o {input_:{width}}|'.format(input_=input_, width=width-1)
-            
+
         # Outputs
         for i, output in enumerate(self.outputs.keys()):
             pretty += '\n{offset}|{output:>{width}} o'.format(offset=offset, output=output, width=width-1)
             if self.outputs[output].connections:
                 pretty += '-->'
-            
-        pretty += '\n' + offset + '+' + '-'*width + '+'     
+
+        pretty += '\n' + offset + '+' + '-'*width + '+'
 
         return pretty
     # end def __unicode__
@@ -98,7 +101,7 @@ class INode(object):
 
         LogObserver.push_message('Computed: {}'.format(self.name))
 
-        self.dump()
+        return outputs
     # end def evaluate
 
     @abstractmethod
@@ -121,12 +124,24 @@ class INode(object):
                 connected_plug.is_dirty = True
     # end def on_input_plug_set_dirty
 
-    def dump(self):
-        """@todo documentation for dump."""
+    def serialize(self):
+        """Serialize the node to json."""
         return {
+            'module': self.__module__,
+            'cls': self.__class__.__name__,
             'name': self.name,
-            'inputs': {name: plug.value for name, plug in self.inputs.items()},
-            'outputs': {name: plug.value for name, plug in self.outputs.items()}
+            'identifier': self.identifier,
+            'inputs': [plug.serialize() for plug in self.inputs.values()],
+            'outputs': [plug.serialize() for plug in self.outputs.values()]
         }
-    # end def dump
+    # end def serialize
+
+    def deserialize(self, data):
+        """De-serialize from the given json data."""
+        self.name = data['name']
+        for plug, value in data['inputs'].items():
+            self.inputs[plug].value = value['value']
+        for plug, value in data['outputs'].items():
+            self.outputs[plug].value = value['value']
+    # end def deserialize
 # end class INode
