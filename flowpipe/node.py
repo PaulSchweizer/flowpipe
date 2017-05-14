@@ -23,7 +23,6 @@ class INode(object):
                            else '{0}-{1}'.format(self.name, uuid.uuid4()))
         self.inputs = dict()
         self.outputs = dict()
-    # end def __init__
 
     def __unicode__(self):
         """Show all input and output Plugs."""
@@ -52,12 +51,10 @@ class INode(object):
         pretty += '\n' + offset + '+' + '-'*width + '+'
 
         return pretty
-    # end def __unicode__
 
     def __str__(self):
         """Show all input and output Plugs."""
         return self.__unicode__().encode('utf-8').decode()
-    # end def __str__
 
     @property
     def is_dirty(self):
@@ -66,7 +63,6 @@ class INode(object):
             if input_.is_dirty:
                 return True
         return False
-    # end def is_dirty
 
     @property
     def upstream_nodes(self):
@@ -75,7 +71,6 @@ class INode(object):
         for input_ in self.inputs.values():
             upstream_nodes += [c.node for c in input_.connections]
         return list(set(upstream_nodes))
-    # end def upstream_nodes
 
     @property
     def downstream_nodes(self):
@@ -84,7 +79,6 @@ class INode(object):
         for output in self.outputs.values():
             downstream_nodes += [c.node for c in output.connections]
         return list(set(downstream_nodes))
-    # end def downstream_nodes
 
     def evaluate(self):
         """Compute this Node, log it and clean the input Plugs."""
@@ -102,7 +96,6 @@ class INode(object):
         LogObserver.push_message('Computed: {}'.format(self.name))
 
         return outputs
-    # end def evaluate
 
     @abstractmethod
     def compute(self, **args):
@@ -111,7 +104,6 @@ class INode(object):
         Return a dictionary with the outputs from this function.
         """
         pass
-    # end def compute
 
     def on_input_plug_set_dirty(self, input_plug):
         """Propagate the dirty state to the connected downstream nodes.
@@ -122,7 +114,6 @@ class INode(object):
         for output_plug in self.outputs.values():
             for connected_plug in output_plug.connections:
                 connected_plug.is_dirty = True
-    # end def on_input_plug_set_dirty
 
     def serialize(self):
         """Serialize the node to json."""
@@ -134,14 +125,11 @@ class INode(object):
             'inputs': [plug.serialize() for plug in self.inputs.values()],
             'outputs': [plug.serialize() for plug in self.outputs.values()]
         }
-    # end def serialize
 
     def deserialize(self, data):
         """De-serialize from the given json data."""
         self.name = data['name']
-        for plug, value in data['inputs'].items():
-            self.inputs[plug].value = value['value']
-        for plug, value in data['outputs'].items():
-            self.outputs[plug].value = value['value']
-    # end def deserialize
-# end class INode
+        self.identifier = data['identifier']
+
+        for input_ in data['inputs']:
+            self.inputs[input_['name']].value = input_['value']

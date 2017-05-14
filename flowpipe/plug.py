@@ -26,12 +26,10 @@ class IPlug(object):
         self.accepted_plugs = accepted_plugs
         self._value = None
         self._is_dirty = True
-    # end def __init__
 
     def __str__(self):
         """The Plug as a pretty string."""
         return self.__unicode__().encode('utf-8').decode()
-    # end def __str__
 
     def __rshift__(self, other):
         """Create a connection to the given IPlug.
@@ -41,7 +39,6 @@ class IPlug(object):
         """
         if isinstance(other, self.accepted_plugs):
             self.connect(other)
-    # end def __rshift__
 
     def __lshift__(self, other):
         """Break a connection to the given IPlug.
@@ -51,26 +48,22 @@ class IPlug(object):
         """
         if isinstance(other, self.accepted_plugs):
             self.disconnect(other)
-    # end def __rshift__
 
     @property
     def value(self):
         """Access to the value on this Plug."""
         return self._value
-    # end def value
 
     @value.setter
     def value(self, value):
         """Set the Plug dirty when the value is being changed."""
         self._value = value
         self.is_dirty = True
-    # end def value
 
     @property
     def is_dirty(self):
         """Access to the dirty status on this Plug."""
         return self._is_dirty
-    # end def is_dirty
 
     @is_dirty.setter
     def is_dirty(self, status):
@@ -78,13 +71,11 @@ class IPlug(object):
         self._is_dirty = status
         if not status:
             self.node.on_input_plug_set_dirty(self)
-    # end def is_dirty
 
     @abstractmethod
     def connect(self, plug):
         """Has to be implemented in the subclass."""
         pass
-    # end def connect
 
     def disconnect(self, plug):
         """Break the connection to the given Plug."""
@@ -94,17 +85,15 @@ class IPlug(object):
         if self in plug.connections:
             plug.connections.pop(plug.connections.index(self))
             plug.is_dirty = True
-    # end def disconnect
 
     def serialize(self):
         """Serialize the Plug containing all it's connections."""
         return {
             'name': self.name,
-            'node': self.node.identifier,
-            'connections': {c.node.identifier: c.name for c in self.connections}
+            'value': self.value,
+            'connections': {c.node.identifier:
+                            c.name for c in self.connections}
         }
-    # end def serialize
-# end class IPlug
 
 
 class OutputPlug(IPlug):
@@ -120,7 +109,6 @@ class OutputPlug(IPlug):
         """
         super(OutputPlug, self).__init__(name, node, (InputPlug, ))
         self.node.outputs[self.name] = self
-    # end def __init__
 
     def __unicode__(self):
         """Show this Plug's type and it's connections."""
@@ -128,13 +116,11 @@ class OutputPlug(IPlug):
         pretty += u''.join([u'\n\t\t\u2192 {0}.{1}'.format(
             c.node.name, c.name) for c in self.connections])
         return pretty
-    # end def __unicode__
 
     @property
     def value(self):
         """Access to the value on this Plug."""
         return self._value
-    # end def value
 
     @value.setter
     def value(self, value):
@@ -143,7 +129,6 @@ class OutputPlug(IPlug):
         self.is_dirty = True
         for plug in self.connections:
             plug.value = value
-    # end def value
 
     def connect(self, plug):
         """Connect this Plug to the given Plug.
@@ -159,8 +144,6 @@ class OutputPlug(IPlug):
             self.is_dirty = True
         if self not in plug.connections:
             plug.connections = [self]
-    # end def connect
-# end class OutputPlug
 
 
 class InputPlug(IPlug):
@@ -178,7 +161,6 @@ class InputPlug(IPlug):
         self.value = value
         self.is_dirty = True
         self.node.inputs[self.name] = self
-    # end def __init__
 
     def __unicode__(self):
         """Show this Plug's type and it's connections."""
@@ -186,7 +168,6 @@ class InputPlug(IPlug):
         pretty += u''.join([u'\n\t\t\u2190 {0}.{1}'.format(
                 c.node.name, c.name) for c in self.connections])
         return pretty
-    # end def __unicode__
 
     def connect(self, plug):
         """Connect this Plug to the given Plug.
@@ -201,5 +182,3 @@ class InputPlug(IPlug):
         if self not in plug.connections:
             plug.connections.append(self)
             plug.is_dirty = True
-    # end def connect
-# end class InputPlug

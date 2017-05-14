@@ -116,12 +116,12 @@ class TestPlugs(unittest.TestCase):
         in_serialized = in_plug.serialize()
         out_serialized = out_plug.serialize()
 
-        self.assertEqual(n2.identifier, in_serialized['node'])
         self.assertEqual(in_plug.name, in_serialized['name'])
+        self.assertEqual(in_plug.value, in_serialized['value'])
         self.assertEqual('out', in_serialized['connections'][out_plug.node.identifier])
 
-        self.assertEqual(n1.identifier, out_serialized['node'])
         self.assertEqual(out_plug.name, out_serialized['name'])
+        self.assertEqual(out_plug.value, out_serialized['value'])
         self.assertEqual('in', out_serialized['connections'][in_plug.node.identifier])
 
 
