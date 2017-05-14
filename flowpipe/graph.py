@@ -84,7 +84,6 @@ class Graph(INode):
     def serialize(self):
         """Serialize the graph in it's grid form."""
         return [node.serialize() for node in self.evaluation_sequence]
-        # return [[n.serialize() for n in row] for row in self.evaluation_grid]
 
     def _sort_node(self, node, parent, level):
         """Sort the node into the correct level."""
