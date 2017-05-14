@@ -56,7 +56,6 @@ class TestGraph(unittest.TestCase):
         for i, row in enumerate(graph.evaluation_grid):
             for node in row:
                 self.assertIn(node, order[i])
-    # end def test_evaluation_grid
 
     def test_linar_evaluation_sequence(self):
         """A linear graph."""
@@ -71,7 +70,6 @@ class TestGraph(unittest.TestCase):
         seq = [s.name for s in graph.evaluation_sequence]
 
         self.assertEqual(['n1', 'n2', 'n3'], seq)
-    # end def test_linar_evaluation_sequence
 
     def test_branching_evaluation_sequence(self):
         """Branching graph."""
@@ -88,7 +86,6 @@ class TestGraph(unittest.TestCase):
         self.assertEqual('n1', seq[0])
         self.assertIn('n2', seq[1:])
         self.assertIn('n3', seq[1:])
-    # end def test_branching_evaluation_sequence
 
     def test_complex_branching_evaluation_sequence(self):
         """Connect and disconnect nodes."""
@@ -132,8 +129,38 @@ class TestGraph(unittest.TestCase):
 
         self.assertEqual('12', seq[-2])
         self.assertEqual('end', seq[-1])
-    # end def test_complex_branching_evaluation_sequence
-# end class TestGraph
+
+    def test_serialize_graph(self):
+        """Serialize the graph to a json-serializable dictionary."""
+        start = TestNode('start')
+        n11 = TestNode('11')
+        n12 = TestNode('12')
+        n21 = TestNode('21')
+        n31 = TestNode('31')
+        n32 = TestNode('32')
+        n33 = TestNode('33')
+        end = TestNode('end')
+
+        # Connect them
+        start.outputs['out'] >> n11.inputs['in1']
+        start.outputs['out'] >> n21.inputs['in1']
+        start.outputs['out'] >> n31.inputs['in1']
+
+        n31.outputs['out'] >> n32.inputs['in1']
+        n32.outputs['out'] >> n33.inputs['in1']
+
+        n11.outputs['out'] >> n12.inputs['in1']
+        n33.outputs['out'] >> n12.inputs['in2']
+
+        n12.outputs['out'] >> end.inputs['in1']
+        n21.outputs['out'] >> end.inputs['in2']
+
+        nodes = [start, n11, n12, n21, n31, n32, n33, end]
+        graph = Graph(nodes=nodes)
+
+        serialized = graph.serialize()
+
+        self.assertEqual(8, len(serialized))
 
 
 class TestSubGraphs(unittest.TestCase):
@@ -162,7 +189,6 @@ class TestSubGraphs(unittest.TestCase):
         graph2.outputs['out'] = g2_node.outputs['out']
 
         # Connecting Input Plugs
-        # graph2.inputs['in'] >> g2_start.inputs['in1']
         graph1.outputs['out'] >> graph2.inputs['in']
         g2_node.outputs['out'] >> graph2.outputs['out']
 
@@ -179,10 +205,7 @@ class TestSubGraphs(unittest.TestCase):
 
         graph.evaluate()
         self.assertEqual(6, g2_node.outputs['out'].value)
-    # def test_dynamic_graph_inputs
-# end class TestSubGraphs
 
 
 if __name__ == '__main__':
     unittest.main()
-# end if

@@ -12,7 +12,6 @@ class Graph(INode):
         """Initialize the list of Nodes."""
         super(Graph, self).__init__(name=name)
         self.nodes = nodes
-    # end def __init__
 
     def __unicode__(self):
         """Show all input and output Plugs."""
@@ -20,19 +19,16 @@ class Graph(INode):
         for row in self.evaluation_grid:
             pretty += '\n' + ' | '.join([n.name for n in row])
         return pretty
-    # end def __unicode__
 
     @property
     def is_dirty(self):
         """Test whether any of the given nodes needs evaluation."""
         return True in [n.is_dirty for n in self.nodes]
-    # end def is_dirty
 
     @property
     def dirty_nodes(self):
         """Test whether any of the given nodes needs evaluation."""
         return [n for n in self.nodes if n.is_dirty]
-    # end def dirty_nodes
 
     @property
     def all_nodes(self):
@@ -44,7 +40,6 @@ class Graph(INode):
             elif isinstance(node, INode):
                 all_nodes.append(node)
         return all_nodes
-    # end def nodes
 
     @property
     def evaluation_grid(self):
@@ -70,7 +65,6 @@ class Graph(INode):
             grid.append(row)
 
         return grid
-    # end def evaluation_grid
 
     @property
     def evaluation_sequence(self):
@@ -81,13 +75,16 @@ class Graph(INode):
                 evaluation grid.
         """
         return [node for row in self.evaluation_grid for node in row]
-    # end def evaluation_sequence
 
     def compute(self, **args):
         """Evaluate all sub nodes."""
         for node in self.evaluation_sequence:
             node.evaluate()
-    # end def compute
+
+    def serialize(self):
+        """Serialize the graph in it's grid form."""
+        return [node.serialize() for node in self.evaluation_sequence]
+        # return [[n.serialize() for n in row] for row in self.evaluation_grid]
 
     def _sort_node(self, node, parent, level):
         """Sort the node into the correct level."""
@@ -99,5 +96,3 @@ class Graph(INode):
 
         for downstream_node in node.downstream_nodes:
             self._sort_node(downstream_node, parent, level=level + 1)
-    # end def _sort_node
-# end class Engine
