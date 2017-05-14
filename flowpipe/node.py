@@ -122,8 +122,8 @@ class INode(object):
             'cls': self.__class__.__name__,
             'name': self.name,
             'identifier': self.identifier,
-            'inputs': [plug.serialize() for plug in self.inputs.values()],
-            'outputs': [plug.serialize() for plug in self.outputs.values()]
+            'inputs': {plug.name: plug.serialize() for plug in self.inputs.values()},
+            'outputs': {plug.name: plug.serialize() for plug in self.outputs.values()}
         }
 
     def deserialize(self, data):
@@ -131,5 +131,5 @@ class INode(object):
         self.name = data['name']
         self.identifier = data['identifier']
 
-        for input_ in data['inputs']:
-            self.inputs[input_['name']].value = input_['value']
+        for name, input_ in data['inputs'].items():
+            self.inputs[name].value = input_['value']
