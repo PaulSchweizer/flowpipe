@@ -4,3 +4,6 @@
 
 ## Code Documentation
 https://paulschweizer.github.io/flowpipe/
+
+## Notes
+http://stackoverflow.com/questions/29547695/celery-access-all-previous-results-in-a-chain
