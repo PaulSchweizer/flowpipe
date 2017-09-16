@@ -11,7 +11,6 @@ class Engine(object):
         """Evaluate the dirty nodes in the graph."""
         for node in graph.evaluation_sequence:
             node.evaluate()
-    # end def evaluate_entire_graph
 
     @staticmethod
     def evaluate_dirty_nodes(graph):
@@ -19,5 +18,3 @@ class Engine(object):
         for node in graph.evaluation_sequence:
             if node.is_dirty:
                 node.evaluate()
-    # end def evaluate_dirty_nodes
-# end class Engine

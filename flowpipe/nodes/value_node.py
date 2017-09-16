@@ -12,10 +12,7 @@ class ValueNode(INode):
         super(ValueNode, self).__init__(name)
         InputPlug('value', self, value=value)
         OutputPlug('value', self)
-    # end def __init__
 
     def compute(self, value):
         """Propagate the input value to the output."""
         return {'value': value}
-    # end def compute
-# end class ValueNode

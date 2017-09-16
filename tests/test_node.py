@@ -2,7 +2,6 @@ from __future__ import print_function
 import json
 
 import unittest
-import mock
 
 from flowpipe.node import INode
 from flowpipe.plug import InputPlug, OutputPlug
