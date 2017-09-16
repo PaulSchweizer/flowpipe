@@ -1,0 +1,21 @@
+Tasks:
+ ✔ Remove the # end ... comments @done (17-09-16 22:58)
+ ☐ Implement Engines - python2, python3, mayapy ...
+  ☐ current engine needs to be redone, it is not used
+
+ ☐ Write docs
+  ☐ Reproducable Example of Celery
+   ☐ Move the configs to a general config
+   ☐ Start it all through a central script
+ ☐ Put things to test_requirements
+
+ ☐ Implement a good example:
+ Publish:
+  ☐ 1. Save Scene
+  ☐ 2. Copy Scene to the publish location
+  ☐ 3. Copy Scene to the Unity location
+  ☐ 4. Send an email
+
+Bugs:
+ ☐ Can't use nodes that are not in the root of Celery?
+ ☐ Celery issue: last node is not executed

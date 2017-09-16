@@ -19,14 +19,12 @@ class LogObserver(object):
         """Add the given function as a listener."""
         if listener not in LogObserver.listeners:
             LogObserver.listeners.append(listener)
-    # end def register_listener
 
     @staticmethod
     def deregister_listener(listener):
         """Remove the given function from the listeners."""
         if listener in LogObserver.listeners:
             LogObserver.listeners.pop(LogObserver.listeners.index(listener))
-    # end def deregister_listener
 
     @staticmethod
     def push_message(message, level=logging.DEBUG):
@@ -34,5 +32,3 @@ class LogObserver(object):
         for listener in LogObserver.listeners:
             listener(message, level)
         logger.log(level, message)
-    # end def push_message
-# end class LogObserver

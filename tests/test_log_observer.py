@@ -12,7 +12,6 @@ class TestLogObserver(unittest.TestCase):
     def tearDown(cls):
         """@todo documentation for tearDown."""
         LogObserver.listeners = list()
-    # end def tearDown
 
     def test_register_listener(self):
         """Register listeners that receive messages."""
@@ -28,7 +27,6 @@ class TestLogObserver(unittest.TestCase):
         self.assertNotIn(listener, LogObserver.listeners)
 
         LogObserver.deregister_listener(listener)
-    # end def test_register_listener
 
     @mock.patch('logging.Logger.log')
     def test_push_message(self, log):
@@ -48,10 +46,7 @@ class TestLogObserver(unittest.TestCase):
 
         self.assertEqual(4, len(calls))
         self.assertEqual(2, log.call_count)
-    # end def test_push_message
-# end class TestLogObserver
 
 
 if __name__ == '__main__':
     unittest.main()
-# end if

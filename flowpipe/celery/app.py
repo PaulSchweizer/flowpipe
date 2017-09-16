@@ -5,6 +5,23 @@ import importlib
 
 from celery import Celery
 
+from flowpipe.node import INode
+from flowpipe.plug import InputPlug, OutputPlug
+from flowpipe.graph import Graph
+
+
+class TestNode(INode):
+
+    def __init__(self, name=None):
+        super(TestNode, self).__init__(name)
+        OutputPlug('out', self)
+        InputPlug('in1', self, 1)
+        InputPlug('in2', self, 1)
+
+    def compute(self, in1, in2):
+        """Multiply the two inputs."""
+        return {'out': in1 * in2}
+
 
 app = Celery('flowpipe', broker='pyamqp://')
 app.conf.update(CELERY_RESULT_BACKEND='redis://',

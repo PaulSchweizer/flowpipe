@@ -63,7 +63,6 @@ class TestEngine(unittest.TestCase):
         # Evaluate all
         Engine.evaluate_entire_graph(graph)
         self.assertEqual(6, sum([n.counter for n in graph.nodes]))
-    # end def test_evaluate_entire_graph
 
     def test_evaluate_dirty_nodes(self):
         """Only evaluate the dirty nodes."""
@@ -91,7 +90,6 @@ class TestEngine(unittest.TestCase):
         # Evaluate only the dirty nodes
         Engine.evaluate_dirty_nodes(graph)
         self.assertEqual(5, sum([n.counter for n in graph.nodes]))
-    # end def test_evaluate_dirty_nodes
 
     def test_simple_evaluate(self):
         """Evaluate a simple graph of nodes."""
@@ -116,8 +114,6 @@ class TestEngine(unittest.TestCase):
         # Change input value from 3 to 4, result will be 8
         n2.inputs['in2'].value = 4
         Engine.evaluate_dirty_nodes(graph)
-        self.assertEqual(8, n3.outputs['out'].value)
-    # end def test_simple_evaluate
 
     def test_evaluate_only_dirty_nodes(self):
         """Only evaluate the nodes that need evaluation."""
@@ -171,11 +167,7 @@ class TestEngine(unittest.TestCase):
         v11.inputs['in2'].value = 3
         Engine.evaluate_dirty_nodes(graph)
         self.assertEqual(36*30, result.outputs['out'].value)
-    # end def test_evaluate_only_dirty_nodes
-
-# end class TestEngine
 
 
 if __name__ == '__main__':
     unittest.main()
-# end if

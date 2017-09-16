@@ -6,9 +6,10 @@ celery -A flowpipe.celery.app.app worker -l info
 
 
 Redis:
-C:\Program Files\Redis\redis-server.exe
+"C:\Program Files\Redis\redis-server.exe"
 
 
 Flower:
-C:\PROJECTS\flowpipe>flower -A flowpipe.mycelery.mycelery.app --port=5555
+cd C:\PROJECTS\flowpipe
+flower -A flowpipe.celery.app.app --port=5555
 
