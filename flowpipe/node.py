@@ -31,7 +31,7 @@ class INode(object):
         offset = ''
         if [i for i in self.inputs.values() if i.connections]:
             offset = ' '*3
-        width = len(max(self.inputs.keys() + self.outputs.keys() + [self.name], key=len)) + 2
+        width = len(max(list(self.inputs) + list(self.outputs) + [self.name], key=len)) + 2
         pretty = offset + '+' + '-'*width + '+'
         pretty += '\n{offset}|{name:/^{width}}|'.format(offset=offset, name=' ' + self.name + ' ', width=width)
         pretty += '\n' + offset + '|' + '-'*width + '|'
