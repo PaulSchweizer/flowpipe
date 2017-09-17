@@ -1,7 +1,13 @@
 Tasks:
  ✔ Remove the # end ... comments @done (17-09-16 22:58)
  ☐ Implement Engines - python2, python3, mayapy ...
-  ☐ current engine needs to be redone, it is not used
+  ✔ For now, just provide a python simple mock engine @done (17-09-17 12:45)
+  ✔ current engine needs to be redone, it is not used @done (17-09-17 12:45)
+  ☐ MayapyEngine
+  ☐ engines per node?
+
+ ✔ Deserialize has to find the correct Node! @done (17-09-17 13:09)
+  ✔ Static method on the INode @done (17-09-17 13:09)
 
  ☐ Write docs
   ☐ Reproducable Example of Celery
@@ -19,3 +25,13 @@ Tasks:
 Bugs:
  ☐ Can't use nodes that are not in the root of Celery?
  ☐ Celery issue: last node is not executed
+
+ ☐ Input Nodes:
+  ☐ Prompt the user for input
+  ☐ Parse Graph for input nodes
+  ☐ Construct a frontend from it
+
+[Save Workfile]
+[Publish]
+
+[Save Workfile]-->[Publish]

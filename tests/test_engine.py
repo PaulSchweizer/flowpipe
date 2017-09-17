@@ -1,12 +1,11 @@
 from __future__ import print_function
 
-import mock
 import unittest
 
 from flowpipe.node import INode
 from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.graph import Graph
-from flowpipe.engine import Engine
+from flowpipe.engines.python_engine import PythonEngine
 
 
 class TestNode(INode):
@@ -36,8 +35,8 @@ class TestCounterNode(INode):
         self.counter += 1
 
 
-class TestEngine(unittest.TestCase):
-    """Test the Engine."""
+class TestPythonEngine(unittest.TestCase):
+    """Test the PythonEngine."""
 
     def test_evaluate_entire_graph(self):
         """Evaluate the entire graph ignoring the dirty status."""
@@ -53,7 +52,7 @@ class TestEngine(unittest.TestCase):
             self.assertTrue(n.is_dirty)
 
         # Evaluate all
-        Engine.evaluate_entire_graph(graph)
+        PythonEngine().evaluate_entire_graph(graph)
         self.assertEqual(3, sum([n.counter for n in graph.nodes]))
 
         # All nodes are now clean
@@ -61,7 +60,7 @@ class TestEngine(unittest.TestCase):
             self.assertFalse(n.is_dirty)
 
         # Evaluate all
-        Engine.evaluate_entire_graph(graph)
+        PythonEngine().evaluate_entire_graph(graph)
         self.assertEqual(6, sum([n.counter for n in graph.nodes]))
 
     def test_evaluate_dirty_nodes(self):
@@ -78,7 +77,7 @@ class TestEngine(unittest.TestCase):
             self.assertTrue(n.is_dirty)
 
         # Evaluate all
-        Engine.evaluate_dirty_nodes(graph)
+        PythonEngine().evaluate_dirty_nodes(graph)
         self.assertEqual(3, sum([n.counter for n in graph.nodes]))
 
         # All nodes are now clean
@@ -88,7 +87,7 @@ class TestEngine(unittest.TestCase):
         graph.nodes[1].inputs['in1'].is_dirty = True
 
         # Evaluate only the dirty nodes
-        Engine.evaluate_dirty_nodes(graph)
+        PythonEngine().evaluate_dirty_nodes(graph)
         self.assertEqual(5, sum([n.counter for n in graph.nodes]))
 
     def test_simple_evaluate(self):
@@ -108,12 +107,12 @@ class TestEngine(unittest.TestCase):
 
         graph = Graph(nodes=[n1, n2, n3])
 
-        Engine.evaluate_dirty_nodes(graph)
+        PythonEngine().evaluate_dirty_nodes(graph)
         self.assertEqual(6, n3.outputs['out'].value)
 
         # Change input value from 3 to 4, result will be 8
         n2.inputs['in2'].value = 4
-        Engine.evaluate_dirty_nodes(graph)
+        PythonEngine().evaluate_dirty_nodes(graph)
 
     def test_evaluate_only_dirty_nodes(self):
         """Only evaluate the nodes that need evaluation."""
@@ -161,11 +160,11 @@ class TestEngine(unittest.TestCase):
         v32.inputs['in1'].value = 1
         v32.inputs['in2'].value = 6
 
-        Engine.evaluate_dirty_nodes(graph)
+        PythonEngine().evaluate_dirty_nodes(graph)
         self.assertEqual(24*30, result.outputs['out'].value)
 
         v11.inputs['in2'].value = 3
-        Engine.evaluate_dirty_nodes(graph)
+        PythonEngine().evaluate_dirty_nodes(graph)
         self.assertEqual(36*30, result.outputs['out'].value)
 
 

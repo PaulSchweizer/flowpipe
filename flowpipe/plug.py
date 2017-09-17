@@ -28,7 +28,7 @@ class IPlug(object):
         self._is_dirty = True
 
     def __str__(self):
-        """The Plug as a pretty string."""
+        """Generate a pretty string."""
         return self.__unicode__().encode('utf-8').decode()
 
     def __rshift__(self, other):
@@ -136,7 +136,8 @@ class OutputPlug(IPlug):
         Set both participating Plugs dirty.
         """
         if plug.node is self.node:
-            raise Exception('Can\'t connect Plugs that are part of the same Node.')
+            raise Exception(
+                'Can\'t connect Plugs that are part of the same Node.')
 
         if plug not in self.connections:
             self.connections.append(plug)
@@ -175,7 +176,8 @@ class InputPlug(IPlug):
         Set both participating Plugs dirty.
         """
         if plug.node is self.node:
-            raise Exception('Can\'t connect Plugs that are part of the same Node.')
+            raise Exception(
+                'Can\'t connect Plugs that are part of the same Node.')
 
         self.connections = [plug]
         self.is_dirty = True

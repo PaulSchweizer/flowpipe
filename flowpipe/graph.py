@@ -1,7 +1,8 @@
 """A Graph of Nodes."""
 from __future__ import print_function
+from __future__ import absolute_import
 
-from flowpipe.node import INode
+from .node import INode
 __all__ = ['Graph']
 
 
@@ -43,12 +44,13 @@ class Graph(INode):
 
     @property
     def evaluation_grid(self):
-        """The nodes sorted into a 2D grid based on their dependency.
+        """Sort nodes into a 2D grid based on their dependency.
 
         Rows affect each other and have to be evaluated in sequence.
         The Nodes on each row however can be evaluated in parallel as
         they are independent of each other.
         The amount of Nodes in each row can vary.
+
         Returns:
             (list of list of INode): Each sub list represents a row.
         """
@@ -68,7 +70,7 @@ class Graph(INode):
 
     @property
     def evaluation_sequence(self):
-        """A flat sequence in which the nodes need to be evaluated.
+        """Sort Nodes into a sequential, flat execution order.
 
         Returns:
             (list of INode): A one dimensional representation of the
