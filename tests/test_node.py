@@ -136,8 +136,7 @@ class TestNode(unittest.TestCase):
 
         serialized_data = node1.serialize()
 
-        new_node1 = SquareNode('NewNode1')
-        new_node1.deserialize(serialized_data)
+        new_node1 = INode.deserialize(serialized_data)
 
         self.assertEqual(node1.name, new_node1.name)
         self.assertEqual(node1.identifier, new_node1.identifier)

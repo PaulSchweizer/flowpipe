@@ -3,15 +3,17 @@
 Allows to easily pipe logs and messages to a UI.
 """
 from __future__ import print_function
+from __future__ import absolute_import
 import logging
 
-from flowpipe import logger
+from . import logger
+__all__ = ['LogObserver']
 
 
 class LogObserver(object):
     """Redistributes messages to observing listener functions."""
 
-    ## Registered listener functions
+    # Registered listener functions
     listeners = list()
 
     @staticmethod

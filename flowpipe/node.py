@@ -1,9 +1,11 @@
 """Nodes manipulate incoming data and provide the outgoing data."""
 from __future__ import print_function
+from __future__ import absolute_import
 from abc import ABCMeta, abstractmethod
+import importlib
 import uuid
 
-from flowpipe.log_observer import LogObserver
+from .log_observer import LogObserver
 __all__ = ['INode']
 
 
@@ -66,7 +68,7 @@ class INode(object):
 
     @property
     def upstream_nodes(self):
-        """The upper level Nodes that feed inputs into this Node."""
+        """Upper level Nodes feed inputs into this Node."""
         upstream_nodes = list()
         for input_ in self.inputs.values():
             upstream_nodes += [c.node for c in input_.connections]
@@ -74,7 +76,7 @@ class INode(object):
 
     @property
     def downstream_nodes(self):
-        """The next level Nodes that this Node feed outputs into."""
+        """This node feeds outputs to these Nodes."""
         downstream_nodes = list()
         for output in self.outputs.values():
             downstream_nodes += [c.node for c in output.connections]
@@ -122,14 +124,18 @@ class INode(object):
             'cls': self.__class__.__name__,
             'name': self.name,
             'identifier': self.identifier,
-            'inputs': {plug.name: plug.serialize() for plug in self.inputs.values()},
-            'outputs': {plug.name: plug.serialize() for plug in self.outputs.values()}
+            'inputs': {plug.name: plug.serialize()
+                       for plug in self.inputs.values()},
+            'outputs': {plug.name: plug.serialize()
+                        for plug in self.outputs.values()}
         }
 
-    def deserialize(self, data):
+    @staticmethod
+    def deserialize(data):
         """De-serialize from the given json data."""
-        self.name = data['name']
-        self.identifier = data['identifier']
-
+        cls = getattr(importlib.import_module(data['module']),
+                      data['cls'])
+        node = cls(data['name'], data['identifier'])
         for name, input_ in data['inputs'].items():
-            self.inputs[name].value = input_['value']
+            node.inputs[name].value = input_['value']
+        return node

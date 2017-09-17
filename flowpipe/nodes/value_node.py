@@ -1,3 +1,4 @@
+"""Basic Node for storing an arbitrary value."""
 from __future__ import print_function
 
 from flowpipe.node import INode
