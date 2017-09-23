@@ -9,7 +9,7 @@ __all__ = ['Graph']
 class Graph(INode):
     """A graph of Nodes."""
 
-    def __init__(self, name=None, nodes=list()):
+    def __init__(self, name=None, nodes=[]):
         """Initialize the list of Nodes."""
         super(Graph, self).__init__(name=name)
         self.nodes = nodes
@@ -37,7 +37,7 @@ class Graph(INode):
         all_nodes = list()
         for node in self.nodes:
             if isinstance(node, Graph):
-                all_nodes += node.nodes
+                all_nodes.append(node)
             elif isinstance(node, INode):
                 all_nodes.append(node)
         return all_nodes
@@ -85,7 +85,24 @@ class Graph(INode):
 
     def serialize(self):
         """Serialize the graph in it's grid form."""
-        return [node.serialize() for node in self.evaluation_sequence]
+        data = super(Graph, self).serialize()
+        data['nodes'] = [node.serialize() for node in self.nodes]
+        return data
+
+    @staticmethod
+    def deserialize(data):
+        """De-serialize from the given json data."""
+        graph = INode.deserialize(data)
+        graph.nodes = []
+        for node in data['nodes']:
+            graph.nodes.append(INode.deserialize(node))
+        for node in data['nodes']:
+            this = [n for n in graph.nodes if n.identifier == node['identifier']][0]
+            for name, input_ in node['inputs'].items():
+                for identifier, plug in input_['connections'].items():
+                    upstream = [n for n in graph.nodes if n.identifier == identifier][0]
+                    upstream.outputs[plug] >> this.inputs[name]
+        return graph
 
     def _sort_node(self, node, parent, level):
         """Sort the node into the correct level."""

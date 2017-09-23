@@ -2,6 +2,7 @@
 from __future__ import print_function
 from __future__ import absolute_import
 from abc import ABCMeta, abstractmethod
+from collections import OrderedDict
 import importlib
 import uuid
 
@@ -30,13 +31,13 @@ class INode(object):
         """Show all input and output Plugs."""
         offset = ''
         if [i for i in self.inputs.values() if i.connections]:
-            offset = ' '*3
+            offset = ' ' * 3
         width = len(max(list(self.inputs) + list(self.outputs) + [self.name], key=len)) + 2
-        pretty = offset + '+' + '-'*width + '+'
+        pretty = offset + '+' + '-' * width + '+'
         pretty += '\n{offset}|{name:/^{width}}|'.format(offset=offset, name=' ' + self.name + ' ', width=width)
         pretty += '\n' + offset + '|' + '-'*width + '|'
         # Inputs
-        for i, input_ in enumerate(self.inputs.keys()):
+        for input_ in self.inputs.keys():
             pretty += '\n'
             if self.inputs[input_].connections:
                 pretty += '-->'
@@ -45,7 +46,7 @@ class INode(object):
             pretty += 'o {input_:{width}}|'.format(input_=input_, width=width-1)
 
         # Outputs
-        for i, output in enumerate(self.outputs.keys()):
+        for output in self.outputs.keys():
             pretty += '\n{offset}|{output:>{width}} o'.format(offset=offset, output=output, width=width-1)
             if self.outputs[output].connections:
                 pretty += '-->'
@@ -119,23 +120,28 @@ class INode(object):
 
     def serialize(self):
         """Serialize the node to json."""
-        return {
-            'module': self.__module__,
-            'cls': self.__class__.__name__,
-            'name': self.name,
-            'identifier': self.identifier,
-            'inputs': {plug.name: plug.serialize()
-                       for plug in self.inputs.values()},
-            'outputs': {plug.name: plug.serialize()
-                        for plug in self.outputs.values()}
-        }
+        inputs = OrderedDict()
+        for plug in self.inputs.values():
+            inputs[plug.name] = plug.serialize()
+        outputs = OrderedDict()
+        for plug in self.outputs.values():
+            outputs[plug.name] = plug.serialize()
+        return OrderedDict(
+            module=self.__module__,
+            cls=self.__class__.__name__,
+            name=self.name,
+            identifier=self.identifier,
+            inputs=inputs,
+            outputs=outputs)
 
     @staticmethod
     def deserialize(data):
         """De-serialize from the given json data."""
         cls = getattr(importlib.import_module(data['module']),
-                      data['cls'])
-        node = cls(data['name'], data['identifier'])
+                      data['cls'], None)
+        node = cls()
+        node.name = data['name']
+        node.identifier = data['identifier']
         for name, input_ in data['inputs'].items():
             node.inputs[name].value = input_['value']
         return node
