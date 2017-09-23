@@ -112,8 +112,8 @@ class OutputPlug(IPlug):
 
     def __unicode__(self):
         """Show this Plug's type and it's connections."""
-        pretty = u'\u2190 {0} (OUT)'.format(self.name)
-        pretty += u''.join([u'\n\t\t\u2192 {0}.{1}'.format(
+        pretty = '\u2190 {0} (OUT)'.format(self.name)
+        pretty += ''.join(['\n\t\t\u2192 {0}.{1}'.format(
             c.node.name, c.name) for c in self.connections])
         return pretty
 
@@ -165,9 +165,9 @@ class InputPlug(IPlug):
 
     def __unicode__(self):
         """Show this Plug's type and it's connections."""
-        pretty = u'\u2192 {0} (IN) {1}'.format(self.name, self.is_dirty)
-        pretty += u''.join([u'\n\t\t\u2190 {0}.{1}'.format(
-                c.node.name, c.name) for c in self.connections])
+        pretty = '\u2192 {0} (IN) {1}'.format(self.name, self.is_dirty)
+        pretty += ''.join(['\n\t\t\u2190 {0}.{1}'.format(
+            c.node.name, c.name) for c in self.connections])
         return pretty
 
     def connect(self, plug):

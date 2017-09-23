@@ -13,7 +13,7 @@ handler = logging.StreamHandler()
 handler.setLevel(logging.DEBUG)
 
 # create formatter
-formatter = logging.Formatter('%(name)s %(levelname)s: \n%(message)s')
+formatter = logging.Formatter('%(name)s %(levelname)s: %(message)s')
 
 # add formatter to handler
 handler.setFormatter(formatter)

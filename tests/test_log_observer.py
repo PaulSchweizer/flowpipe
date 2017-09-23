@@ -10,7 +10,7 @@ class TestLogObserver(unittest.TestCase):
 
     @classmethod
     def tearDown(cls):
-        """@todo documentation for tearDown."""
+        """Remove the listeners."""
         LogObserver.listeners = list()
 
     def test_register_listener(self):
