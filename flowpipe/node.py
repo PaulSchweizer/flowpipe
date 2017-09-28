@@ -34,7 +34,7 @@ class INode(object):
             offset = ' ' * 3
         width = len(max(list(self.inputs) + list(self.outputs) + [self.name], key=len)) + 2
         pretty = offset + '+' + '-' * width + '+'
-        pretty += '\n{offset}|{name:/^{width}}|'.format(offset=offset, name=' ' + self.name + ' ', width=width)
+        pretty += '\n{offset}|{name:^{width}}|'.format(offset=offset, name=' ' + self.name + ' ', width=width)
         pretty += '\n' + offset + '|' + '-'*width + '|'
         # Inputs
         for input_ in self.inputs.keys():
@@ -101,7 +101,7 @@ class INode(object):
         return outputs
 
     @abstractmethod
-    def compute(self, **args):
+    def compute(self, *args, **kwargs):
         """Implement the data manipulation in the subclass.
 
         Return a dictionary with the outputs from this function.

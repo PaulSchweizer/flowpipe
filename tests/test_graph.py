@@ -23,7 +23,7 @@ class TestNode(INode):
 class TestGraph(unittest.TestCase):
     """Test the Graph."""
 
-    def test_evaluation_grid(self):
+    def test_evaluation_matrix(self):
         """The nodes as a 2D grid."""
         start = TestNode('start')
         n11 = TestNode('11')
@@ -53,7 +53,7 @@ class TestGraph(unittest.TestCase):
 
         order = [[start], [n11, n21, n31], [n32], [n33], [n12], [end]]
 
-        for i, row in enumerate(graph.evaluation_grid):
+        for i, row in enumerate(graph.evaluation_matrix):
             for node in row:
                 self.assertIn(node, order[i])
 
@@ -241,7 +241,7 @@ class TestSubGraphs(unittest.TestCase):
 
         order = ['Start', 'InnerGraph']
         i = 0
-        for r in outer_graph.evaluation_grid:
+        for r in outer_graph.evaluation_matrix:
             for c in r:
                 self.assertEqual(c.name, order[i])
                 i += 1

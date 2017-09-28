@@ -8,9 +8,6 @@ from flowpipe.plug import InputPlug, OutputPlug
 
 class TestNode(INode):
 
-    def __init__(self):
-        super(TestNode, self).__init__()
-
     def compute(self):
         pass
 

@@ -2,6 +2,10 @@
 from __future__ import print_function
 from __future__ import absolute_import
 
+from ascii_canvas.canvas import Canvas
+from ascii_canvas.item import Item
+from ascii_canvas.item import Line
+
 from .node import INode
 __all__ = ['Graph']
 
@@ -9,17 +13,36 @@ __all__ = ['Graph']
 class Graph(INode):
     """A graph of Nodes."""
 
-    def __init__(self, name=None, nodes=[]):
+    def __init__(self, name=None, nodes=None):
         """Initialize the list of Nodes."""
         super(Graph, self).__init__(name=name)
-        self.nodes = nodes
+        self.nodes = nodes or []
 
     def __unicode__(self):
-        """Show all input and output Plugs."""
-        pretty = super(Graph, self).__unicode__()
-        for row in self.evaluation_grid:
-            pretty += '\n' + ' | '.join([n.name for n in row])
-        return pretty
+        """Display the Graph."""
+        canvas = Canvas()
+        x = 0
+        for i, row in enumerate(self.evaluation_matrix):
+            y = 0
+            x_diff = 0
+            for j, node in enumerate(row):
+                item = Item(str(node), [x, y])
+                node.item = item
+                x_diff = item.bbox[2] - item.bbox[0] + 4 if item.bbox[2] - item.bbox[0] + 4 > x_diff else x_diff
+                y += item.bbox[3] - item.bbox[1]
+                canvas.add_item(item)
+            x += x_diff
+
+        for node in self.nodes:
+            for j, plug in enumerate(node.outputs):
+                for connection in node.outputs[plug].connections:
+                    dnode = connection.node
+                    start = [node.item.position[0] + node.item.bbox[2],
+                             node.item.position[1] + 3 + len(node.inputs) + j]
+                    end = [dnode.item.position[0],
+                           dnode.item.position[1] + 3 + dnode.inputs.values().index(connection)]
+                    canvas.add_item(Line(start, end), 0)
+        return canvas.render()
 
     @property
     def is_dirty(self):
@@ -43,7 +66,7 @@ class Graph(INode):
         return all_nodes
 
     @property
-    def evaluation_grid(self):
+    def evaluation_matrix(self):
         """Sort nodes into a 2D grid based on their dependency.
 
         Rows affect each other and have to be evaluated in sequence.
@@ -76,7 +99,7 @@ class Graph(INode):
             (list of INode): A one dimensional representation of the
                 evaluation grid.
         """
-        return [node for row in self.evaluation_grid for node in row]
+        return [node for row in self.evaluation_matrix for node in row]
 
     def compute(self, **args):
         """Evaluate all sub nodes."""

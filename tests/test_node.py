@@ -10,9 +10,9 @@ from flowpipe.plug import InputPlug, OutputPlug
 class SquareNode(INode):
     """Square the given value."""
 
-    def __init__(self, name=None, identifier=None):
+    def __init__(self, name=None):
         """Init the node."""
-        super(SquareNode, self).__init__(name, identifier)
+        super(SquareNode, self).__init__(name)
         InputPlug('in1', self)
         OutputPlug('out', self)
 
@@ -26,9 +26,9 @@ class SimpleNode(INode):
 
     called_args = None
 
-    def __init__(self, name=None, identifier=None):
+    def __init__(self, name=None):
         """Init the node."""
-        super(SimpleNode, self).__init__(name, identifier)
+        super(SimpleNode, self).__init__(name)
         InputPlug('in1', self)
         InputPlug('in2', self)
         InputPlug('in3', self)
@@ -116,8 +116,9 @@ class TestNode(unittest.TestCase):
 
     def test_node_identifier_can_be_set_explicitely(self):
         """The identifier can be set manually."""
-        self.assertEqual('Explicit',
-                         SquareNode(identifier='Explicit').identifier)
+        node = SquareNode()
+        node.identifier = 'Explicit'
+        self.assertEqual('Explicit', node.identifier)
 
     def test_serialize_node_also_serializes_connections(self):
         """Serialize the node to json with it's connections."""

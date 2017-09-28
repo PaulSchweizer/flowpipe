@@ -7,8 +7,7 @@ class PythonEngine(IEngine):
 
     def evaluate_entire_graph(self, graph):
         """Evaluate all nodes in the graph."""
-        for node in graph.evaluation_sequence:
-            node.evaluate()
+        graph.evaluate()
 
     def evaluate_dirty_nodes(self, graph):
         """Evaluate the dirty nodes in the graph."""
