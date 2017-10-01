@@ -4,11 +4,22 @@
 A lightweight framework for flow-based programming in python.
 
 ## Example
-Please refer to the jupyter notebook for a demo.
+Please refer to the [jupyter notebook](example.ipynb) for a demo.
 
 ## Code Documentation
 https://paulschweizer.github.io/flowpipe/
 
-# Features
+# Features of version 0.1.0
+- Api:
+    - Create Nodes with arbitrary Inputs and Outputs
+    - Node can execute arbitrary python code
+    - Nodes can be connected via their inputs and outputs to form a Graph
+- Graphs behave like Nodes and can be used within other Graphs
+- Graph Evaluation in arbitray environments (Engines)
+- Graph is JSON serializable and deserializable
+- Comprehensive string representation for Graph and Nodes
 
 # Planned Features
+- Visual Editor
+- Celery Integration
+- API simplifications 
