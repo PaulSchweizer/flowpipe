@@ -22,7 +22,7 @@ class Graph(INode):
         """Display the Graph."""
         canvas = Canvas()
         x = 0
-        for i, row in enumerate(self.evaluation_matrix):
+        for row in self.evaluation_matrix:
             y = 0
             x_diff = 0
             for j, node in enumerate(row):
@@ -101,7 +101,7 @@ class Graph(INode):
         """
         return [node for row in self.evaluation_matrix for node in row]
 
-    def compute(self, **args):
+    def compute(self, *args, **kwargs):
         """Evaluate all sub nodes."""
         for node in self.evaluation_sequence:
             node.evaluate()
