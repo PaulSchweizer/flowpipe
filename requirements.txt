@@ -1,6 +1,1 @@
-mock
-coverage
-codeclimate-test-reporter
-codacy-coverage
-doxypypy
 git+https://github.com/PaulSchweizer/ascii-canvas.git
