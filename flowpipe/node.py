@@ -110,12 +110,8 @@ class INode(object):
         """
         pass
 
-    def on_input_plug_set_dirty(self, input_plug):
-        """Propagate the dirty state to the connected downstream nodes.
-
-        Args:
-            input_plug (IPlug): The Plug that got set dirty.
-        """
+    def on_input_plug_set_dirty(self):
+        """Propagate the dirty state to the connected downstream nodes."""
         for output_plug in self.outputs.values():
             for connected_plug in output_plug.connections:
                 connected_plug.is_dirty = True
@@ -157,7 +153,7 @@ class INode(object):
 class FunctionNode(INode):
     """Wrap a function into a Node."""
 
-    def __init__(self, func=None, outputs=[]):
+    def __init__(self, func=None, outputs=None):
         """The data on the function is used to drive the Node.
 
         The function itself becomes the compute method.
@@ -170,8 +166,9 @@ class FunctionNode(INode):
         if func is not None:
             for input_ in inspect.getargspec(func).args:
                 InputPlug(input_, self)
-        for output in outputs:
-            OutputPlug(output, self)
+        if outputs is not None:
+            for output in outputs:
+                OutputPlug(output, self)
 
     def __call__(self):
         """Create and return an instance of the Node."""
