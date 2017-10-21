@@ -4,8 +4,10 @@ from __future__ import absolute_import
 from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 import importlib
+import inspect
 import uuid
 
+from .plug import OutputPlug, InputPlug
 from .log_observer import LogObserver
 __all__ = ['INode']
 
@@ -144,4 +146,63 @@ class INode(object):
         node.identifier = data['identifier']
         for name, input_ in data['inputs'].items():
             node.inputs[name].value = input_['value']
+        node.post_deserialize(data)
         return node
+
+    def post_deserialize(self, data):
+        """Perform more data operations after initial serialization."""
+        pass
+
+
+class FunctionNode(INode):
+    """Wrap a function into a Node."""
+
+    def __init__(self, func=None, outputs=[]):
+        """The data on the function is used to drive the Node.
+
+        The function itself becomes the compute method.
+        The function input args become the InputPlugs.
+        Other function attributes, name, __doc__ also transfer to the Node.
+        """
+        super(FunctionNode, self).__init__(name=getattr(func, 'func_name', None))
+        self.compute = func
+        self.__doc__ = func.__doc__
+        if func is not None:
+            for input_ in inspect.getargspec(func).args:
+                InputPlug(input_, self)
+        for output in outputs:
+            OutputPlug(output, self)
+
+    def __call__(self):
+        """Create and return an instance of the Node."""
+        return self.__class__(self.compute, [o for o in self.outputs])
+
+    def compute(self, *args, **kwargs):
+        """This function will be replaced by the wrapped function."""
+        pass
+
+    def serialize(self):
+        """Also serialize the location of the wrapped function."""
+        data = super(FunctionNode, self).serialize()
+        data['compute_function'] = {
+            'module': self.compute.__module__,
+            'name': self.compute.__name__
+            }
+        return data
+
+    def post_deserialize(self, data):
+        """Apply the function back to the node."""
+        func = getattr(importlib.import_module(
+                data['compute_function']['module']),
+                data['compute_function']['name'], None)
+        node = func()
+        self.compute = node.compute
+        self.__doc__ = node.__doc__
+
+
+def function_to_node(*args, **kwargs):
+    """Wrap the given function into a Node."""
+
+    def node(func):
+        return FunctionNode(func, *args, **kwargs)
+    return node
