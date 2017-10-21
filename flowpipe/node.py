@@ -165,7 +165,7 @@ class FunctionNode(INode):
         Other function attributes, name, __doc__ also transfer to the Node.
         """
         super(FunctionNode, self).__init__(name=getattr(func, '__name__', None))
-        self.compute = func
+        self.func = func
         self.__doc__ = func.__doc__
         if func is not None:
             for input_ in inspect.getargspec(func).args:
@@ -175,34 +175,32 @@ class FunctionNode(INode):
 
     def __call__(self):
         """Create and return an instance of the Node."""
-        return self.__class__(self.compute, [o for o in self.outputs])
+        return self.__class__(self.func, [o for o in self.outputs])
 
     def compute(self, *args, **kwargs):
-        """This function will be replaced by the wrapped function."""
-        pass
+        """Call and return the wrapped function."""
+        return self.func(*args, **kwargs)
 
     def serialize(self):
         """Also serialize the location of the wrapped function."""
         data = super(FunctionNode, self).serialize()
-        data['compute_function'] = {
-            'module': self.compute.__module__,
-            'name': self.compute.__name__
+        data['func'] = {
+            'module': self.func.__module__,
+            'name': self.func.__name__
             }
         return data
 
     def post_deserialize(self, data):
         """Apply the function back to the node."""
         func = getattr(importlib.import_module(
-                data['compute_function']['module']),
-                data['compute_function']['name'], None)
-        node = func()
-        self.compute = node.compute
-        self.__doc__ = node.__doc__
+                data['func']['module']),
+                data['func']['name'], None)
+        self.func = func.compute
+        self.__doc__ = func.__doc__
 
 
 def function_to_node(*args, **kwargs):
     """Wrap the given function into a Node."""
-
     def node(func):
         return FunctionNode(func, *args, **kwargs)
     return node
