@@ -164,7 +164,7 @@ class FunctionNode(INode):
         The function input args become the InputPlugs.
         Other function attributes, name, __doc__ also transfer to the Node.
         """
-        super(FunctionNode, self).__init__(name=getattr(func, 'func_name', None))
+        super(FunctionNode, self).__init__(name=getattr(func, '__name__', None))
         self.compute = func
         self.__doc__ = func.__doc__
         if func is not None:
