@@ -70,7 +70,7 @@ class IPlug(object):
         """Set the Plug dirty informs the node this Plug belongs to."""
         self._is_dirty = status
         if not status:
-            self.node.on_input_plug_set_dirty(self)
+            self.node.on_input_plug_set_dirty()
 
     @abstractmethod
     def connect(self, plug):

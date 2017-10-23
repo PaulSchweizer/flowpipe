@@ -6,7 +6,7 @@ from flowpipe.node import INode, function_to_node
 
 
 @function_to_node(outputs=['out'])
-def test_function():
+def test_function(input1, input2):
     """Test documentation."""
     return {'out': 'TestHasPassed'}
 
@@ -66,7 +66,24 @@ class TestConvertFunctionToNode(unittest.TestCase):
         deserialized_node = INode.deserialize(json.loads(data))
         self.assertEqual(node.__doc__, deserialized_node.__doc__)
         self.assertEqual(node.name, deserialized_node.name)
-        self.assertEqual(node.compute(), deserialized_node.compute())
+        self.assertEqual(node.inputs.keys(), deserialized_node.inputs.keys())
+        self.assertEqual(node.outputs.keys(), deserialized_node.outputs.keys())
+        self.assertEqual(node.evaluate(), deserialized_node.evaluate())
+
+    def test_use_self_as_first_arg_if_present(self):
+        """If wrapped function has self as first arg, it's used reference to class like in a method."""
+        @function_to_node(outputs=['test'])
+        def function(self, arg1, arg2):
+            return {'test': self.test}
+        node = function()
+        node.test = 'test'
+        self.assertEqual('test', node.evaluate()['test'])
+
+        @function_to_node(outputs=['test'])
+        def function(arg1, arg2):
+            return {'test': 'Test without self'}
+        node = function()
+        self.assertEqual('Test without self', node.evaluate()['test'])
 
 
 if __name__ == '__main__':

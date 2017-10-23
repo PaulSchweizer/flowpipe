@@ -138,16 +138,15 @@ class INode(object):
         cls = getattr(importlib.import_module(data['module']),
                       data['cls'], None)
         node = cls()
-        node.name = data['name']
-        node.identifier = data['identifier']
-        for name, input_ in data['inputs'].items():
-            node.inputs[name].value = input_['value']
         node.post_deserialize(data)
         return node
 
     def post_deserialize(self, data):
         """Perform more data operations after initial serialization."""
-        pass
+        self.name = data['name']
+        self.identifier = data['identifier']
+        for name, input_ in data['inputs'].items():
+            self.inputs[name].value = input_['value']
 
 
 class FunctionNode(INode):
@@ -161,14 +160,7 @@ class FunctionNode(INode):
         Other function attributes, name, __doc__ also transfer to the Node.
         """
         super(FunctionNode, self).__init__(name=getattr(func, '__name__', None))
-        self.func = func
-        self.__doc__ = func.__doc__
-        if func is not None:
-            for input_ in inspect.getargspec(func).args:
-                InputPlug(input_, self)
-        if outputs is not None:
-            for output in outputs:
-                OutputPlug(output, self)
+        self._initialize(func, outputs or [])
 
     def __call__(self):
         """Create and return an instance of the Node."""
@@ -176,7 +168,10 @@ class FunctionNode(INode):
 
     def compute(self, *args, **kwargs):
         """Call and return the wrapped function."""
-        return self.func(*args, **kwargs)
+        if self._use_self:
+            return self.func(self, *args, **kwargs)
+        else:
+            return self.func(*args, **kwargs)
 
     def serialize(self):
         """Also serialize the location of the wrapped function."""
@@ -184,16 +179,34 @@ class FunctionNode(INode):
         data['func'] = {
             'module': self.func.__module__,
             'name': self.func.__name__
-            }
+        }
         return data
 
     def post_deserialize(self, data):
         """Apply the function back to the node."""
-        func = getattr(importlib.import_module(
+        self.name = data['name']
+        self.identifier = data['identifier']
+        node = getattr(importlib.import_module(
                 data['func']['module']),
-                data['func']['name'], None)
-        self.func = func.compute
+                data['func']['name'], None)()
+        self._initialize(node.func, data['outputs'].keys())
+        for name, input_ in data['inputs'].items():
+            node.inputs[name].value = input_['value']
+
+    def _initialize(self, func, outputs):
+        """Use the function and the list of outputs to setup the Node."""
+        self.func = func
         self.__doc__ = func.__doc__
+        self._use_self = False
+        if func is not None:
+            for input_ in inspect.getargspec(func).args:
+                if input_ != 'self':
+                    InputPlug(input_, self)
+                else:
+                    self._use_self = True
+        if outputs is not None:
+            for output in outputs:
+                OutputPlug(output, self)
 
 
 def function_to_node(*args, **kwargs):
