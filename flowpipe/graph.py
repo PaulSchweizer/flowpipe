@@ -141,7 +141,7 @@ class Graph(INode):
                              node.item.position[1] + 3 + len(node.inputs) + j]
                     end = [dnode.item.position[0],
                            dnode.item.position[1] + 3 +
-                           dnode.inputs.values().index(connection)]
+                           list(dnode.inputs.values()).index(connection)]
                     canvas.add_item(Line(start, end), 0)
         return canvas.render()
 
