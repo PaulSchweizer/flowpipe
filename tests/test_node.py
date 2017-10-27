@@ -104,7 +104,7 @@ class TestNode(unittest.TestCase):
         with self.assertRaises(Exception):
             node.outputs['out'] >> node.inputs['in1']
 
-    def test_string_representation(self):
+    def test_string_representations(self):
         """Print the node."""
         node = SquareNode()
         node1 = SquareNode()

@@ -1,6 +1,7 @@
 """A Graph of Nodes."""
 from __future__ import print_function
 from __future__ import absolute_import
+import json
 
 from ascii_canvas.canvas import Canvas
 from ascii_canvas.item import Item
@@ -20,29 +21,7 @@ class Graph(INode):
 
     def __unicode__(self):
         """Display the Graph."""
-        canvas = Canvas()
-        x = 0
-        for row in self.evaluation_matrix:
-            y = 0
-            x_diff = 0
-            for j, node in enumerate(row):
-                item = Item(str(node), [x, y])
-                node.item = item
-                x_diff = item.bbox[2] - item.bbox[0] + 4 if item.bbox[2] - item.bbox[0] + 4 > x_diff else x_diff
-                y += item.bbox[3] - item.bbox[1]
-                canvas.add_item(item)
-            x += x_diff
-
-        for node in self.nodes:
-            for j, plug in enumerate(node.outputs):
-                for connection in node.outputs[plug].connections:
-                    dnode = connection.node
-                    start = [node.item.position[0] + node.item.bbox[2],
-                             node.item.position[1] + 3 + len(node.inputs) + j]
-                    end = [dnode.item.position[0],
-                           dnode.item.position[1] + 3 + dnode.inputs.values().index(connection)]
-                    canvas.add_item(Line(start, end), 0)
-        return canvas.render()
+        return self.node_repr()
 
     @property
     def is_dirty(self):
@@ -109,10 +88,12 @@ class Graph(INode):
         for node in data['nodes']:
             graph.nodes.append(INode.deserialize(node))
         for node in data['nodes']:
-            this = [n for n in graph.nodes if n.identifier == node['identifier']][0]
+            this = [n for n in graph.nodes
+                    if n.identifier == node['identifier']][0]
             for name, input_ in node['inputs'].items():
                 for identifier, plug in input_['connections'].items():
-                    upstream = [n for n in graph.nodes if n.identifier == identifier][0]
+                    upstream = [n for n in graph.nodes
+                                if n.identifier == identifier][0]
                     upstream.outputs[plug] >> this.inputs[name]
         return graph
 
@@ -135,3 +116,39 @@ class Graph(INode):
         else:
             raise Exception("Node {0} not available in {1}".format(node,
                                                                    self.name))
+
+    def node_repr(self):
+        """Format to visualize the Graph."""
+        canvas = Canvas()
+        x = 0
+        for row in self.evaluation_matrix:
+            y = 0
+            x_diff = 0
+            for j, node in enumerate(row):
+                item = Item(str(node), [x, y])
+                node.item = item
+                x_diff = (item.bbox[2] - item.bbox[0] + 4 if
+                          item.bbox[2] - item.bbox[0] + 4 > x_diff else x_diff)
+                y += item.bbox[3] - item.bbox[1]
+                canvas.add_item(item)
+            x += x_diff
+
+        for node in self.nodes:
+            for j, plug in enumerate(node.outputs):
+                for connection in node.outputs[plug].connections:
+                    dnode = connection.node
+                    start = [node.item.position[0] + node.item.bbox[2],
+                             node.item.position[1] + 3 + len(node.inputs) + j]
+                    end = [dnode.item.position[0],
+                           dnode.item.position[1] + 3 +
+                           dnode.inputs.values().index(connection)]
+                    canvas.add_item(Line(start, end), 0)
+        return canvas.render()
+
+    def list_repr(self):
+        """List representation of the graph showing nodes and connections."""
+        pretty = []
+        pretty.append(self.name)
+        for node in self.evaluation_sequence:
+            pretty.append(node.list_repr())
+        return '\n '.join(pretty)

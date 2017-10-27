@@ -194,6 +194,15 @@ class TestGraph(unittest.TestCase):
         with self.assertRaises(Exception):
             graph.node("DoesNotExist")
 
+    def test_string_representations(self):
+        """Print the Graph."""
+        start = TestNode('start')
+        end = TestNode('end')
+        start.outputs['out'] >> end.inputs['in1']
+        graph = Graph(nodes=[start, end])
+        print(graph)
+        print(graph.list_repr())
+
 
 class TestSubGraphs(unittest.TestCase):
     """Test using Graphs like nodes, as subgraphs."""

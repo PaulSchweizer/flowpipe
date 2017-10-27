@@ -168,16 +168,19 @@ class INode(object):
         """List representation of the node showing inputs and their values."""
         pretty = []
         pretty.append(self.name)
-        for name, plug in self.inputs.iteritems():
+        for name, plug in self.inputs.items():
             if plug.connections:
-                pretty.append('  [i] {0} << {1}.{2}'
-                    .format(name, plug.connections[0].node.name, plug.connections[0].name))
+                pretty.append('  [i] {0} << {1}.{2}'.format(
+                    name, plug.connections[0].node.name,
+                    plug.connections[0].name))
             else:
-                pretty.append('  [i] {0}: {1}'.format(name, json.dumps(plug.value)))
-        for name, plug in self.outputs.iteritems():
+                pretty.append('  [i] {0}: {1}'.format(name,
+                                                      json.dumps(plug.value)))
+        for name, plug in self.outputs.items():
             if plug.connections:
-                pretty.append('  [o] {0} >> {1}.{2}'
-                    .format(name, plug.connections[0].node.name, plug.connections[0].name))
+                pretty.append('  [o] {0} >> {1}.{2}'.format(
+                    name, plug.connections[0].node.name,
+                    plug.connections[0].name))
             else:
                 pretty.append('  [o] {0}'.format(name))
         return '\n'.join(pretty)
@@ -195,7 +198,7 @@ class FunctionNode(INode):
         super(FunctionNode, self).__init__(
             name=getattr(func, '__name__', None))
         self._initialize(func, outputs or [])
-        for plug, value in kwargs.iteritems():
+        for plug, value in kwargs.items():
             self.inputs[plug].value = value
 
     def __call__(self, **kwargs):
