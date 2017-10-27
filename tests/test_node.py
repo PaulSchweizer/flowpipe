@@ -107,7 +107,12 @@ class TestNode(unittest.TestCase):
     def test_string_representation(self):
         """Print the node."""
         node = SquareNode()
+        node1 = SquareNode()
+        node.outputs['out'] >> node1.inputs['in1']
+        node.inputs['in1'].value = "Test"
         print(node)
+        print(node.list_repr())
+        print(node1.list_repr())
 
     def test_node_has_unique_identifier(self):
         """A Node gets a unique identifiers assigned."""

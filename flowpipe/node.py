@@ -5,6 +5,7 @@ from abc import ABCMeta, abstractmethod
 from collections import OrderedDict
 import importlib
 import inspect
+import json
 import uuid
 
 from .plug import OutputPlug, InputPlug
@@ -31,31 +32,7 @@ class INode(object):
 
     def __unicode__(self):
         """Show all input and output Plugs."""
-        offset = ''
-        if [i for i in self.inputs.values() if i.connections]:
-            offset = ' ' * 3
-        width = len(max(list(self.inputs) + list(self.outputs) + [self.name], key=len)) + 2
-        pretty = offset + '+' + '-' * width + '+'
-        pretty += '\n{offset}|{name:^{width}}|'.format(offset=offset, name=' ' + self.name + ' ', width=width)
-        pretty += '\n' + offset + '|' + '-'*width + '|'
-        # Inputs
-        for input_ in self.inputs.keys():
-            pretty += '\n'
-            if self.inputs[input_].connections:
-                pretty += '-->'
-            else:
-                pretty += offset
-            pretty += 'o {input_:{width}}|'.format(input_=input_, width=width-1)
-
-        # Outputs
-        for output in self.outputs.keys():
-            pretty += '\n{offset}|{output:>{width}} o'.format(offset=offset, output=output, width=width-1)
-            if self.outputs[output].connections:
-                pretty += '-->'
-
-        pretty += '\n' + offset + '+' + '-'*width + '+'
-
-        return pretty
+        return self.node_repr()
 
     def __str__(self):
         """Show all input and output Plugs."""
@@ -79,7 +56,7 @@ class INode(object):
 
     @property
     def downstream_nodes(self):
-        """This node feeds outputs to these Nodes."""
+        """Lower level nodes that this node feeds output to."""
         downstream_nodes = list()
         for output in self.outputs.values():
             downstream_nodes += [c.node for c in output.connections]
@@ -148,6 +125,63 @@ class INode(object):
         for name, input_ in data['inputs'].items():
             self.inputs[name].value = input_['value']
 
+    def node_repr(self):
+        """The node formated into a string looking like a node.
+
+        +------------+
+        | Node.Name  |
+        |------------|
+        o in         |
+        |        out o
+        +------------+
+        """
+        offset = ''
+        if [i for i in self.inputs.values() if i.connections]:
+            offset = ' ' * 3
+        width = len(max(list(self.inputs) + list(self.outputs) +
+                        [self.name], key=len)) + 2
+        pretty = offset + '+' + '-' * width + '+'
+        pretty += '\n{offset}|{name:^{width}}|'.format(
+            offset=offset, name=' ' + self.name + ' ', width=width)
+        pretty += '\n' + offset + '|' + '-' * width + '|'
+        # Inputs
+        for input_ in self.inputs.keys():
+            pretty += '\n'
+            if self.inputs[input_].connections:
+                pretty += '-->'
+            else:
+                pretty += offset
+            pretty += 'o {input_:{width}}|'.format(
+                input_=input_, width=width - 1)
+
+        # Outputs
+        for output in self.outputs.keys():
+            pretty += '\n{offset}|{output:>{width}} o'.format(
+                offset=offset, output=output, width=width - 1)
+            if self.outputs[output].connections:
+                pretty += '---'
+
+        pretty += '\n' + offset + '+' + '-' * width + '+'
+        return pretty
+
+    def list_repr(self):
+        """List representation of the node showing inputs and their values."""
+        pretty = []
+        pretty.append(self.name)
+        for name, plug in self.inputs.iteritems():
+            if plug.connections:
+                pretty.append('  [i] {0} << {1}.{2}'
+                    .format(name, plug.connections[0].node.name, plug.connections[0].name))
+            else:
+                pretty.append('  [i] {0}: {1}'.format(name, json.dumps(plug.value)))
+        for name, plug in self.outputs.iteritems():
+            if plug.connections:
+                pretty.append('  [o] {0} >> {1}.{2}'
+                    .format(name, plug.connections[0].node.name, plug.connections[0].name))
+            else:
+                pretty.append('  [o] {0}'.format(name))
+        return '\n'.join(pretty)
+
 
 class FunctionNode(INode):
     """Wrap a function into a Node."""
@@ -191,8 +225,8 @@ class FunctionNode(INode):
         self.name = data['name']
         self.identifier = data['identifier']
         node = getattr(importlib.import_module(
-                data['func']['module']),
-                data['func']['name'], None)()
+            data['func']['module']),
+            data['func']['name'], None)()
         self._initialize(node.func, data['outputs'].keys())
         for name, input_ in data['inputs'].items():
             node.inputs[name].value = input_['value']
