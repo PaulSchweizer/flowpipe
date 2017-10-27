@@ -55,17 +55,6 @@ class Graph(INode):
         return [n for n in self.nodes if n.is_dirty]
 
     @property
-    def all_nodes(self):
-        """Return all nodes, also from subgraphs."""
-        all_nodes = list()
-        for node in self.nodes:
-            if isinstance(node, Graph):
-                all_nodes.append(node)
-            elif isinstance(node, INode):
-                all_nodes.append(node)
-        return all_nodes
-
-    @property
     def evaluation_matrix(self):
         """Sort nodes into a 2D grid based on their dependency.
 
@@ -79,7 +68,7 @@ class Graph(INode):
         """
         levels = dict()
 
-        for node in self.all_nodes:
+        for node in self.nodes:
             self._sort_node(node, levels, level=0)
 
         grid = list()
@@ -137,3 +126,12 @@ class Graph(INode):
 
         for downstream_node in node.downstream_nodes:
             self._sort_node(downstream_node, parent, level=level + 1)
+
+    def node(self, node):
+        """Access a node by name."""
+        nodes = [n for n in self.nodes if n.name == node]
+        if nodes:
+            return nodes[0]
+        else:
+            raise Exception("Node {0} not available in {1}".format(node,
+                                                                   self.name))

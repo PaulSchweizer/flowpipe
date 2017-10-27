@@ -152,19 +152,23 @@ class INode(object):
 class FunctionNode(INode):
     """Wrap a function into a Node."""
 
-    def __init__(self, func=None, outputs=None):
+    def __init__(self, func=None, outputs=None, **kwargs):
         """The data on the function is used to drive the Node.
-
         The function itself becomes the compute method.
         The function input args become the InputPlugs.
         Other function attributes, name, __doc__ also transfer to the Node.
         """
-        super(FunctionNode, self).__init__(name=getattr(func, '__name__', None))
+        super(FunctionNode, self).__init__(
+            name=getattr(func, '__name__', None))
         self._initialize(func, outputs or [])
+        for plug, value in kwargs.iteritems():
+            self.inputs[plug].value = value
 
-    def __call__(self):
+    def __call__(self, **kwargs):
         """Create and return an instance of the Node."""
-        return self.__class__(self.func, [o for o in self.outputs])
+        return self.__class__(func=self.func,
+                              outputs=[o for o in self.outputs],
+                              **kwargs)
 
     def compute(self, *args, **kwargs):
         """Call and return the wrapped function."""

@@ -85,6 +85,14 @@ class TestConvertFunctionToNode(unittest.TestCase):
         node = function()
         self.assertEqual('Test without self', node.evaluate()['test'])
 
+    def test_assign_input_args_to_function_input_plugs(self):
+        """Assign inputs to function to the input plugs."""
+        @function_to_node(outputs=['test'])
+        def function(arg):
+            return {'test': arg}
+        node = function(arg="test")
+        self.assertEqual('test', node.evaluate()['test'])
+
 
 if __name__ == '__main__':
     unittest.main()

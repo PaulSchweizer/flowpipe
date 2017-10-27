@@ -186,49 +186,17 @@ class TestGraph(unittest.TestCase):
                     self.assertEqual(ds_connection.name, connection.name)
                     self.assertEqual(ds_connection.node.name, connection.node.name)
 
+    def test_access_nodes_in_graph_by_name(self):
+        """Access nodes by their name in a Graph."""
+        node = TestNode()
+        graph = Graph(nodes=[node])
+        self.assertEqual(node, graph.node(node.name))
+        with self.assertRaises(Exception):
+            graph.node("DoesNotExist")
+
 
 class TestSubGraphs(unittest.TestCase):
     """Test using Graphs like nodes, as subgraphs."""
-
-    # def test_dynamic_graph_inputs(self):
-    #     """A Graph can reference input and output Plugs of it's nodes."""
-    #     # Graph 1
-    #     g1_start = TestNode('g1_start')
-    #     g1_node = TestNode('g1_node')
-    #     g1_start.outputs['out'] >> g1_node.inputs['in1']
-    #     graph1 = Graph('Graph1', [g1_start, g1_node])
-
-    #     # Adding Input Plugs
-    #     graph1.inputs['in'] = g1_start.inputs['in1']
-    #     graph1.outputs['out'] = g1_node.outputs['out']
-
-    #     # Graph 1
-    #     g2_start = TestNode('g2_start')
-    #     g2_node = TestNode('g2_node')
-    #     g2_start.outputs['out'] >> g2_node.inputs['in1']
-    #     graph2 = Graph('Graph2', [g2_start, g2_node])
-
-    #     # Adding Input Plugs
-    #     graph2.inputs['in'] = g2_start.inputs['in1']
-    #     graph2.outputs['out'] = g2_node.outputs['out']
-
-    #     # Connecting Input Plugs
-    #     graph1.outputs['out'] >> graph2.inputs['in']
-    #     g2_node.outputs['out'] >> graph2.outputs['out']
-
-    #     # Creating a top graph
-    #     nodes = [graph1, graph2]
-    #     graph = Graph(nodes=nodes)
-
-    #     # Set some values and evaluate the graph
-    #     graph1.inputs['in'].value = 3
-    #     g1_start.inputs['in2'].value = 2
-    #     g1_node.inputs['in2'].value = 1
-    #     g2_start.inputs['in2'].value = 1
-    #     g2_node.inputs['in2'].value = 1
-
-    #     graph.evaluate()
-    #     self.assertEqual(6, g2_node.outputs['out'].value)
 
     def test_graph_behaves_like_a_node(self):
         """A Graph can be used the same way as a Node."""
