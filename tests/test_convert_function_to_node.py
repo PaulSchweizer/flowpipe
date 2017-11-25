@@ -62,11 +62,14 @@ class TestConvertFunctionToNode(unittest.TestCase):
     def test_serialize_function_node(self):
         """Serialization also stored the location of the function."""
         node = test_function()
+        node.inputs["input1"].value = "Test"
         data = json.dumps(node.serialize())
         deserialized_node = INode.deserialize(json.loads(data))
         self.assertEqual(node.__doc__, deserialized_node.__doc__)
         self.assertEqual(node.name, deserialized_node.name)
         self.assertEqual(node.inputs.keys(), deserialized_node.inputs.keys())
+        self.assertEqual([v.value for v in node.inputs.values()],
+                         [v.value for v in deserialized_node.inputs.values()])
         self.assertEqual(node.outputs.keys(), deserialized_node.outputs.keys())
         self.assertEqual(node.evaluate(), deserialized_node.evaluate())
 

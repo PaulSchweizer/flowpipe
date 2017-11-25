@@ -1,7 +1,6 @@
 """A Graph of Nodes."""
 from __future__ import print_function
 from __future__ import absolute_import
-import json
 
 from ascii_canvas.canvas import Canvas
 from ascii_canvas.item import Item

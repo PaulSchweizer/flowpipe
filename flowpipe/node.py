@@ -126,7 +126,7 @@ class INode(object):
             self.inputs[name].value = input_['value']
 
     def node_repr(self):
-        """The node formated into a string looking like a node.
+        """Format the Node into a string looking like a node.
 
         +------------+
         | Node.Name  |
@@ -232,7 +232,7 @@ class FunctionNode(INode):
             data['func']['name'], None)()
         self._initialize(node.func, data['outputs'].keys())
         for name, input_ in data['inputs'].items():
-            node.inputs[name].value = input_['value']
+            self.inputs[name].value = input_['value']
 
     def _initialize(self, func, outputs):
         """Use the function and the list of outputs to setup the Node."""
