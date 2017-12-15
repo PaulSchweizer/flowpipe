@@ -2,7 +2,10 @@
 from __future__ import print_function
 from __future__ import absolute_import
 from abc import ABCMeta, abstractmethod
-from collections import OrderedDict
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
 import importlib
 import inspect
 import json
