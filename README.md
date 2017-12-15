@@ -4,7 +4,7 @@
 A lightweight framework for flow-based programming in python.
 
 ## Example
-Please refer to the [jupyter notebook](example.ipynb) for a demo.
+Please refer to the [jupyter notebook](docs/example.ipynb) for a demo.
 
 ## Code Documentation
 https://paulschweizer.github.io/flowpipe/
@@ -22,4 +22,4 @@ https://paulschweizer.github.io/flowpipe/
 # Planned Features
 - Visual Editor
 - Celery Integration
-- API simplifications 
+- API simplifications
