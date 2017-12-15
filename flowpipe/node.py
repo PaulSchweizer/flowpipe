@@ -64,7 +64,9 @@ class INode(object):
 
     def evaluate(self):
         """Compute this Node, log it and clean the input Plugs."""
-        inputs = {name: plug.value for name, plug in self.inputs.items()}
+        inputs = dict()
+        for name, plug in self.inputs.items():
+            inputs[name] = plug.value
 
         # Compute and redirect the output to the output plugs
         outputs = self.compute(**inputs) or dict()
