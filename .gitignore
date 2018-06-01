@@ -2,6 +2,7 @@
 gui
 cover
 .coverage
+.pytest_cache*
 
 # Sublime
 *.sublime-project
