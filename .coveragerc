@@ -1,2 +1,5 @@
 [report]
-omit = *nodes*
+omit =
+    *nodes*
+    *gui*
+    *____*
