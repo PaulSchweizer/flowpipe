@@ -6,6 +6,10 @@ try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
+try:
+    import importlib
+except ImportError:
+    pass
 import inspect
 import json
 import uuid
@@ -135,9 +139,12 @@ class INode(object):
     @staticmethod
     def deserialize(data):
         """De-serialize from the given json data."""
-        module = __import__(data['module'], globals(), locals(), ['object'], -1)
-        cls = getattr(module, data['cls'], None)
-        node = cls()
+        try:
+            module = importlib.import_module(data['module'])
+        except NameError:
+            module = __import__(data['module'], globals(),
+                                locals(), ['object'], -1)
+        node = getattr(module, data['cls'], None)()
         node.post_deserialize(data)
         return node
 
