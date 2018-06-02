@@ -19,6 +19,15 @@ from .log_observer import LogObserver
 __all__ = ['INode']
 
 
+def import_module(module):
+    """Importing the given module works from python 2.6 to python 3."""
+    try:
+        module = importlib.import_module(module)
+    except NameError:
+        module = __import__(module, globals(), locals(), ['object'], -1)
+    return module
+
+
 class INode(object):
     """Holds input and output Plugs and a method for computing."""
 
@@ -139,12 +148,7 @@ class INode(object):
     @staticmethod
     def deserialize(data):
         """De-serialize from the given json data."""
-        try:
-            module = importlib.import_module(data['module'])
-        except NameError:
-            module = __import__(data['module'], globals(),
-                                locals(), ['object'], -1)
-        node = getattr(module, data['cls'], None)()
+        node = getattr(import_module(data['module']), data['cls'], None)()
         node.post_deserialize(data)
         return node
 
@@ -280,8 +284,8 @@ class FunctionNode(INode):
         """Apply the function back to the node."""
         self.name = data['name']
         self.identifier = data['identifier']
-        module = __import__(data['func']['module'], globals(), locals(), ['object'], -1)
-        node = getattr(module, data['func']['name'], None)()
+        node = getattr(import_module(data['func']['module']),
+                       data['func']['name'], None)()
         self._initialize(node.func, data['outputs'].keys(), data['engine'])
         for name, input_ in data['inputs'].items():
             self.inputs[name].value = input_['value']
