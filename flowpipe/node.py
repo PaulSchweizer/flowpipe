@@ -109,7 +109,7 @@ class INode(object):
         for input_ in self.inputs.values():
             input_.is_dirty = False
 
-        LogObserver.push_message('Evaluation result: {2}'
+        LogObserver.push_message('Evaluation result for {0} -> {1}: {2}'
             .format(self.file_location, self.class_name,
                     json.dumps(self._sort_plugs(outputs), indent=2)))
 

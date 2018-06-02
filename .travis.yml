@@ -21,7 +21,7 @@ script:
 after_success:
     - codeclimate-test-reporter
     - coverage xml
-    - python-codacy-coverage -r coverage.xml
+    - python-codacy-coverage -r ./coverage.xml
     - cd $TRAVIS_BUILD_DIR
     - chmod +x .deploy_doxygen.sh
     - ./.deploy_doxygen.sh
