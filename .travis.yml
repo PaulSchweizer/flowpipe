@@ -17,7 +17,7 @@ install:
 
 # command to run tests
 script:
-    - nosetests --with-coverage --cover-erase --cover-html --cover-package=flowpipe
+    - pytest ./tests --cov=./flowpipe --cov-report=html --cov-report=term --cov-config .coveragerc
 
 after_success:
     - codeclimate-test-reporter
