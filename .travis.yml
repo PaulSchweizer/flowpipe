@@ -16,7 +16,7 @@ install:
 
 # command to run tests
 script:
-    - pytest ./tests --cov=./flowpipe --cov-report=html --cov-report=term --cov-config .coveragerc
+    - coverage run --source flowpipe -m pytest ./tests --cov=./flowpipe --cov-report=html --cov-report=term --cov-config .coveragerc
 
 after_success:
     - codeclimate-test-reporter

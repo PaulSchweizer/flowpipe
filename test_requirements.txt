@@ -1,6 +1,7 @@
 pytest
 pytest-cov
 mock
+coverage
 codeclimate-test-reporter
 codacy-coverage
 doxypypy
