@@ -28,11 +28,6 @@ class Graph(INode):
         return True in [n.is_dirty for n in self.nodes]
 
     @property
-    def dirty_nodes(self):
-        """Test whether any of the given nodes needs evaluation."""
-        return [n for n in self.nodes if n.is_dirty]
-
-    @property
     def evaluation_matrix(self):
         """Sort nodes into a 2D grid based on their dependency.
 
@@ -67,6 +62,11 @@ class Graph(INode):
                 evaluation grid.
         """
         return [node for row in self.evaluation_matrix for node in row]
+
+    def add_node(self, node):
+        """Add a node to the graph."""
+        if node not in self.nodes:
+            self.nodes.append(node)
 
     def compute(self, *args, **kwargs):
         """Evaluate all sub nodes."""
@@ -111,10 +111,19 @@ class Graph(INode):
         """Access a node by name."""
         nodes = [n for n in self.nodes if n.name == node]
         if nodes:
+            return nodes
+        else:
+            raise Exception("Node {0} not available in {1}".format(
+                node, self.name))
+
+    def node_by_id(self, identifier):
+        """Access a node by identifier."""
+        nodes = [n for n in self.nodes if n.identifier == identifier]
+        if nodes:
             return nodes[0]
         else:
-            raise Exception("Node {0} not available in {1}".format(node,
-                                                                   self.name))
+            raise Exception("Node '{0}' not available in {1}"
+                .format(identifier, self.name))
 
     def node_repr(self):
         """Format to visualize the Graph."""
@@ -133,14 +142,14 @@ class Graph(INode):
             x += x_diff
 
         for node in self.nodes:
-            for j, plug in enumerate(node.outputs):
-                for connection in node.outputs[plug].connections:
+            for j, plug in enumerate(node._sort_plugs(node.outputs)):
+                for connection in node._sort_plugs(node.outputs)[plug].connections:
                     dnode = connection.node
                     start = [node.item.position[0] + node.item.bbox[2],
                              node.item.position[1] + 3 + len(node.inputs) + j]
                     end = [dnode.item.position[0],
                            dnode.item.position[1] + 3 +
-                           list(dnode.inputs.values()).index(connection)]
+                           list(dnode._sort_plugs(dnode.inputs).values()).index(connection)]
                     canvas.add_item(Line(start, end), 0)
         return canvas.render()
 

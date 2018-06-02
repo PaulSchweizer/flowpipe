@@ -75,7 +75,6 @@ class IPlug(object):
     @abstractmethod
     def connect(self, plug):
         """Has to be implemented in the subclass."""
-        pass
 
     def disconnect(self, plug):
         """Break the connection to the given Plug."""
@@ -88,11 +87,13 @@ class IPlug(object):
 
     def serialize(self):
         """Serialize the Plug containing all it's connections."""
+        connections = {}
+        for connection in self.connections:
+            connections[connection.node.identifier] = connection.name
         return {
             'name': self.name,
             'value': self.value,
-            'connections': {c.node.identifier:
-                            c.name for c in self.connections}
+            'connections': connections
         }
 
 

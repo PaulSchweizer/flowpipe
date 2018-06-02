@@ -6,7 +6,7 @@ from flowpipe.node import INode, function_to_node
 
 
 @function_to_node(outputs=['out'])
-def test_function(input1, input2):
+def function_for_testing(input1, input2):
     """Test documentation."""
     return {'out': 'TestHasPassed'}
 
@@ -24,13 +24,22 @@ class TestConvertFunctionToNode(unittest.TestCase):
         self.assertIn('arg', node.inputs.keys())
         self.assertIn('kwarg', node.inputs.keys())
 
-    def test_name_is_taken_from_func_name(self):
-        """Function name is converted to node name."""
+    def test_name_is_taken_from_func_name_if_not_provided(self):
+        """Function name is converted to node name if not provided."""
         @function_to_node()
         def function():
             pass
         node = function()
         self.assertEqual('function', node.name)
+
+    def test_name_can_be_provided_as_kwarg(self):
+        """Name and identifier can be provided."""
+        @function_to_node()
+        def function():
+            pass
+        node = function(name='ProvidedNodeName', identifier='TestIdentifier')
+        self.assertEqual('ProvidedNodeName', node.name)
+        self.assertEqual('TestIdentifier', node.identifier)
 
     def test_doc_is_taken_from_func(self):
         """Docstring is taken from the function."""
@@ -61,15 +70,12 @@ class TestConvertFunctionToNode(unittest.TestCase):
 
     def test_serialize_function_node(self):
         """Serialization also stored the location of the function."""
-        node = test_function()
-        node.inputs["input1"].value = "Test"
+        node = function_for_testing()
         data = json.dumps(node.serialize())
         deserialized_node = INode.deserialize(json.loads(data))
         self.assertEqual(node.__doc__, deserialized_node.__doc__)
         self.assertEqual(node.name, deserialized_node.name)
         self.assertEqual(node.inputs.keys(), deserialized_node.inputs.keys())
-        self.assertEqual([v.value for v in node.inputs.values()],
-                         [v.value for v in deserialized_node.inputs.values()])
         self.assertEqual(node.outputs.keys(), deserialized_node.outputs.keys())
         self.assertEqual(node.evaluate(), deserialized_node.evaluate())
 

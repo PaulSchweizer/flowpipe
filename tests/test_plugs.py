@@ -6,7 +6,7 @@ from flowpipe.node import INode
 from flowpipe.plug import InputPlug, OutputPlug
 
 
-class TestNode(INode):
+class NodeForTesting(INode):
 
     def compute(self):
         pass
@@ -17,8 +17,8 @@ class TestPlugs(unittest.TestCase):
 
     def test_connect_and_dicsonnect_nodes(self):
         """Connect and disconnect nodes."""
-        n1 = TestNode()
-        n2 = TestNode()
+        n1 = NodeForTesting()
+        n2 = NodeForTesting()
         out_plug_a = OutputPlug('out', n1)
         out_plug_b = OutputPlug('out', n1)
         in_plug_a = InputPlug('in', n2)
@@ -47,12 +47,13 @@ class TestPlugs(unittest.TestCase):
         # Connecting a different input disconnects the existing one
         self.assertEqual(out_plug_a, in_plug_a.connections[0])
         out_plug_b >> in_plug_a
+        print(in_plug_a.connections)
         self.assertEqual(out_plug_b, in_plug_a.connections[0])
 
     def test_change_connections_sets_plug_dirty(self):
         """Connecting and disconnecting sets the plug dirty."""
-        n1 = TestNode()
-        n2 = TestNode()
+        n1 = NodeForTesting()
+        n2 = NodeForTesting()
         out_plug = OutputPlug('in', n1)
         in_plug = InputPlug('in', n2)
 
@@ -66,7 +67,7 @@ class TestPlugs(unittest.TestCase):
 
     def test_set_value_sets_plug_dirty(self):
         """Connecting and disconnecting sets the plug dirty."""
-        n = TestNode()
+        n = NodeForTesting()
         in_plug = InputPlug('in', n)
 
         in_plug.is_dirty = False
@@ -76,8 +77,8 @@ class TestPlugs(unittest.TestCase):
 
     def test_set_output_pushes_value_to_connected_input(self):
         """OutPlugs push their values to their connected input plugs."""
-        n1 = TestNode()
-        n2 = TestNode()
+        n1 = NodeForTesting()
+        n2 = NodeForTesting()
         out_plug = OutputPlug('in', n1)
         in_plug = InputPlug('in', n2)
 
@@ -95,7 +96,7 @@ class TestPlugs(unittest.TestCase):
 
     def test_assign_initial_value_to_input_plug(self):
         """Assign an initial value to an InputPlug."""
-        n = TestNode()
+        n = NodeForTesting()
         in_plug = InputPlug('in', n)
         self.assertIsNone(in_plug.value)
 
@@ -104,8 +105,8 @@ class TestPlugs(unittest.TestCase):
 
     def test_serialize(self):
         """Serialize the Plug to json."""
-        n1 = TestNode()
-        n2 = TestNode()
+        n1 = NodeForTesting()
+        n2 = NodeForTesting()
         out_plug = OutputPlug('out', n1)
         in_plug = InputPlug('in', n2)
         out_plug >> in_plug
@@ -120,6 +121,13 @@ class TestPlugs(unittest.TestCase):
         self.assertEqual(out_plug.name, out_serialized['name'])
         self.assertEqual(out_plug.value, out_serialized['value'])
         self.assertEqual('in', out_serialized['connections'][in_plug.node.identifier])
+
+    def test_pretty_printing(self):
+        node = NodeForTesting()
+        in_plug = InputPlug('in', node)
+        out_plug = OutputPlug('out', node)
+        print(in_plug)
+        print(out_plug)
 
 
 if __name__ == '__main__':

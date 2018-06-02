@@ -7,10 +7,10 @@ from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.graph import Graph
 
 
-class TestNode(INode):
+class NodeForTesting(INode):
 
     def __init__(self, name=None):
-        super(TestNode, self).__init__(name)
+        super(NodeForTesting, self).__init__(name)
         OutputPlug('out', self)
         InputPlug('in1', self, 0)
         InputPlug('in2', self, 0)
@@ -25,14 +25,14 @@ class TestGraph(unittest.TestCase):
 
     def test_evaluation_matrix(self):
         """The nodes as a 2D grid."""
-        start = TestNode('start')
-        n11 = TestNode('11')
-        n12 = TestNode('12')
-        n21 = TestNode('21')
-        n31 = TestNode('31')
-        n32 = TestNode('32')
-        n33 = TestNode('33')
-        end = TestNode('end')
+        start = NodeForTesting('start')
+        n11 = NodeForTesting('11')
+        n12 = NodeForTesting('12')
+        n21 = NodeForTesting('21')
+        n31 = NodeForTesting('31')
+        n32 = NodeForTesting('32')
+        n33 = NodeForTesting('33')
+        end = NodeForTesting('end')
 
         # Connect them
         start.outputs['out'] >> n11.inputs['in1']
@@ -59,9 +59,9 @@ class TestGraph(unittest.TestCase):
 
     def test_linar_evaluation_sequence(self):
         """A linear graph."""
-        n1 = TestNode('n1')
-        n2 = TestNode('n2')
-        n3 = TestNode('n3')
+        n1 = NodeForTesting('n1')
+        n2 = NodeForTesting('n2')
+        n3 = NodeForTesting('n3')
         n1.outputs['out'] >> n2.inputs['in1']
         n2.outputs['out'] >> n3.inputs['in1']
         nodes = [n2, n1, n3]
@@ -73,9 +73,9 @@ class TestGraph(unittest.TestCase):
 
     def test_branching_evaluation_sequence(self):
         """Branching graph."""
-        n1 = TestNode('n1')
-        n2 = TestNode('n2')
-        n3 = TestNode('n3')
+        n1 = NodeForTesting('n1')
+        n2 = NodeForTesting('n2')
+        n3 = NodeForTesting('n3')
         n1.outputs['out'] >> n2.inputs['in1']
         n1.outputs['out'] >> n3.inputs['in1']
         nodes = [n2, n1, n3]
@@ -90,14 +90,14 @@ class TestGraph(unittest.TestCase):
     def test_complex_branching_evaluation_sequence(self):
         """Connect and disconnect nodes."""
         # The Nodes
-        start = TestNode('start')
-        n11 = TestNode('11')
-        n12 = TestNode('12')
-        n21 = TestNode('21')
-        n31 = TestNode('31')
-        n32 = TestNode('32')
-        n33 = TestNode('33')
-        end = TestNode('end')
+        start = NodeForTesting('start')
+        n11 = NodeForTesting('11')
+        n12 = NodeForTesting('12')
+        n21 = NodeForTesting('21')
+        n31 = NodeForTesting('31')
+        n32 = NodeForTesting('32')
+        n33 = NodeForTesting('33')
+        end = NodeForTesting('end')
 
         # Connect them
         start.outputs['out'] >> n11.inputs['in1']
@@ -132,14 +132,14 @@ class TestGraph(unittest.TestCase):
 
     def test_serialize_graph(self):
         """Serialize the graph to a json-serializable dictionary."""
-        start = TestNode('start')
-        n11 = TestNode('11')
-        n12 = TestNode('12')
-        n21 = TestNode('21')
-        n31 = TestNode('31')
-        n32 = TestNode('32')
-        n33 = TestNode('33')
-        end = TestNode('end')
+        start = NodeForTesting('start')
+        n11 = NodeForTesting('11')
+        n12 = NodeForTesting('12')
+        n21 = NodeForTesting('21')
+        n31 = NodeForTesting('31')
+        n32 = NodeForTesting('32')
+        n33 = NodeForTesting('33')
+        end = NodeForTesting('end')
 
         # Connect them
         start.outputs['out'] >> n11.inputs['in1']
@@ -188,20 +188,56 @@ class TestGraph(unittest.TestCase):
 
     def test_access_nodes_in_graph_by_name(self):
         """Access nodes by their name in a Graph."""
-        node = TestNode()
+        node = NodeForTesting()
         graph = Graph(nodes=[node])
-        self.assertEqual(node, graph.node(node.name))
+        self.assertEqual(node, graph.node(node.name)[0])
         with self.assertRaises(Exception):
             graph.node("DoesNotExist")
 
+    def test_access_nodes_in_graph_by_identifier(self):
+        """Access nodes by their identifier in a Graph."""
+        node = NodeForTesting()
+        graph = Graph(nodes=[node])
+        self.assertEqual(node, graph.node_by_id(node.identifier))
+        with self.assertRaises(Exception):
+            graph.node_by_id("DoesNotExist")
+
     def test_string_representations(self):
         """Print the Graph."""
-        start = TestNode('start')
-        end = TestNode('end')
+        start = NodeForTesting('start')
+        end = NodeForTesting('end')
         start.outputs['out'] >> end.inputs['in1']
         graph = Graph(nodes=[start, end])
         print(graph)
         print(graph.list_repr())
+
+    def test_if_on_node_is_dirty_the_entire_graph_is_dirty(self):
+        start = NodeForTesting('start')
+        end = NodeForTesting('end')
+        start.outputs['out'] >> end.inputs['in1']
+        graph = Graph(nodes=[start, end])
+        graph.evaluate()
+
+        self.assertFalse(graph.is_dirty)
+
+        start.inputs["in1"].is_dirty = True
+        self.assertTrue(graph.is_dirty)
+
+    def test_nodes_can_be_added_to_graph(self):
+        """Nodes add themselves to their graph as their parent."""
+        graph = Graph()
+        graph.add_node(NodeForTesting())
+        self.assertEqual(1, len(graph.nodes))
+
+    def test_nodes_in_graph_can_have_same_name(self):
+        graph = Graph()
+        nodes = []
+        for i in range(100):
+            node = NodeForTesting("SameName")
+            graph.add_node(node)
+            nodes.append(node)
+
+        print(graph.node("SameName"))
 
 
 class TestSubGraphs(unittest.TestCase):
@@ -209,8 +245,8 @@ class TestSubGraphs(unittest.TestCase):
 
     def test_graph_behaves_like_a_node(self):
         """A Graph can be used the same way as a Node."""
-        start = TestNode('Start')
-        node = TestNode('Node')
+        start = NodeForTesting('Start')
+        node = NodeForTesting('Node')
         inner_graph = Graph('InnerGraph', nodes=[node])
         InputPlug('in', inner_graph)
         start.outputs['out'] >> inner_graph.inputs['in']

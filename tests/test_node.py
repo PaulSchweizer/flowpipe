@@ -103,6 +103,8 @@ class TestNode(unittest.TestCase):
         node = SquareNode()
         with self.assertRaises(Exception):
             node.outputs['out'] >> node.inputs['in1']
+        with self.assertRaises(Exception):
+            node.inputs['in1'] >> node.outputs['out']
 
     def test_string_representations(self):
         """Print the node."""
@@ -147,6 +149,14 @@ class TestNode(unittest.TestCase):
         self.assertEqual(node1.name, new_node1.name)
         self.assertEqual(node1.identifier, new_node1.identifier)
         self.assertEqual(node1.inputs['in1'].value, new_node1.inputs['in1'].value)
+
+    def test_omitting_node_does_not_evaluate_it(self):
+        node = SquareNode()
+        node.omit = True
+        node.outputs['out'].value = 666
+        output = node.evaluate()
+        self.assertEqual({}, output)
+        self.assertEqual(666, node.outputs['out'].value)
 
 
 if __name__ == '__main__':
