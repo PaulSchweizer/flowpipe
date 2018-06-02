@@ -1,5 +1,5 @@
-pytest
-pytest-cov
+pytest==3.0.3
+pytest-cov==2.5.1
 mock
 coverage
 codeclimate-test-reporter
