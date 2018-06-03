@@ -180,8 +180,16 @@ class INode(object):
         width = len(max(list(self.inputs) +
                         list(self.outputs) +
                         [self.name] +
-                        list(plug.name + "".join([s for i, s in enumerate(str(plug.value)) if i < max_value_length]) for plug in self.inputs.values() if plug.value is not None) +
-                        list(plug.name + "".join([s for i, s in enumerate(str(plug.value)) if i < max_value_length]) for plug in self.outputs.values() if plug.value is not None),
+                        list(plug.name + "".join([
+                            s for i, s in enumerate(str(plug.value))
+                            if i < max_value_length])
+                            for plug in self.inputs.values()
+                            if plug.value is not None) +
+                        list(plug.name + "".join([
+                            s for i, s in enumerate(str(plug.value))
+                            if i < max_value_length])
+                            for plug in self.outputs.values()
+                            if plug.value is not None),
                         key=len)) + 5
         pretty = offset + '+' + '-' * width + '+'
         pretty += '\n{offset}|{name:^{width}}|'.format(
@@ -198,7 +206,10 @@ class INode(object):
             value = ""
             if self.inputs[input_].value is not None:
                 value = json.dumps(self.inputs[input_].value)
-            plug = 'o {input_}<{value}>'.format(input_=input_, value="".join([s for i, s in enumerate(str(value)) if i < max_value_length]))
+            plug = 'o {input_}<{value}>'.format(
+                input_=input_,
+                value="".join([s for i, s in enumerate(str(value))
+                               if i < max_value_length]))
             pretty += '{plug:{width}}|'.format(plug=plug, width=width + 1)
 
         # Outputs
@@ -232,7 +243,8 @@ class INode(object):
                 pretty.append('  [o] {0}'.format(name))
         return '\n'.join(pretty)
 
-    def _sort_plugs(self, plugs):
+    @staticmethod
+    def _sort_plugs(plugs):
         sorted_plugs = OrderedDict()
         for i in sorted(plugs, key=lambda x: x.lower()):
             sorted_plugs[i] = plugs[i]
