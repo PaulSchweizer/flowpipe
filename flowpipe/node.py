@@ -172,7 +172,7 @@ class INode(object):
         |        out o
         +------------+
         """
-        max_value_length = 0
+        max_value_length = 10
 
         offset = ''
         if [i for i in self.inputs.values() if i.connections]:

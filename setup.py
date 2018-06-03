@@ -3,7 +3,7 @@ from setuptools import find_packages
 
 
 setup(name='flowpipe',
-      version='0.0.1',
+      version='0.1.0',
       author='Paul Schweizer',
       author_email='paulschweizer@gmx.net',
       description='Lightweight flow-based programming framework.',
