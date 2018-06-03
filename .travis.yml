@@ -19,8 +19,7 @@ script:
     -  coverage run --source flowpipe -m pytest ./tests --cov=flowpipe --cov-report=xml --cov-report=term  --cov-config .coveragerc
 
 after_success:
-    - coverage xml
-    - python-codacy-coverage -r ./coverage.xml
+    - python-codacy-coverage -r coverage.xml
     - cd $TRAVIS_BUILD_DIR
     - chmod +x .deploy_doxygen.sh
     - ./.deploy_doxygen.sh
