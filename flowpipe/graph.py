@@ -16,7 +16,7 @@ class Graph(INode):
     def __init__(self, name=None, nodes=None):
         """Initialize the list of Nodes."""
         super(Graph, self).__init__(name=name)
-        self.nodes = nodes or []
+        self._nodes = nodes or []
 
     def __unicode__(self):
         """Display the Graph."""
@@ -26,6 +26,17 @@ class Graph(INode):
     def is_dirty(self):
         """Test whether any of the given nodes needs evaluation."""
         return True in [n.is_dirty for n in self.nodes]
+
+    @property
+    def nodes(self):
+        """Aggregate the Nodes of this Graph and all it's sub graphs."""
+        nodes = list()
+        for node in self._nodes:
+            if isinstance(node, Graph):
+                nodes += node.nodes
+            else:
+                nodes.append(node)
+        return nodes
 
     @property
     def evaluation_matrix(self):
@@ -66,7 +77,7 @@ class Graph(INode):
     def add_node(self, node):
         """Add a node to the graph."""
         if node not in self.nodes:
-            self.nodes.append(node)
+            self._nodes.append(node)
 
     def compute(self, *args, **kwargs):
         """Evaluate all sub nodes."""
@@ -83,9 +94,9 @@ class Graph(INode):
     def deserialize(data):
         """De-serialize from the given json data."""
         graph = INode.deserialize(data)
-        graph.nodes = []
+        graph._nodes = []
         for node in data['nodes']:
-            graph.nodes.append(INode.deserialize(node))
+            graph._nodes.append(INode.deserialize(node))
         for node in data['nodes']:
             this = [n for n in graph.nodes
                     if n.identifier == node['identifier']][0]
@@ -118,12 +129,11 @@ class Graph(INode):
 
     def node_by_id(self, identifier):
         """Access a node by identifier."""
-        nodes = [n for n in self.nodes if n.identifier == identifier]
-        if nodes:
-            return nodes[0]
-        else:
-            raise Exception("Node '{0}' not available in {1}"
-                .format(identifier, self.name))
+        for node in self.nodes:
+            if node.identifier == identifier:
+                return node
+        raise Exception("Node '{0}' not available in {1}".format(
+            identifier, self.name))
 
     def node_repr(self):
         """Format to visualize the Graph."""

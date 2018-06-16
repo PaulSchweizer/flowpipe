@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import pytest
 
-from flowpipe.node import INode
+from flowpipe.node import INode, function_to_node
 from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.graph import Graph
 
@@ -246,18 +246,51 @@ def test_nodes_in_graph_can_have_same_name():
     print(graph.node("SameName"))
 
 
-def test_graph_behaves_like_a_node():
-    """A Graph can be used the same way as a Node."""
-    start = NodeForTesting('Start')
-    node = NodeForTesting('Node')
-    inner_graph = Graph('InnerGraph', nodes=[node])
-    InputPlug('in', inner_graph)
-    start.outputs['out'] >> inner_graph.inputs['in']
-    outer_graph = Graph('OuterGraph', nodes=[start, inner_graph])
+def test_nested_graphs_expand_sub_graphs():
+    """Nested Graphs expand all nodes of their sub graphs on evaluation."""
 
-    order = ['Start', 'InnerGraph']
-    i = 0
-    for r in outer_graph.evaluation_matrix:
-        for c in r:
-            assert c.name == order[i]
-            i += 1
+    @function_to_node(outputs=["out_put"])
+    def N(in_put_1, in_put_2):
+        return {"out_put": "G1_Node1"}
+
+    # G 3 #############################
+    #
+    G3 = Graph(name="G3")
+    N5 = N(name="N5")
+    N4 = N(name="N4")
+    G3.add_node(N5)
+    G3.add_node(N4)
+    N4.outputs["out_put"] >> N5.inputs["in_put_1"]
+
+    # G 2 #############################
+    #
+    G2 = Graph(name="G2")
+    N3 = N(name="N3")
+    N2 = N(name="N2")
+    N6 = N(name="N6")
+    G2.add_node(N3)
+    G2.add_node(N2)
+    G2.add_node(N6)
+    G2.add_node(G3)
+    N3.outputs["out_put"] >> N4.inputs["in_put_1"]
+    N2.outputs["out_put"] >> N4.inputs["in_put_2"]
+    N5.outputs["out_put"] >> N6.inputs["in_put_1"]
+
+    # G 1 #############################
+    #
+    G1 = Graph(name="G1")
+    OutputPlug('out_put', G1)
+    N1 = N(name="N1")
+    N7 = N(name="N7")
+    G1.add_node(N1)
+    G1.add_node(N7)
+    G1.add_node(G2)
+
+    N1.outputs["out_put"] >> N3.inputs["in_put_1"]
+    N6.outputs["out_put"] >> N7.inputs["in_put_1"]
+    N1.outputs["out_put"] >> N7.inputs["in_put_2"]
+
+    order = [['N1', 'N2'], ['N3'], ['N4'], ['N5'], ['N6'], ['N7']]
+
+    for i, nodes in enumerate(G1.evaluation_matrix):
+        assert sorted([n.name for n in nodes]) == sorted(order[i])
