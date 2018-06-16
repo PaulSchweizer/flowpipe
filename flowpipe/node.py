@@ -10,6 +10,7 @@ try:
     import importlib
 except ImportError:
     pass
+import imp
 import inspect
 import json
 import uuid
@@ -33,7 +34,7 @@ class INode(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, name=None, identifier=None, engine="tk-shell"):
+    def __init__(self, name=None, identifier=None, metadata=None):
         """Initialize the input and output dictionaries and the name.
 
         Args:
@@ -44,7 +45,7 @@ class INode(object):
                            else '{0}-{1}'.format(self.name, uuid.uuid4()))
         self.inputs = dict()
         self.outputs = dict()
-        self.engine = engine
+        self.metadata = metadata or {}
         self.omit = False
         self.file_location = inspect.getfile(self.__class__)
         self.class_name = self.__class__.__name__
@@ -139,18 +140,23 @@ class INode(object):
         for plug in self.outputs.values():
             outputs[plug.name] = plug.serialize()
         return OrderedDict(
+            file_location=self.file_location,
             module=self.__module__,
             cls=self.__class__.__name__,
             name=self.name,
             identifier=self.identifier,
             inputs=inputs,
             outputs=outputs,
-            engine=self.engine)
+            metadata=self.metadata)
 
     @staticmethod
     def deserialize(data):
         """De-serialize from the given json data."""
-        node = getattr(import_module(data['module']), data['cls'], None)()
+        try:
+            node = getattr(import_module(data['module']), data['cls'])()
+        except AttributeError:
+            module = imp.load_source('module', data['file_location'])
+            node = getattr(module, data['cls'])()
         node.post_deserialize(data)
         return node
 
@@ -158,7 +164,8 @@ class INode(object):
         """Perform more data operations after initial serialization."""
         self.name = data['name']
         self.identifier = data['identifier']
-        self.engine = data['engine']
+        self.metadata = data['metadata']
+        self.file_location = data['file_location']
         for name, input_ in data['inputs'].items():
             self.inputs[name].value = input_['value']
 
@@ -255,15 +262,15 @@ class FunctionNode(INode):
     """Wrap a function into a Node."""
 
     def __init__(self, func=None, outputs=None, name=None,
-                 identifier=None, engine='tk-shell', **kwargs):
+                 identifier=None, metadata=None, **kwargs):
         """The data on the function is used to drive the Node.
         The function itself becomes the compute method.
         The function input args become the InputPlugs.
         Other function attributes, name, __doc__ also transfer to the Node.
         """
         super(FunctionNode, self).__init__(
-            name or getattr(func, '__name__', None), identifier, engine)
-        self._initialize(func, outputs or [], engine)
+            name or getattr(func, '__name__', None), identifier, metadata)
+        self._initialize(func, outputs or [], metadata)
         for plug, value in kwargs.items():
             self.inputs[plug].value = value
 
@@ -275,7 +282,7 @@ class FunctionNode(INode):
         """Create and return an instance of the Node."""
         return FunctionNode(func=self.func,
                             outputs=[o for o in self.outputs],
-                            engine=self.engine,
+                            metadata=self.metadata,
                             **kwargs)
 
     def compute(self, *args, **kwargs):
@@ -298,18 +305,20 @@ class FunctionNode(INode):
         """Apply the function back to the node."""
         self.name = data['name']
         self.identifier = data['identifier']
-        node = getattr(import_module(data['func']['module']),
-                       data['func']['name'], None)()
-        self._initialize(node.func, data['outputs'].keys(), data['engine'])
+        self.metadata = data['metadata']
+        self.file_location = data['file_location']
+        module = imp.load_source('module', data['file_location'])
+        node = getattr(module, data['func']['name'])()
+        self._initialize(node.func, data['outputs'].keys(), data['metadata'])
         for name, input_ in data['inputs'].items():
             self.inputs[name].value = input_['value']
 
-    def _initialize(self, func, outputs, engine):
+    def _initialize(self, func, outputs, metadata):
         """Use the function and the list of outputs to setup the Node."""
         self.func = func
         self.__doc__ = func.__doc__
         self._use_self = False
-        self.engine = engine
+        self.metadata = metadata or {}
         if func is not None:
             for input_ in inspect.getargspec(func).args:
                 if input_ != 'self':
