@@ -13,10 +13,12 @@ except ImportError:
 import imp
 import inspect
 import json
+import time
 import uuid
 
 from .plug import OutputPlug, InputPlug
 from .log_observer import LogObserver
+from .stats_reporter import StatsReporter
 __all__ = ['INode']
 
 
@@ -83,7 +85,11 @@ class INode(object):
         return list(set(downstream_nodes))
 
     def evaluate(self):
-        """Compute this Node, log it and clean the input Plugs."""
+        """Compute this Node, log it and clean the input Plugs.
+
+        Also push a stat report in the following form containing the Node,
+        evaluation time and timestamp the computation started.
+        """
         if self.omit:
             LogObserver.push_message('Omitting {0} -> {1}'.format(
                 self.file_location, self.class_name))
@@ -103,7 +109,18 @@ class INode(object):
             inputs[name] = plug.value
 
         # Compute and redirect the output to the output plugs
+        start_time = time.time()
         outputs = self.compute(**inputs) or dict()
+        eval_time = time.time() - start_time
+
+        stats = {
+            "node": self,
+            "eval_time": eval_time,
+            "timestamp": start_time
+        }
+
+        StatsReporter.push_stats(stats)
+
         for name, value in outputs.items():
             self.outputs[name].value = value
 
