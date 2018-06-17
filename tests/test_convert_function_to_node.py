@@ -1,7 +1,7 @@
 from __future__ import print_function
 import json
 
-from flowpipe.node import INode, function_to_node
+from flowpipe.node import INode, FunctionNode, function_to_node
 
 
 @function_to_node(outputs=['out'])
@@ -20,6 +20,7 @@ def test_input_plugs_are_taken_from_func_inputs():
     assert 'arg' in node.inputs.keys()
     assert 'kwarg' in node.inputs.keys()
 
+
 def test_name_is_taken_from_func_name_if_not_provided():
     """Function name is converted to node name if not provided."""
     @function_to_node()
@@ -27,6 +28,7 @@ def test_name_is_taken_from_func_name_if_not_provided():
         pass
     node = function()
     assert 'function' == node.name
+
 
 def test_name_can_be_provided_as_kwarg():
     """Name and identifier can be provided."""
@@ -37,6 +39,7 @@ def test_name_can_be_provided_as_kwarg():
     assert 'ProvidedNodeName' == node.name
     assert 'TestIdentifier' == node.identifier
 
+
 def test_doc_is_taken_from_func():
     """Docstring is taken from the function."""
     @function_to_node()
@@ -44,6 +47,7 @@ def test_doc_is_taken_from_func():
         """Function Documentation"""
     node = function()
     assert function.__doc__ == node.__doc__
+
 
 def test_define_outputs():
     """Outputs have to be defined as a list of strings."""
@@ -55,6 +59,7 @@ def test_define_outputs():
     assert 'out1' in node.outputs.keys()
     assert 'out2' in node.outputs.keys()
 
+
 def test_decorator_returns_node_instances():
     """A call to the decorated function returns a Node instance."""
     @function_to_node()
@@ -63,6 +68,7 @@ def test_decorator_returns_node_instances():
     node1 = function()
     node2 = function()
     assert node1 != node2
+
 
 def test_serialize_function_node():
     """Serialization also stored the location of the function."""
@@ -74,6 +80,7 @@ def test_serialize_function_node():
     assert node.inputs.keys() == deserialized_node.inputs.keys()
     assert node.outputs.keys() == deserialized_node.outputs.keys()
     assert node.evaluate() == deserialized_node.evaluate()
+
 
 def test_use_self_as_first_arg_if_present():
     """If wrapped function has self as first arg, it's used reference to class like in a method."""
@@ -90,6 +97,7 @@ def test_use_self_as_first_arg_if_present():
     node = function()
     assert 'Test without self' == node.evaluate()['test']
 
+
 def test_assign_input_args_to_function_input_plugs():
     """Assign inputs to function to the input plugs."""
     @function_to_node(outputs=['test'])
@@ -97,3 +105,16 @@ def test_assign_input_args_to_function_input_plugs():
         return {'test': arg}
     node = function(arg="test")
     assert 'test' == node.evaluate()['test']
+
+
+def test_provide_custom_node_class():
+    """The 'node' key is used to pass a custom class to be used as the Node."""
+    class CustomFunctionNode(FunctionNode):
+        pass
+
+    @function_to_node(cls=CustomFunctionNode, outputs=['test'])
+    def function(arg):
+        return {'test': arg}
+
+    node = function(arg="test")
+    assert isinstance(node, CustomFunctionNode)

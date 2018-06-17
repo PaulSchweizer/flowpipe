@@ -297,10 +297,10 @@ class FunctionNode(INode):
 
     def __call__(self, **kwargs):
         """Create and return an instance of the Node."""
-        return FunctionNode(func=self.func,
-                            outputs=[o for o in self.outputs],
-                            metadata=self.metadata,
-                            **kwargs)
+        return self.__class__(func=self.func,
+                              outputs=[o for o in self.outputs],
+                              metadata=self.metadata,
+                              **kwargs)
 
     def compute(self, *args, **kwargs):
         """Call and return the wrapped function."""
@@ -349,6 +349,8 @@ class FunctionNode(INode):
 
 def function_to_node(*args, **kwargs):
     """Wrap the given function into a Node."""
+    cls = kwargs.pop("cls", FunctionNode)
+
     def node(func):
-        return FunctionNode(func, *args, **kwargs)
+        return cls(func, *args, **kwargs)
     return node
