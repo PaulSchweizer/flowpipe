@@ -235,17 +235,6 @@ def test_nodes_can_be_added_to_graph():
     assert 1 == len(graph.nodes)
 
 
-def test_nodes_in_graph_can_have_same_name():
-    graph = Graph()
-    nodes = []
-    for i in range(100):
-        node = NodeForTesting("SameName")
-        graph.add_node(node)
-        nodes.append(node)
-
-    print(graph.node("SameName"))
-
-
 def test_nested_graphs_expand_sub_graphs():
     """Nested Graphs expand all nodes of their sub graphs on evaluation."""
 
@@ -294,3 +283,35 @@ def test_nested_graphs_expand_sub_graphs():
 
     for i, nodes in enumerate(G1.evaluation_matrix):
         assert sorted([n.name for n in nodes]) == sorted(order[i])
+
+
+def test_nodes_can_be_accessed_via_name_through_indexing():
+    graph = Graph()
+    test_name = "TestName"
+    node = NodeForTesting(name=test_name)
+    graph.add_node(node)
+
+    assert graph[test_name] == node
+
+    with pytest.raises(Exception):
+        graph["Does not exist"]
+
+
+def test_node_names_on_graph_have_to_be_unique():
+    graph = Graph()
+    same_name = "Same Name"
+    node_1 = NodeForTesting(name=same_name)
+    graph.add_node(node_1)
+    node_2 = NodeForTesting(name=same_name)
+
+    with pytest.raises(Exception):
+        graph.add_node(node_2)
+
+
+def test_nodes_are_only_added_once():
+    graph = Graph()
+    node = NodeForTesting()
+    for i in range(10):
+        graph.add_node(node)
+
+    assert len(graph.nodes) == 1

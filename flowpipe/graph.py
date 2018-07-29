@@ -7,6 +7,7 @@ from ascii_canvas.item import Item
 from ascii_canvas.item import Line
 
 from .node import INode
+from .log_observer import LogObserver
 __all__ = ['Graph']
 
 
@@ -21,6 +22,14 @@ class Graph(INode):
     def __unicode__(self):
         """Display the Graph."""
         return self.node_repr()
+
+    def __getitem__(self, key):
+        """Grant access to Nodes via their name."""
+        for node in self.nodes:
+            if node.name == key:
+                return node
+        raise Exception(
+            "Graph does not contain a Node named '{0}'".format(key))
 
     @property
     def is_dirty(self):
@@ -75,9 +84,21 @@ class Graph(INode):
         return [node for row in self.evaluation_matrix for node in row]
 
     def add_node(self, node):
-        """Add a node to the graph."""
+        """Add given node to the Graph.
+
+        Nodes on a Graph have to have unique names.
+        """
         if node not in self.nodes:
+            for existing_node in self.nodes:
+                if existing_node.name == node.name:
+                    raise Exception(
+                        "Can not add Node of name '{0}', a Node with this "
+                        "name already exists on this Graph. Node names on "
+                        "a Graph have to be unique.".format(node.name))
             self._nodes.append(node)
+        else:
+            LogObserver.push_message(
+                "Node '{0}' is already part of this Graph".format(node.name))
 
     def compute(self, *args, **kwargs):
         """Evaluate all sub nodes."""
