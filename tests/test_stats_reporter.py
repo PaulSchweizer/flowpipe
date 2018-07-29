@@ -3,7 +3,7 @@ from __future__ import print_function
 import mock
 import pytest
 
-from flowpipe.node import INode, function_to_node
+from flowpipe.node import INode, Node
 from flowpipe.stats_reporter import StatsReporter
 
 
@@ -65,7 +65,7 @@ def test_node_reports_stats(clear_listeners):
 
     StatsReporter.register_listener(stats_listener)
 
-    @function_to_node()
+    @Node()
     def SimpleNode():
         pass
 

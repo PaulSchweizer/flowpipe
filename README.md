@@ -15,7 +15,7 @@ import logging
 from time import time
 
 from flowpipe import logger
-from flowpipe.node import INode, function_to_node
+from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.graph import Graph
 ```
@@ -23,7 +23,7 @@ from flowpipe.graph import Graph
 Then the desired functionality has to be implemented into Nodes. We need two nodes, one to get the current time and one to convert it to a timezone.
 
 ```python
-@function_to_node(outputs=['time'])
+@Node(outputs=['time'])
 def CurrentTime():
     return {'time': time()}
 ```
@@ -49,7 +49,7 @@ class ConvertTime(INode):
 The World Clock will receive the times and locations and display it.
 
 ```python
-@function_to_node()
+@Node()
 def WorldClock(time1, time2, time3):
     print('-- World Clock -------------------')
     print('It is now {0} in {1}'.format(

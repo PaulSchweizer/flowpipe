@@ -1,10 +1,10 @@
 from __future__ import print_function
 import json
 
-from flowpipe.node import INode, FunctionNode, function_to_node
+from flowpipe.node import INode, FunctionNode, Node
 
 
-@function_to_node(outputs=['out'])
+@Node(outputs=['out'])
 def function_for_testing(input1, input2):
     """Test documentation."""
     return {'out': 'TestHasPassed'}
@@ -12,7 +12,7 @@ def function_for_testing(input1, input2):
 
 def test_input_plugs_are_taken_from_func_inputs():
     """Input args to the unction are used as input plugs for the node."""
-    @function_to_node()
+    @Node()
     def function(arg, kwarg='intial_value'):
         pass
     node = function()
@@ -23,7 +23,7 @@ def test_input_plugs_are_taken_from_func_inputs():
 
 def test_name_is_taken_from_func_name_if_not_provided():
     """Function name is converted to node name if not provided."""
-    @function_to_node()
+    @Node()
     def function():
         pass
     node = function()
@@ -32,7 +32,7 @@ def test_name_is_taken_from_func_name_if_not_provided():
 
 def test_name_can_be_provided_as_kwarg():
     """Name and identifier can be provided."""
-    @function_to_node()
+    @Node()
     def function():
         pass
     node = function(name='ProvidedNodeName', identifier='TestIdentifier')
@@ -42,7 +42,7 @@ def test_name_can_be_provided_as_kwarg():
 
 def test_doc_is_taken_from_func():
     """Docstring is taken from the function."""
-    @function_to_node()
+    @Node()
     def function():
         """Function Documentation"""
     node = function()
@@ -51,7 +51,7 @@ def test_doc_is_taken_from_func():
 
 def test_define_outputs():
     """Outputs have to be defined as a list of strings."""
-    @function_to_node(outputs=['out1', 'out2'])
+    @Node(outputs=['out1', 'out2'])
     def function():
         pass
     node = function()
@@ -62,7 +62,7 @@ def test_define_outputs():
 
 def test_decorator_returns_node_instances():
     """A call to the decorated function returns a Node instance."""
-    @function_to_node()
+    @Node()
     def function():
         pass
     node1 = function()
@@ -84,14 +84,14 @@ def test_serialize_function_node():
 
 def test_use_self_as_first_arg_if_present():
     """If wrapped function has self as first arg, it's used reference to class like in a method."""
-    @function_to_node(outputs=['test'])
+    @Node(outputs=['test'])
     def function(self, arg1, arg2):
         return {'test': self.test}
     node = function()
     node.test = 'test'
     assert 'test' == node.evaluate()['test']
 
-    @function_to_node(outputs=['test'])
+    @Node(outputs=['test'])
     def function(arg1, arg2):
         return {'test': 'Test without self'}
     node = function()
@@ -100,7 +100,7 @@ def test_use_self_as_first_arg_if_present():
 
 def test_assign_input_args_to_function_input_plugs():
     """Assign inputs to function to the input plugs."""
-    @function_to_node(outputs=['test'])
+    @Node(outputs=['test'])
     def function(arg):
         return {'test': arg}
     node = function(arg="test")
@@ -112,7 +112,7 @@ def test_provide_custom_node_class():
     class CustomFunctionNode(FunctionNode):
         pass
 
-    @function_to_node(cls=CustomFunctionNode, outputs=['test'])
+    @Node(cls=CustomFunctionNode, outputs=['test'])
     def function(arg):
         return {'test': arg}
 

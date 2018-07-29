@@ -347,7 +347,7 @@ class FunctionNode(INode):
                 OutputPlug(output, self)
 
 
-def function_to_node(*args, **kwargs):
+def Node(*args, **kwargs):
     """Wrap the given function into a Node."""
     cls = kwargs.pop("cls", FunctionNode)
 

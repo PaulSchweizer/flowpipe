@@ -2,7 +2,7 @@ from __future__ import print_function
 
 import pytest
 
-from flowpipe.node import INode, function_to_node
+from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.graph import Graph
 
@@ -238,7 +238,7 @@ def test_nodes_can_be_added_to_graph():
 def test_nested_graphs_expand_sub_graphs():
     """Nested Graphs expand all nodes of their sub graphs on evaluation."""
 
-    @function_to_node(outputs=["out_put"])
+    @Node(outputs=["out_put"])
     def N(in_put_1, in_put_2):
         return {"out_put": "G1_Node1"}
 
