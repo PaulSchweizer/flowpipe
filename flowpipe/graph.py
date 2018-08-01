@@ -2,26 +2,36 @@
 from __future__ import print_function
 from __future__ import absolute_import
 
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
+
 from ascii_canvas.canvas import Canvas
 from ascii_canvas.item import Item
 from ascii_canvas.item import Line
 
 from .node import INode
 from .log_observer import LogObserver
+from .utilities import import_class
 __all__ = ['Graph']
 
 
-class Graph(INode):
+class Graph(object):
     """A graph of Nodes."""
 
     def __init__(self, name=None, nodes=None):
         """Initialize the list of Nodes."""
-        super(Graph, self).__init__(name=name)
+        self.name = name or self.__class__.__name__
         self._nodes = nodes or []
 
     def __unicode__(self):
         """Display the Graph."""
         return self.node_repr()
+
+    def __str__(self):
+        """Show all input and output Plugs."""
+        return self.__unicode__().encode('utf-8').decode()
 
     def __getitem__(self, key):
         """Grant access to Nodes via their name."""
@@ -32,14 +42,9 @@ class Graph(INode):
             "Graph does not contain a Node named '{0}'".format(key))
 
     @property
-    def is_dirty(self):
-        """Test whether any of the given nodes needs evaluation."""
-        return True in [n.is_dirty for n in self.nodes]
-
-    @property
     def nodes(self):
         """Aggregate the Nodes of this Graph and all it's sub graphs."""
-        nodes = list()
+        nodes = []
         for node in self._nodes:
             if isinstance(node, Graph):
                 nodes += node.nodes
@@ -49,7 +54,7 @@ class Graph(INode):
 
     @property
     def evaluation_matrix(self):
-        """Sort nodes into a 2D grid based on their dependency.
+        """Sort nodes into a 2D matrix based on their dependency.
 
         Rows affect each other and have to be evaluated in sequence.
         The Nodes on each row however can be evaluated in parallel as
@@ -59,19 +64,19 @@ class Graph(INode):
         Returns:
             (list of list of INode): Each sub list represents a row.
         """
-        levels = dict()
+        levels = {}
 
         for node in self.nodes:
             self._sort_node(node, levels, level=0)
 
-        grid = list()
+        matrix = []
         for level in sorted(list(set(levels.values()))):
-            row = list()
+            row = []
             for node in [n for n in levels if levels[n] == level]:
                 row.append(node)
-            grid.append(row)
+            matrix.append(row)
 
-        return grid
+        return matrix
 
     @property
     def evaluation_sequence(self):
@@ -79,12 +84,12 @@ class Graph(INode):
 
         Returns:
             (list of INode): A one dimensional representation of the
-                evaluation grid.
+                evaluation matrix.
         """
         return [node for row in self.evaluation_matrix for node in row]
 
     def add_node(self, node):
-        """Add given node to the Graph.
+        """Add given Node to the Graph.
 
         Nodes on a Graph have to have unique names.
         """
@@ -100,21 +105,25 @@ class Graph(INode):
             LogObserver.push_message(
                 "Node '{0}' is already part of this Graph".format(node.name))
 
-    def compute(self, *args, **kwargs):
-        """Evaluate all sub nodes."""
+    def evaluate(self, *args, **kwargs):
+        """Evaluate all Nodes."""
+        LogObserver.push_message("Evaluating Graph '{0}'".format(self.name))
         for node in self.evaluation_sequence:
             node.evaluate()
 
     def serialize(self):
         """Serialize the graph in it's grid form."""
-        data = super(Graph, self).serialize()
+        data = OrderedDict(
+            module=self.__module__,
+            cls=self.__class__.__name__,
+            name=self.name)
         data['nodes'] = [node.serialize() for node in self.nodes]
         return data
 
     @staticmethod
     def deserialize(data):
         """De-serialize from the given json data."""
-        graph = INode.deserialize(data)
+        graph = import_class(data['module'], data['cls'])()
         graph._nodes = []
         for node in data['nodes']:
             graph._nodes.append(INode.deserialize(node))
@@ -138,23 +147,6 @@ class Graph(INode):
 
         for downstream_node in node.downstream_nodes:
             self._sort_node(downstream_node, parent, level=level + 1)
-
-    def node(self, node):
-        """Access a node by name."""
-        nodes = [n for n in self.nodes if n.name == node]
-        if nodes:
-            return nodes
-        else:
-            raise Exception("Node {0} not available in {1}".format(
-                node, self.name))
-
-    def node_by_id(self, identifier):
-        """Access a node by identifier."""
-        for node in self.nodes:
-            if node.identifier == identifier:
-                return node
-        raise Exception("Node '{0}' not available in {1}".format(
-            identifier, self.name))
 
     def node_repr(self):
         """Format to visualize the Graph."""
@@ -185,7 +177,7 @@ class Graph(INode):
         return canvas.render()
 
     def list_repr(self):
-        """List representation of the graph showing nodes and connections."""
+        """List representation of the graph showing Nodes and connections."""
         pretty = []
         pretty.append(self.name)
         for node in self.evaluation_sequence:

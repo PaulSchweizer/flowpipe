@@ -1,5 +1,8 @@
 [report]
 omit =
-    *nodes*
     *gui*
     *____*
+    *utilities.py
+exclude_lines =
+    except ImportError:
+    from ordereddict import OrderedDict

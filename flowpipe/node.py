@@ -19,16 +19,9 @@ import uuid
 from .plug import OutputPlug, InputPlug
 from .log_observer import LogObserver
 from .stats_reporter import StatsReporter
+from .utilities import import_class
 __all__ = ['INode']
 
-
-def import_module(module):
-    """Importing the given module works from python 2.6 to python 3."""
-    try:
-        module = importlib.import_module(module)
-    except NameError:
-        module = __import__(module, globals(), locals(), ['object'], -1)
-    return module
 
 
 class INode(object):
@@ -169,11 +162,8 @@ class INode(object):
     @staticmethod
     def deserialize(data):
         """De-serialize from the given json data."""
-        try:
-            node = getattr(import_module(data['module']), data['cls'])()
-        except AttributeError:
-            module = imp.load_source('module', data['file_location'])
-            node = getattr(module, data['cls'])()
+        node = import_class(
+            data['module'], data['cls'], data['file_location'])()
         node.post_deserialize(data)
         return node
 

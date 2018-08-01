@@ -54,6 +54,8 @@ def test_evaluation_matrix():
         for node in row:
             assert node in order[i]
 
+    graph.evaluate()
+
 
 def test_linar_evaluation_sequence():
     """A linear graph."""
@@ -163,7 +165,6 @@ def test_serialize_graph():
     deserialized = graph.deserialize(serialized)
 
     assert len(deserialized.nodes) == len(graph.nodes)
-    assert graph.identifier == deserialized.identifier
     assert graph.name == deserialized.name
 
     # Connections need to be deserialized as well
@@ -187,24 +188,6 @@ def test_serialize_graph():
                 assert ds_connection.node.name == connection.node.name
 
 
-def test_access_nodes_in_graph_by_name():
-    """Access nodes by their name in a Graph."""
-    node = NodeForTesting()
-    graph = Graph(nodes=[node])
-    assert node == graph.node(node.name)[0]
-    with pytest.raises(Exception):
-        graph.node("DoesNotExist")
-
-
-def test_access_nodes_in_graph_by_identifier():
-    """Access nodes by their identifier in a Graph."""
-    node = NodeForTesting()
-    graph = Graph(nodes=[node])
-    assert node == graph.node_by_id(node.identifier)
-    with pytest.raises(Exception):
-        graph.node_by_id("DoesNotExist")
-
-
 def test_string_representations():
     """Print the Graph."""
     start = NodeForTesting('start')
@@ -213,19 +196,6 @@ def test_string_representations():
     graph = Graph(nodes=[start, end])
     print(graph)
     print(graph.list_repr())
-
-
-def test_if_on_node_is_dirty_the_entire_graph_is_dirty():
-    start = NodeForTesting('start')
-    end = NodeForTesting('end')
-    start.outputs['out'] >> end.inputs['in1']
-    graph = Graph(nodes=[start, end])
-    graph.evaluate()
-
-    assert not graph.is_dirty
-
-    start.inputs["in1"].is_dirty = True
-    assert graph.is_dirty
 
 
 def test_nodes_can_be_added_to_graph():
@@ -268,7 +238,6 @@ def test_nested_graphs_expand_sub_graphs():
     # G 1 #############################
     #
     G1 = Graph(name="G1")
-    OutputPlug('out_put', G1)
     N1 = N(name="N1")
     N7 = N(name="N7")
     G1.add_node(N1)
