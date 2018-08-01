@@ -9,8 +9,8 @@ from flowpipe.graph import Graph
 
 class NodeForTesting(INode):
 
-    def __init__(self, name=None):
-        super(NodeForTesting, self).__init__(name)
+    def __init__(self, name=None, **kwargs):
+        super(NodeForTesting, self).__init__(name, **kwargs)
         OutputPlug('out', self)
         InputPlug('in1', self, 0)
         InputPlug('in2', self, 0)
@@ -284,3 +284,15 @@ def test_nodes_are_only_added_once():
         graph.add_node(node)
 
     assert len(graph.nodes) == 1
+
+
+def test_nodes_can_add_to_graph_on_init():
+    graph = Graph()
+    node = NodeForTesting(graph=graph)
+    assert graph["NodeForTesting"] == node
+
+    @Node()
+    def function():
+        pass
+    node = function(graph=graph)
+    assert graph["function"] == node

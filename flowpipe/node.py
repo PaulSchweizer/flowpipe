@@ -23,13 +23,12 @@ from .utilities import import_class
 __all__ = ['INode']
 
 
-
 class INode(object):
     """Holds input and output Plugs and a method for computing."""
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, name=None, identifier=None, metadata=None):
+    def __init__(self, name=None, identifier=None, metadata=None, graph=None):
         """Initialize the input and output dictionaries and the name.
 
         Args:
@@ -44,6 +43,8 @@ class INode(object):
         self.omit = False
         self.file_location = inspect.getfile(self.__class__)
         self.class_name = self.__class__.__name__
+        if graph is not None:
+            graph.add_node(self)
 
     def __unicode__(self):
         """Show all input and output Plugs."""
@@ -269,14 +270,14 @@ class FunctionNode(INode):
     """Wrap a function into a Node."""
 
     def __init__(self, func=None, outputs=None, name=None,
-                 identifier=None, metadata=None, **kwargs):
+                 identifier=None, metadata=None, graph=None, **kwargs):
         """The data on the function is used to drive the Node.
         The function itself becomes the compute method.
         The function input args become the InputPlugs.
         Other function attributes, name, __doc__ also transfer to the Node.
         """
         super(FunctionNode, self).__init__(
-            name or getattr(func, '__name__', None), identifier, metadata)
+            name or getattr(func, '__name__', None), identifier, metadata, graph)
         self._initialize(func, outputs or [], metadata)
         for plug, value in kwargs.items():
             self.inputs[plug].value = value

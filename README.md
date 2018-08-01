@@ -35,8 +35,8 @@ For more complex Nodes, the INode interface can be implemented directly.
 ```python
 class ConvertTime(INode):
 
-    def __init__(self, time=None, timezone=0, city=None):
-        super(ConvertTime, self).__init__()
+    def __init__(self, time=None, timezone=0, city=None, **kwargs):
+        super(ConvertTime, self).__init__(**kwargs)
         InputPlug('time', self)
         InputPlug('timezone', self, timezone)
         InputPlug('city', self, city)
@@ -61,21 +61,27 @@ def WorldClock(time1, time2, time3):
     print('----------------------------------')
 ```
 
-Now we can create the Graph that represents the world clock. First create all the necessary Nodes.
+Now we can create the Graph that represents the world clock:
 
 ```python
-current_time = CurrentTime()
-van = ConvertTime(city='Vancouver', timezone=-8)
-ldn = ConvertTime(city='London', timezone=0)
-muc = ConvertTime(city='Munich', timezone=1)
-world_clock = WorldClock()
+graph = Graph(name="WorldClockGraph")
 ```
 
-The nodes are now grouped into a Graph, representing the world clock
+Now we create all the necessary Nodes:
+
+```python
+current_time = CurrentTime(graph=graph)
+van = ConvertTime(city='Vancouver', timezone=-8, graph=graph)
+ldn = ConvertTime(city='London', timezone=0, graph=graph)
+muc = ConvertTime(city='Munich', timezone=1, graph=graph)
+world_clock = WorldClock(graph=graph)
+```
+
+By specifying the "graph" attribute on the Nodes get added to the Graph automatically.
+
 The Nodes can now be wired together. The bitshift operator is used as a shorthand to connect the plugs.
 
 ```python
-graph = Graph(name="WorldClockGraph", nodes=[current_time, van, ldn, muc, world_clock])
 
 current_time.outputs['time'] >> van.inputs['time']
 current_time.outputs['time'] >> ldn.inputs['time']
