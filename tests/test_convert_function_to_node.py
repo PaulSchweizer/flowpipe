@@ -120,14 +120,14 @@ def test_provide_custom_node_class():
     assert isinstance(node, CustomFunctionNode)
 
 
-def test_passing_metadata_repalces_exisiting_metadata():
+def test_passing_metadata_updates_exisiting_metadata():
 
     @Node(metadata={"arg_1": "value", "arg_2": "value"})
     def function(arg):
         return {}
 
-    node = function(metadata={"arg_1": "new_value"})
-    assert node.metadata == {"arg_1": "new_value"}
-
     node = function()
     assert node.metadata == {"arg_1": "value", "arg_2": "value"}
+
+    node = function(metadata={"arg_1": "new_value", "arg3": "new_value"})
+    assert node.metadata == {"arg_1": "new_value", "arg_2": "value", "arg3": "new_value"}

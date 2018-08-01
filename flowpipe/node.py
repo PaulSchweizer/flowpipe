@@ -297,10 +297,10 @@ class FunctionNode(INode):
 
     def __call__(self, **kwargs):
         """Create and return an instance of the Node."""
-        metadata = kwargs.pop("metadata", self.metadata)
+        self.metadata.update(kwargs.pop("metadata", {}))
         return self.__class__(func=self.func,
                               outputs=[o for o in self.outputs],
-                              metadata=metadata,
+                              metadata=self.metadata,
                               **kwargs)
 
     def compute(self, *args, **kwargs):
