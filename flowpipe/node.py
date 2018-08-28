@@ -332,10 +332,8 @@ class FunctionNode(INode):
             arg_spec = inspect.getargspec(func)
             defaults = {}
             if arg_spec.defaults is not None:
-                defaults = {
-                    arg_spec.args[-len(arg_spec.defaults):][i]:
-                    arg_spec.defaults[i] for i in range(len(arg_spec.defaults))
-                }
+                defaults = dict(zip(arg_spec.args[-len(arg_spec.defaults):],
+                                    arg_spec.defaults))
             for input_ in arg_spec.args:
                 if input_ != 'self':
                     plug = InputPlug(input_, self)
