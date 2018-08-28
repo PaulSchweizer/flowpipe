@@ -131,3 +131,16 @@ def test_passing_metadata_updates_exisiting_metadata():
 
     node = function(metadata={"arg_1": "new_value", "arg3": "new_value"})
     assert node.metadata == {"arg_1": "new_value", "arg_2": "value", "arg3": "new_value"}
+
+
+def test_default_args_are_assigned_to_input_plugs():
+    @Node()
+    def function(arg_1, arg_2="test_1", arg_3="test_2"):
+        return {}
+
+    node = function()
+
+    assert node.inputs["arg_1"].value is None
+    assert node.inputs["arg_2"].value is "test_1"
+    assert node.inputs["arg_3"].value is "test_2"
+

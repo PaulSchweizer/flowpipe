@@ -329,9 +329,17 @@ class FunctionNode(INode):
         self._use_self = False
         self.metadata = metadata or {}
         if func is not None:
-            for input_ in inspect.getargspec(func).args:
+            arg_spec = inspect.getargspec(func)
+            defaults = {}
+            if arg_spec.defaults is not None:
+                defaults = {
+                    arg_spec.args[-len(arg_spec.defaults):][i]:
+                    arg_spec.defaults[i] for i in range(len(arg_spec.defaults))
+                }
+            for input_ in arg_spec.args:
                 if input_ != 'self':
-                    InputPlug(input_, self)
+                    plug = InputPlug(input_, self)
+                    plug.value = defaults.get(input_, None)
                 else:
                     self._use_self = True
         if outputs is not None:
