@@ -132,13 +132,16 @@ class OutputPlug(IPlug):
             plug.value = value
 
     def connect(self, plug):
-        """Connect this Plug to the given Plug.
+        """Connect this Plug to the given InputPlug.
 
         Set both participating Plugs dirty.
         """
         if plug.node is self.node:
             raise Exception(
                 'Can\'t connect Plugs that are part of the same Node.')
+
+        for connection in plug.connections:
+            plug.disconnect(connection)
 
         if plug not in self.connections:
             self.connections.append(plug)
@@ -172,13 +175,16 @@ class InputPlug(IPlug):
         return pretty
 
     def connect(self, plug):
-        """Connect this Plug to the given Plug.
+        """Connect this Plug to the given OutputPlug.
 
         Set both participating Plugs dirty.
         """
         if plug.node is self.node:
             raise Exception(
                 'Can\'t connect Plugs that are part of the same Node.')
+
+        for connection in self.connections:
+            self.disconnect(connection)
 
         self.connections = [plug]
         self.is_dirty = True

@@ -1,6 +1,6 @@
 from __future__ import print_function
 
-from flowpipe.node import INode
+from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
 
 
@@ -10,12 +10,43 @@ class NodeForTesting(INode):
         pass
 
 
+def test_connecting_different_input_disconnects_existing_ones():
+
+    @Node(outputs=["a_out"])
+    def A(a):
+        pass
+
+    @Node(outputs=["b_out"])
+    def B(b):
+        pass
+
+    @Node(outputs=["c_out"])
+    def C(c):
+        pass
+
+    a = A()
+    b = B()
+    c = C()
+
+    a.outputs["a_out"].connect(b.inputs["b"])
+    c.outputs["c_out"].connect(b.inputs["b"])
+
+    assert not a.outputs["a_out"].connections
+
+    b.inputs["b"].connect(a.outputs["a_out"])
+
+    assert a.outputs["a_out"].connections
+
+    b.inputs["b"].connect(c.outputs["c_out"])
+
+    assert not a.outputs["a_out"].connections
+
+
 def test_connect_and_dicsonnect_nodes():
     """Connect and disconnect nodes."""
     n1 = NodeForTesting()
     n2 = NodeForTesting()
     out_plug_a = OutputPlug('out', n1)
-    out_plug_b = OutputPlug('out', n1)
     in_plug_a = InputPlug('in', n2)
     in_plug_b = InputPlug('in', n2)
 
@@ -38,12 +69,6 @@ def test_connect_and_dicsonnect_nodes():
     in_plug_b >> out_plug_a
     assert 2 == len(out_plug_a.connections)
     assert 1 == len(in_plug_b.connections)
-
-    # Connecting a different input disconnects the existing one
-    assert out_plug_a == in_plug_a.connections[0]
-    out_plug_b >> in_plug_a
-    print(in_plug_a.connections)
-    assert out_plug_b == in_plug_a.connections[0]
 
 
 def test_change_connections_sets_plug_dirty():

@@ -100,8 +100,8 @@ def test_evaluate_sets_all_inputs_clean():
     assert not node.is_dirty
 
 
-def test_cannot_connect_node_to_it():
-    """A node can not create a cycle by connecting to it."""
+def test_cannot_connect_node_to_itself():
+    """A node can not create a cycle by connecting to itself."""
     node = SquareNode()
     with pytest.raises(Exception):
         node.outputs['out'] >> node.inputs['in1']
