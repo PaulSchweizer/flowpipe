@@ -10,6 +10,7 @@ try:
     import importlib
 except ImportError:
     pass
+import copy
 import imp
 import inspect
 import json
@@ -288,10 +289,11 @@ class FunctionNode(INode):
 
     def __call__(self, **kwargs):
         """Create and return an instance of the Node."""
-        self.metadata.update(kwargs.pop("metadata", {}))
+        metadata = copy.deepcopy(self.metadata)
+        metadata.update(kwargs.pop("metadata", {}))
         return self.__class__(func=self.func,
                               outputs=[o for o in self.outputs],
-                              metadata=self.metadata,
+                              metadata=metadata,
                               **kwargs)
 
     def compute(self, *args, **kwargs):

@@ -144,3 +144,13 @@ def test_default_args_are_assigned_to_input_plugs():
     assert node.inputs["arg_2"].value is "test_1"
     assert node.inputs["arg_3"].value is "test_2"
 
+
+def test_metadata_is_unique_for_each_node_created():
+    @Node(metadata={"key": [1, 2, 3]})
+    def function():
+        pass
+
+    node1 = function()
+    node2 = function()
+
+    assert node1.metadata is not node2.metadata
