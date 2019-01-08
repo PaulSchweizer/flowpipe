@@ -154,3 +154,13 @@ def test_metadata_is_unique_for_each_node_created():
     node2 = function()
 
     assert node1.metadata is not node2.metadata
+
+
+def test_class_name_restored_after_deserialization():
+    """Serialization also stored the location of the function."""
+    node = function_for_testing()
+    data = json.dumps(node.serialize())
+    deserialized_node = INode.deserialize(json.loads(data))
+
+    assert node.class_name == "function_for_testing"
+    assert deserialized_node.class_name == "function_for_testing"

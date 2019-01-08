@@ -283,10 +283,6 @@ class FunctionNode(INode):
         for plug, value in kwargs.items():
             self.inputs[plug].value = value
 
-        if func is not None:
-            self.file_location = inspect.getfile(func)
-            self.class_name = self.func.__name__
-
     def __call__(self, **kwargs):
         """Create and return an instance of the Node."""
         metadata = copy.deepcopy(self.metadata)
@@ -331,6 +327,8 @@ class FunctionNode(INode):
         self._use_self = False
         self.metadata = metadata or {}
         if func is not None:
+            self.file_location = inspect.getfile(func)
+            self.class_name = self.func.__name__
             arg_spec = inspect.getargspec(func)
             defaults = {}
             if arg_spec.defaults is not None:
