@@ -34,6 +34,7 @@ env:
   - DOXYFILE: "$TRAVIS_BUILD_DIR/config.dox"
 deploy:
   provider: pypi
+  skip_existing: true
   distributions: sdist bdist_wheel
   user: Anton-4
   password:

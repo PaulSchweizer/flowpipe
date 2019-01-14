@@ -21,7 +21,7 @@ pip install flowpipe
 
 ## Example: Implement a world clock with Flowpipe
 
-This is very simple and in the end it is just a one liner in python, but a simple example like makes it easier to demonstrate the idea behind flowpipe.
+This is very simple and in the end it is just a one liner in python, but a simple example makes it easier to demonstrate the idea behind flowpipe.
 
 Let's import the necessary classes:
 
