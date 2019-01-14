@@ -6,11 +6,12 @@ with open("README.md") as stream:
     long_description = stream.read()
 
 setup(name='flowpipe',
-      version='0.4.5',
+      version='0.4.6',
       author='Paul Schweizer',
       author_email='paulschweizer@gmx.net',
       description='Lightweight flow-based programming framework.',
       long_description=long_description,
+      long_description_content_type='text/markdown',
       url='https://github.com/PaulSchweizer/flowpipe',
       packages=find_packages(),
       classifiers=[

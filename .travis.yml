@@ -42,3 +42,5 @@ deploy:
   on:
     tags: true
     repo: PaulSchweizer/flowpipe
+    branch: master
+    python: '3.6'
