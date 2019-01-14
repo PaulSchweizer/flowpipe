@@ -1,13 +1,8 @@
-|Build Status| |Version| |Codacy_Badge_Grade| |Codacy_Badge_Coverage|
 
-.. |Build Status| image:: https://travis-ci.org/PaulSchweizer/flowpipe.svg?branch=master
-   :target: https://travis-ci.org/PaulSchweizer/flowpipe
-.. |Version| image:: https://img.shields.io/pypi/v/flowpipe.svg
-   :target: https://pypi.org/project/flowpipe/
-.. |Codacy_Badge_Grade| image:: https://api.codacy.com/project/badge/Grade/6ac650d8580d43dbaf7de96a3171e76f
-   :target: https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=PaulSchweizer/flowpipe&amp;utm_campaign=Badge_Grade
-.. |Codacy_Badge_Coverage| image:: https://api.codacy.com/project/badge/Coverage/6ac650d8580d43dbaf7de96a3171e76f
-   :target: https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&utm_medium=referral&utm_content=PaulSchweizer/flowpipe&utm_campaign=Badge_Coverage
+[![Version](https://img.shields.io/pypi/v/flowpipe.svg)](https://pypi.org/project/flowpipe/)
+[![Build Status](https://travis-ci.org/PaulSchweizer/flowpipe.svg?branch=master)](https://travis-ci.org/PaulSchweizer/flowpipe)
+[![Codacy_Badge_Grade](https://api.codacy.com/project/badge/Grade/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=PaulSchweizer/flowpipe&amp;utm_campaign=Badge_Grade)
+[![Codacy_Badge_Coverage](https://api.codacy.com/project/badge/Coverage/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&utm_medium=referral&utm_content=PaulSchweizer/flowpipe&utm_campaign=Badge_Coverage)
 
 
 # Flow-based Pipeline
