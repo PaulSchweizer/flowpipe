@@ -11,6 +11,7 @@ def test_graphml_serialization(graph_order_tup):
     file_content = open(file_name, 'r').read()
     os.remove(file_name)
 
+    # strings were stripped to prevent mismatches with random uuid's
     expected_content = """<?xml version=?>
         <graphml>
         <graph id=
