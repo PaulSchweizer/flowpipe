@@ -2,6 +2,8 @@
 from __future__ import print_function
 from __future__ import absolute_import
 
+from flowpipe.serializer import Serializer
+
 try:
     from collections import OrderedDict
 except ImportError:
@@ -136,6 +138,9 @@ class Graph(object):
                                 if n.identifier == identifier][0]
                     upstream.outputs[plug] >> this.inputs[name]
         return graph
+
+    def serialize_graphml(self, file_name):
+        Serializer.serialize_graphml(self, file_name)
 
     def _sort_node(self, node, parent, level):
         """Sort the node into the correct level."""

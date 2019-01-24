@@ -2,53 +2,15 @@ from __future__ import print_function
 
 import pytest
 
-from flowpipe.node import INode, Node
-from flowpipe.plug import InputPlug, OutputPlug
+from flowpipe.node import Node
 from flowpipe.graph import Graph
+from .conftest import NodeForTesting
 
 
-class NodeForTesting(INode):
-
-    def __init__(self, name=None, **kwargs):
-        super(NodeForTesting, self).__init__(name, **kwargs)
-        OutputPlug('out', self)
-        InputPlug('in1', self, 0)
-        InputPlug('in2', self, 0)
-
-    def compute(self, in1, in2):
-        """Multiply the two inputs."""
-        return {'out': in1 * in2}
-
-
-def test_evaluation_matrix():
+def test_evaluation_matrix(graph_order_tup):
     """The nodes as a 2D grid."""
-    start = NodeForTesting('start')
-    n11 = NodeForTesting('11')
-    n12 = NodeForTesting('12')
-    n21 = NodeForTesting('21')
-    n31 = NodeForTesting('31')
-    n32 = NodeForTesting('32')
-    n33 = NodeForTesting('33')
-    end = NodeForTesting('end')
 
-    # Connect them
-    start.outputs['out'] >> n11.inputs['in1']
-    start.outputs['out'] >> n21.inputs['in1']
-    start.outputs['out'] >> n31.inputs['in1']
-
-    n31.outputs['out'] >> n32.inputs['in1']
-    n32.outputs['out'] >> n33.inputs['in1']
-
-    n11.outputs['out'] >> n12.inputs['in1']
-    n33.outputs['out'] >> n12.inputs['in2']
-
-    n12.outputs['out'] >> end.inputs['in1']
-    n21.outputs['out'] >> end.inputs['in2']
-
-    nodes = [start, n11, n12, n21, n31, n32, n33, end]
-    graph = Graph(nodes=nodes)
-
-    order = [[start], [n11, n21, n31], [n32], [n33], [n12], [end]]
+    graph, order = graph_order_tup
 
     for i, row in enumerate(graph.evaluation_matrix):
         for node in row:
@@ -89,34 +51,9 @@ def test_branching_evaluation_sequence():
     assert 'n3' in seq[1:]
 
 
-def test_complex_branching_evaluation_sequence():
+def test_complex_branching_evaluation_sequence(graph_order_tup):
     """Connect and disconnect nodes."""
-    # The Nodes
-    start = NodeForTesting('start')
-    n11 = NodeForTesting('11')
-    n12 = NodeForTesting('12')
-    n21 = NodeForTesting('21')
-    n31 = NodeForTesting('31')
-    n32 = NodeForTesting('32')
-    n33 = NodeForTesting('33')
-    end = NodeForTesting('end')
-
-    # Connect them
-    start.outputs['out'] >> n11.inputs['in1']
-    start.outputs['out'] >> n21.inputs['in1']
-    start.outputs['out'] >> n31.inputs['in1']
-
-    n31.outputs['out'] >> n32.inputs['in1']
-    n32.outputs['out'] >> n33.inputs['in1']
-
-    n11.outputs['out'] >> n12.inputs['in1']
-    n33.outputs['out'] >> n12.inputs['in2']
-
-    n12.outputs['out'] >> end.inputs['in1']
-    n21.outputs['out'] >> end.inputs['in2']
-
-    nodes = [start, n11, n12, n21, n31, n32, n33, end]
-    graph = Graph(nodes=nodes)
+    graph, _ = graph_order_tup
 
     seq = [s.name for s in graph.evaluation_sequence]
 
@@ -133,33 +70,9 @@ def test_complex_branching_evaluation_sequence():
     assert 'end' == seq[-1]
 
 
-def test_serialize_graph():
+def test_serialize_graph(graph_order_tup):
     """Serialize the graph to a json-serializable dictionary."""
-    start = NodeForTesting('start')
-    n11 = NodeForTesting('11')
-    n12 = NodeForTesting('12')
-    n21 = NodeForTesting('21')
-    n31 = NodeForTesting('31')
-    n32 = NodeForTesting('32')
-    n33 = NodeForTesting('33')
-    end = NodeForTesting('end')
-
-    # Connect them
-    start.outputs['out'] >> n11.inputs['in1']
-    start.outputs['out'] >> n21.inputs['in1']
-    start.outputs['out'] >> n31.inputs['in1']
-
-    n31.outputs['out'] >> n32.inputs['in1']
-    n32.outputs['out'] >> n33.inputs['in1']
-
-    n11.outputs['out'] >> n12.inputs['in1']
-    n33.outputs['out'] >> n12.inputs['in2']
-
-    n12.outputs['out'] >> end.inputs['in1']
-    n21.outputs['out'] >> end.inputs['in2']
-
-    nodes = [start, n11, n12, n21, n31, n32, n33, end]
-    graph = Graph(nodes=nodes)
+    graph, _ = graph_order_tup
 
     serialized = graph.serialize()
     deserialized = graph.deserialize(serialized)
