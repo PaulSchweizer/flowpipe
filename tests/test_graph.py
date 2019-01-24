@@ -4,7 +4,7 @@ import pytest
 
 from flowpipe.node import Node
 from flowpipe.graph import Graph
-from .conftest import NodeForTesting
+from conftest import NodeForTesting
 
 
 def test_evaluation_matrix(graph_order_tup):

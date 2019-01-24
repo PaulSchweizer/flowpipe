@@ -1,9 +1,10 @@
 import pytest
 
-from flowpipe.graph import Graph
 from flowpipe.node import INode
-
 from flowpipe.plug import InputPlug, OutputPlug
+from flowpipe.graph import Graph
+
+from faker import Faker
 
 
 class NodeForTesting(INode):
@@ -21,7 +22,6 @@ class NodeForTesting(INode):
 
 @pytest.fixture
 def graph_order_tup():
-
     start = NodeForTesting('start')
     n11 = NodeForTesting('11')
     n12 = NodeForTesting('12')
