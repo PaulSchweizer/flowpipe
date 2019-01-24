@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema 
+   targetNamespace="http://graphml.graphdrawing.org/xmlns"
+   xmlns="http://graphml.graphdrawing.org/xmlns"
+   xmlns:xs="http://www.w3.org/2001/XMLSchema"
+   elementFormDefault="qualified"
+   attributeFormDefault="unqualified"
+>
+
+<xs:redefine 
+    schemaLocation="http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd">
+
+  <xs:attributeGroup name="node.extra.attrib">
+    <xs:attributeGroup ref="node.extra.attrib"/>
+    <xs:attribute name="name"/>
+    <xs:attribute name="module"/>
+    <xs:attribute name="cls"/>
+    <xs:attribute name="metadata"/>
+    <xs:attribute name="file_location"/>
+  </xs:attributeGroup>
+
+  <xs:complexType name="plug">
+
+  </xs:complexType>
+
+  <xs:complexType name="plug_list">
+    <xs:sequence>
+        <xs:element name="plug" type="plug"/>
+    </xs:sequence>
+  </xs:complexType>
+
+
+  <xs:complexType name="node">
+    <xs:complexContent>
+      <xs:extension base="node">
+        <xs:sequence>
+          <xs:element name="inputs" type="plug_list"/>
+          <xs:element name="outputs" type="plug_list"/>
+        </xs:sequence>
+      </xs:extension>
+    </xs:complexContent>
+  </xs:complexType>
+
+</xs:redefine>
+
+</xs:schema>
