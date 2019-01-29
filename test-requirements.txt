@@ -1,6 +1,8 @@
 pytest==3.0.3
+pytest-spec
 pytest-cov==2.5.1
 mock
 coverage
 codacy-coverage
 doxypypy
+nox

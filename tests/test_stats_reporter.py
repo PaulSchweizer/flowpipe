@@ -1,6 +1,5 @@
 from __future__ import print_function
 
-import mock
 import pytest
 
 from flowpipe.node import INode, Node

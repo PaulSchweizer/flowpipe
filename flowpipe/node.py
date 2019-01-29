@@ -2,10 +2,14 @@
 from __future__ import print_function
 from __future__ import absolute_import
 from abc import ABCMeta, abstractmethod
+from typing import Optional, Dict, List, Callable, Any
+
+from ascii_canvas.item import Item
+
 try:
     from collections import OrderedDict
 except ImportError:
-    from ordereddict import OrderedDict
+    from ordereddict import OrderedDict  # type: ignore
 try:
     import importlib
 except ImportError:
@@ -17,7 +21,6 @@ import json
 import time
 import uuid
 
-from .plug import OutputPlug, InputPlug
 from .log_observer import LogObserver
 from .stats_reporter import StatsReporter
 from .utilities import import_class
@@ -29,7 +32,12 @@ class INode(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, name=None, identifier=None, metadata=None, graph=None):
+    def __init__(
+            self, name: Optional[str] = None,
+            identifier: Optional[str] = None,
+            metadata: Optional[Dict] = None,
+            graph=None
+    ) -> None:
         """Initialize the input and output dictionaries and the name.
 
         Args:
@@ -38,25 +46,29 @@ class INode(object):
         self.name = name if name is not None else self.__class__.__name__
         self.identifier = (identifier if identifier is not None
                            else '{0}-{1}'.format(self.name, uuid.uuid4()))
-        self.inputs = dict()
-        self.outputs = dict()
+
+        from flowpipe.plug import InputPlug, OutputPlug
+        self.inputs: Dict[str, InputPlug] = dict()
+        self.outputs: Dict[str, OutputPlug] = dict()
+
         self.metadata = metadata or {}
         self.omit = False
         self.file_location = inspect.getfile(self.__class__)
         self.class_name = self.__class__.__name__
+        self.item: Optional[Item] = None
         if graph is not None:
             graph.add_node(self)
 
-    def __unicode__(self):
+    def __unicode__(self) -> str:
         """Show all input and output Plugs."""
         return self.node_repr()
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Show all input and output Plugs."""
         return self.__unicode__().encode('utf-8').decode()
 
     @property
-    def is_dirty(self):
+    def is_dirty(self) -> bool:
         """Whether any of the input Plug data has changed and is dirty."""
         for input_ in self.inputs.values():
             if input_.is_dirty:
@@ -64,22 +76,22 @@ class INode(object):
         return False
 
     @property
-    def upstream_nodes(self):
+    def upstream_nodes(self) -> List["INode"]:
         """Upper level Nodes feed inputs into this Node."""
-        upstream_nodes = list()
+        upstream_nodes: List[INode] = list()
         for input_ in self.inputs.values():
             upstream_nodes += [c.node for c in input_.connections]
         return list(set(upstream_nodes))
 
     @property
-    def downstream_nodes(self):
+    def downstream_nodes(self) -> List["INode"]:
         """Lower level nodes that this node feeds output to."""
-        downstream_nodes = list()
+        downstream_nodes: List[INode] = list()
         for output in self.outputs.values():
             downstream_nodes += [c.node for c in output.connections]
         return list(set(downstream_nodes))
 
-    def evaluate(self):
+    def evaluate(self) -> Dict:
         """Compute this Node, log it and clean the input Plugs.
 
         Also push a stat report in the following form containing the Node,
@@ -97,7 +109,7 @@ class INode(object):
         LogObserver.push_message(
             'Evaluating {0} -> {1}.compute(**{2})'.format(
                 self.file_location, self.class_name,
-                json.dumps(self._sort_plugs(inputs), indent=2)))
+                json.dumps(self.sort_plugs(inputs), indent=2)))
 
         inputs = {}
         for name, plug in self.inputs.items():
@@ -126,12 +138,12 @@ class INode(object):
         LogObserver.push_message(
             'Evaluation result for {0} -> {1}: {2}'.format(
                 self.file_location, self.class_name,
-                json.dumps(self._sort_plugs(outputs), indent=2)))
+                json.dumps(self.sort_plugs(outputs), indent=2)))
 
         return outputs
 
     @abstractmethod
-    def compute(self, *args, **kwargs):
+    def compute(self, *args, **kwargs) -> Dict:
         """Implement the data manipulation in the subclass.
 
         Return a dictionary with the outputs from this function.
@@ -143,14 +155,14 @@ class INode(object):
             for connected_plug in output_plug.connections:
                 connected_plug.is_dirty = True
 
-    def serialize(self):
+    def serialize(self) -> OrderedDict:
         """Serialize the node to json."""
-        inputs = OrderedDict()
-        for plug in self.inputs.values():
-            inputs[plug.name] = plug.serialize()
-        outputs = OrderedDict()
-        for plug in self.outputs.values():
-            outputs[plug.name] = plug.serialize()
+        inputs: OrderedDict = OrderedDict()
+        for in_plug in self.inputs.values():
+            inputs[in_plug.name] = in_plug.serialize()
+        outputs: OrderedDict = OrderedDict()
+        for out_plug in self.outputs.values():
+            outputs[out_plug.name] = out_plug.serialize()
         return OrderedDict(
             file_location=self.file_location,
             module=self.__module__,
@@ -162,14 +174,14 @@ class INode(object):
             metadata=self.metadata)
 
     @staticmethod
-    def deserialize(data):
+    def deserialize(data: OrderedDict) -> "INode":
         """De-serialize from the given json data."""
         node = import_class(
             data['module'], data['cls'], data['file_location'])()
         node.post_deserialize(data)
         return node
 
-    def post_deserialize(self, data):
+    def post_deserialize(self, data: OrderedDict) -> None:
         """Perform more data operations after initial serialization."""
         self.name = data['name']
         self.identifier = data['identifier']
@@ -178,7 +190,7 @@ class INode(object):
         for name, input_ in data['inputs'].items():
             self.inputs[name].value = input_['value']
 
-    def node_repr(self):
+    def node_repr(self) -> str:
         """The node formated into a string looking like a node.
 
         +------------+
@@ -238,30 +250,30 @@ class INode(object):
         pretty += '\n' + offset + '+' + '-' * width + '+'
         return pretty
 
-    def list_repr(self):
+    def list_repr(self) -> str:
         """List representation of the node showing inputs and their values."""
         pretty = []
         pretty.append(self.name)
-        for name, plug in self.inputs.items():
-            if plug.connections:
+        for name, in_plug in self.inputs.items():
+            if in_plug.connections:
                 pretty.append('  [i] {0} << {1}.{2}'.format(
-                    name, plug.connections[0].node.name,
-                    plug.connections[0].name))
+                    name, in_plug.connections[0].node.name,
+                    in_plug.connections[0].name))
             else:
                 pretty.append('  [i] {0}: {1}'.format(name,
-                                                      json.dumps(plug.value)))
-        for name, plug in self.outputs.items():
-            if plug.connections:
+                                                      json.dumps(in_plug.value)))
+        for name, out_plug in self.outputs.items():
+            if out_plug.connections:
                 pretty.append('  [o] {0} >> {1}.{2}'.format(
-                    name, plug.connections[0].node.name,
-                    plug.connections[0].name))
+                    name, out_plug.connections[0].node.name,
+                    out_plug.connections[0].name))
             else:
                 pretty.append('  [o] {0}'.format(name))
         return '\n'.join(pretty)
 
     @staticmethod
-    def _sort_plugs(plugs):
-        sorted_plugs = OrderedDict()
+    def sort_plugs(plugs: Dict) -> OrderedDict:
+        sorted_plugs: OrderedDict = OrderedDict()
         for i in sorted(plugs, key=lambda x: x.lower()):
             sorted_plugs[i] = plugs[i]
         return sorted_plugs
@@ -270,8 +282,16 @@ class INode(object):
 class FunctionNode(INode):
     """Wrap a function into a Node."""
 
-    def __init__(self, func=None, outputs=None, name=None,
-                 identifier=None, metadata=None, graph=None, **kwargs):
+    def __init__(
+            self,
+            func: Optional[Callable] = None,
+            outputs: Optional[List] = None,
+            name: Optional[str] = None,
+            identifier: Optional[str] = None,
+            metadata: Optional[dict] = None,
+            graph=None,
+            **kwargs
+    ) -> None:
         """The data on the function is used to drive the Node.
         The function itself becomes the compute method.
         The function input args become the InputPlugs.
@@ -292,23 +312,28 @@ class FunctionNode(INode):
                               metadata=metadata,
                               **kwargs)
 
-    def compute(self, *args, **kwargs):
+    def compute(self, *args, **kwargs) -> Dict:
         """Call and return the wrapped function."""
-        if self._use_self:
-            return self.func(self, *args, **kwargs)
+        if self.func is not None:
+            if self._use_self:
+                return self.func(self, *args, **kwargs)
+            else:
+                return self.func(*args, **kwargs)
         else:
-            return self.func(*args, **kwargs)
+            return {}
 
-    def serialize(self):
+    def serialize(self) -> OrderedDict:
         """Also serialize the location of the wrapped function."""
         data = super(FunctionNode, self).serialize()
-        data['func'] = {
-            'module': self.func.__module__,
-            'name': self.func.__name__
-        }
+
+        if self.func is not None:
+            data['func'] = {
+                'module': self.func.__module__,
+                'name': self.func.__name__
+            }
         return data
 
-    def post_deserialize(self, data):
+    def post_deserialize(self, data: OrderedDict) -> None:
         """Apply the function back to the node."""
         self.name = data['name']
         self.identifier = data['identifier']
@@ -320,17 +345,19 @@ class FunctionNode(INode):
         for name, input_ in data['inputs'].items():
             self.inputs[name].value = input_['value']
 
-    def _initialize(self, func, outputs, metadata):
+    def _initialize(self, func: Optional[Callable], outputs: List, metadata: Optional[Dict]):
         """Use the function and the list of outputs to setup the Node."""
+        from .plug import OutputPlug, InputPlug
+
         self.func = func
         self.__doc__ = func.__doc__
         self._use_self = False
         self.metadata = metadata or {}
         if func is not None:
             self.file_location = inspect.getfile(func)
-            self.class_name = self.func.__name__
+            self.class_name = func.__name__
             arg_spec = inspect.getargspec(func)
-            defaults = {}
+            defaults: Dict[str, Any] = {}
             if arg_spec.defaults is not None:
                 defaults = dict(zip(arg_spec.args[-len(arg_spec.defaults):],
                                     arg_spec.defaults))
@@ -345,7 +372,7 @@ class FunctionNode(INode):
                 OutputPlug(output, self)
 
 
-def Node(*args, **kwargs):
+def Node(*args, **kwargs) -> Callable:
     """Wrap the given function into a Node."""
     cls = kwargs.pop("cls", FunctionNode)
 

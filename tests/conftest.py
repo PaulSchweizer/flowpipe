@@ -4,8 +4,6 @@ from flowpipe.node import INode
 from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.graph import Graph
 
-from faker import Faker
-
 
 class NodeForTesting(INode):
 

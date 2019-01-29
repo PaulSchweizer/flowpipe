@@ -135,6 +135,7 @@ def test_serialize():
     out_plug = OutputPlug('out', n1)
     in_plug = InputPlug('in', n2)
     out_plug >> in_plug
+    #out_plug.connect(in_plug)
 
     in_serialized = in_plug.serialize()
     out_serialized = out_plug.serialize()
