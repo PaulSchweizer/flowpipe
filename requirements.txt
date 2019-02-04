@@ -1,2 +1,2 @@
-git+https://github.com/PaulSchweizer/ascii-canvas.git
-ordereddict
+ascii-canvas==1.2.2
+ordereddict==1.1
