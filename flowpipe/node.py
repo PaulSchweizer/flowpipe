@@ -17,7 +17,7 @@ import json
 import time
 import uuid
 
-from .plug import OutputPlug, InputPlug
+from .plug import OutputPlug, InputPlug, SubInputPlug
 from .log_observer import LogObserver
 from .stats_reporter import StatsReporter
 from .utilities import import_class
@@ -69,6 +69,8 @@ class INode(object):
         upstream_nodes = list()
         for input_ in self.inputs.values():
             upstream_nodes += [c.node for c in input_.connections]
+            for sub_plug in input_._sub_plugs.values():
+                upstream_nodes += [c.node for c in sub_plug.connections]
         return list(set(upstream_nodes))
 
     @property
@@ -177,55 +179,72 @@ class INode(object):
         self.file_location = data['file_location']
         for name, input_ in data['inputs'].items():
             self.inputs[name].value = input_['value']
+            for sub_name, sub_plug in input_['sub_plugs'].items():
+                self.inputs[name][sub_name].value = sub_plug['value']
+        for name, input_ in data['outputs'].items():
+            self.outputs[name].value = input_['value']
 
     def node_repr(self):
         """The node formated into a string looking like a node.
 
-        +------------+
-        | Node.Name  |
-        |------------|
-        o in         |
-        |        out o
-        +------------+
+        +-------------+
+        |  Node.Name  |
+        |-------------|
+        % compound    |
+        o  compound-1 |
+        o  compound-2 |
+        o in          |
+        |         out o
+        +-------------+
         """
         max_value_length = 10
 
+        all_inputs = self.all_inputs()
+
         offset = ''
-        if [i for i in self.inputs.values() if i.connections]:
+        if [i for i in all_inputs.values() if i.connections]:
             offset = ' ' * 3
-        width = len(max(list(self.inputs) +
+
+        width = len(max(list(all_inputs) +
                         list(self.outputs) +
                         [self.name] +
                         list(plug.name + "".join([
                             s for i, s in enumerate(str(plug.value))
                             if i < max_value_length])
-                            for plug in self.inputs.values()
+                            for plug in all_inputs.values()
                             if plug.value is not None) +
                         list(plug.name + "".join([
                             s for i, s in enumerate(str(plug.value))
                             if i < max_value_length])
                             for plug in self.outputs.values()
                             if plug.value is not None),
-                        key=len)) + 5
+                        key=len)) + 7
+
         pretty = offset + '+' + '-' * width + '+'
         pretty += '\n{offset}|{name:^{width}}|'.format(
             offset=offset, name=' ' + self.name + ' ', width=width)
         pretty += '\n' + offset + '|' + '-' * width + '|'
+
         # Inputs
-        for input_ in sorted(self.inputs.keys()):
+        for input_ in sorted(all_inputs.keys()):
             pretty += '\n'
-            if self.inputs[input_].connections:
+            in_plug = all_inputs[input_]
+            if in_plug.connections:
                 pretty += '-->'
             else:
                 pretty += offset
 
             value = ""
-            if self.inputs[input_].value is not None:
-                value = json.dumps(self.inputs[input_].value)
-            plug = 'o {input_}<{value}>'.format(
+            if in_plug.value is not None:
+                value = json.dumps(in_plug.value)
+            plug = '{symbol} {dist}{input_}{value}'.format(
+                symbol='%' if getattr(in_plug, '_sub_plugs', None) else 'o',
+                dist=' ' if isinstance(in_plug, SubInputPlug)else '',
                 input_=input_,
-                value="".join([s for i, s in enumerate(str(value))
-                               if i < max_value_length]))
+                value=('<{value}>'.format(value=''.join(
+                    [s for i, s in enumerate(str(value))
+                     if i < max_value_length]))
+                    if not getattr(in_plug, '_sub_plugs', None) else ''))
             pretty += '{plug:{width}}|'.format(plug=plug, width=width + 1)
 
         # Outputs
@@ -242,22 +261,33 @@ class INode(object):
         """List representation of the node showing inputs and their values."""
         pretty = []
         pretty.append(self.name)
-        for name, plug in self.inputs.items():
+        for name, plug in sorted(self.all_inputs().items()):
+            if plug._sub_plugs:
+                continue
             if plug.connections:
                 pretty.append('  [i] {0} << {1}.{2}'.format(
                     name, plug.connections[0].node.name,
                     plug.connections[0].name))
             else:
-                pretty.append('  [i] {0}: {1}'.format(name,
-                                                      json.dumps(plug.value)))
+                pretty.append('  [i] {0}: {1}'.format(
+                    name, json.dumps(plug.value)))
         for name, plug in self.outputs.items():
             if plug.connections:
-                pretty.append('  [o] {0} >> {1}.{2}'.format(
-                    name, plug.connections[0].node.name,
-                    plug.connections[0].name))
+                pretty.append('  [o] {0} >> {1}'.format(
+                    name,
+                    ', '.join(['{0}.{1}'.format(c.node.name, c.name)
+                               for c in plug.connections])))
             else:
                 pretty.append('  [o] {0}'.format(name))
         return '\n'.join(pretty)
+
+    def all_inputs(self):
+        all_inputs = {}
+        for plug in self.inputs.values():
+            all_inputs[plug.name] = plug
+            for sub in plug._sub_plugs.values():
+                all_inputs[sub.name] = sub
+        return all_inputs
 
     @staticmethod
     def _sort_plugs(plugs):
@@ -319,6 +349,8 @@ class FunctionNode(INode):
         self._initialize(node.func, data['outputs'].keys(), data['metadata'])
         for name, input_ in data['inputs'].items():
             self.inputs[name].value = input_['value']
+        for name, input_ in data['outputs'].items():
+            self.outputs[name].value = input_['value']
 
     def _initialize(self, func, outputs, metadata):
         """Use the function and the list of outputs to setup the Node."""

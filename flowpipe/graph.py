@@ -74,6 +74,7 @@ class Graph(object):
             row = []
             for node in [n for n in levels if levels[n] == level]:
                 row.append(node)
+            row.sort(key=lambda key: key.name)
             matrix.append(row)
 
         return matrix
@@ -131,10 +132,19 @@ class Graph(object):
             this = [n for n in graph.nodes
                     if n.identifier == node['identifier']][0]
             for name, input_ in node['inputs'].items():
-                for identifier, plug in input_['connections'].items():
-                    upstream = [n for n in graph.nodes
-                                if n.identifier == identifier][0]
-                    upstream.outputs[plug] >> this.inputs[name]
+                for identifier, plugs in input_['connections'].items():
+                    for plug in plugs:
+                        upstream = [n for n in graph.nodes
+                                    if n.identifier == identifier][0]
+                        upstream.outputs[plug] >> this.inputs[name]
+                for sub_plug_name, sub_plug in input_['sub_plugs'].items():
+                    sub_plug_name = sub_plug_name.split('.')[-1]
+                    for identifier, plugs in sub_plug['connections'].items():
+                        for plug in plugs:
+                            upstream = [n for n in graph.nodes
+                                        if n.identifier == identifier][0]
+                            upstream.outputs[plug].connect(
+                                this.inputs[name][sub_plug_name])
         return graph
 
     def _sort_node(self, node, parent, level):
@@ -166,13 +176,16 @@ class Graph(object):
 
         for node in self.nodes:
             for j, plug in enumerate(node._sort_plugs(node.outputs)):
-                for connection in node._sort_plugs(node.outputs)[plug].connections:
+                for connection in node._sort_plugs(
+                        node.outputs)[plug].connections:
                     dnode = connection.node
                     start = [node.item.position[0] + node.item.bbox[2],
                              node.item.position[1] + 3 + len(node.inputs) + j]
                     end = [dnode.item.position[0],
                            dnode.item.position[1] + 3 +
-                           list(dnode._sort_plugs(dnode.inputs).values()).index(connection)]
+                           list(dnode._sort_plugs(
+                                dnode.all_inputs()).values()).index(
+                                    connection)]
                     canvas.add_item(Line(start, end), 0)
         return canvas.render()
 

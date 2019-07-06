@@ -3,6 +3,11 @@ from __future__ import print_function
 from abc import abstractmethod
 __all__ = ['OutputPlug', 'InputPlug']
 
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
+
 
 class IPlug(object):
     """The interface for the plugs.
@@ -22,8 +27,9 @@ class IPlug(object):
         """
         self.name = name
         self.node = node
-        self.connections = list()
+        self.connections = []
         self.accepted_plugs = accepted_plugs
+        self._sub_plugs = OrderedDict()
         self._value = None
         self._is_dirty = True
 
@@ -69,7 +75,7 @@ class IPlug(object):
     def is_dirty(self, status):
         """Set the Plug dirty informs the node this Plug belongs to."""
         self._is_dirty = status
-        if not status:
+        if status:
             self.node.on_input_plug_set_dirty()
 
     @abstractmethod
@@ -89,11 +95,16 @@ class IPlug(object):
         """Serialize the Plug containing all it's connections."""
         connections = {}
         for connection in self.connections:
-            connections[connection.node.identifier] = connection.name
+            connections.setdefault(connection.node.identifier, [])
+            connections[connection.node.identifier].append(connection.name)
         return {
             'name': self.name,
-            'value': self.value,
-            'connections': connections
+            'value': self.value if not self._sub_plugs else None,
+            'connections': connections,
+            'sub_plugs': {
+                name: sub_plug.serialize()
+                for name, sub_plug in self._sub_plugs.items()
+            }
         }
 
 
@@ -108,7 +119,7 @@ class OutputPlug(IPlug):
             name (str): The name of the Plug.
             node (INode): The Node holding the Plug.
         """
-        super(OutputPlug, self).__init__(name, node, (InputPlug, ))
+        super(OutputPlug, self).__init__(name, node, (InputPlug, SubInputPlug))
         self.node.outputs[self.name] = self
 
     def __unicode__(self):
@@ -173,6 +184,92 @@ class InputPlug(IPlug):
         pretty += ''.join(['\n\t\t\u2190 {0}.{1}'.format(
             c.node.name, c.name) for c in self.connections])
         return pretty
+
+    def __getitem__(self, key):
+        """Retrieve a sub plug by key.
+
+        If it does not exist yet, it is created automatically!
+        Args:
+            key (str): The name of the sub plug
+        """
+        if not isinstance(key, str):
+            raise Exception(
+                'Only strings are allowed as sub-plug keys! '
+                'This is due to the fact that JSON serialization only allows '
+                'strings as keys.')
+        if not self._sub_plugs.get(key):
+            self._sub_plugs[key] = SubInputPlug(
+                name='{0}.{1}'.format(self.name, key),
+                node=self.node,
+                parent_plug=self)
+        return self._sub_plugs[key]
+
+    @property
+    def value(self):
+        """Access to the value on this Plug."""
+        if self._sub_plugs:
+            return {name: plug.value for name, plug in self._sub_plugs.items()}
+        return self._value
+
+    @value.setter
+    def value(self, value):
+        """Set the Plug dirty when the value is being changed."""
+        if self._sub_plugs:
+            raise Exception(
+                'This plug is used as a compound plug, values can only be '
+                'assigned to the individual sub plugs via indexing, '
+                'e.g. Plug[0].value = "value"')
+        self._value = value
+        self.is_dirty = True
+
+    def connect(self, plug):
+        """Connect this Plug to the given OutputPlug.
+
+        Set both participating Plugs dirty.
+        """
+        if plug.node is self.node:
+            raise Exception(
+                'Can\'t connect Plugs that are part of the same Node.')
+
+        for connection in self.connections:
+            self.disconnect(connection)
+
+        self.connections = [plug]
+        self.is_dirty = True
+        if self not in plug.connections:
+            plug.connections.append(self)
+            plug.is_dirty = True
+
+
+class SubInputPlug(IPlug):
+    """Held by a parent input plug to form a compound plug."""
+
+    def __init__(self, name, node, parent_plug, value=None):
+        """Initialize the plug.
+
+        Can be connected to an OutputPlug.
+        Args:
+            name (str): The name of the Plug has to be in the form:
+                {parent_plug.name}.{name}.
+            node (INode): The Node holding the Plug.
+            parent_plug (InputPlug): The parent plug holding this Plug.
+        """
+        super(SubInputPlug, self).__init__(name, node, (OutputPlug, ))
+        self.parent_plug = parent_plug
+        self.value = value
+        self.is_dirty = True
+
+    @property
+    def is_dirty(self):
+        """Access to the dirty status on this Plug."""
+        return self._is_dirty
+
+    @is_dirty.setter
+    def is_dirty(self, status):
+        """Setting the Plug dirty informs its parent plug."""
+        self._is_dirty = status
+        if status:
+            self.parent_plug.is_dirty = status
 
     def connect(self, plug):
         """Connect this Plug to the given OutputPlug.

@@ -2,6 +2,8 @@ from __future__ import print_function
 
 import pytest
 
+from ascii_canvas.canvas import Canvas
+
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.graph import Graph
@@ -12,12 +14,13 @@ class NodeForTesting(INode):
     def __init__(self, name=None, **kwargs):
         super(NodeForTesting, self).__init__(name, **kwargs)
         OutputPlug('out', self)
+        OutputPlug('out2', self)
         InputPlug('in1', self, 0)
         InputPlug('in2', self, 0)
 
     def compute(self, in1, in2):
         """Multiply the two inputs."""
-        return {'out': in1 * in2}
+        return {'out': in1 * in2, 'out2': None}
 
 
 def test_evaluation_matrix():
@@ -134,68 +137,93 @@ def test_complex_branching_evaluation_sequence():
 
 
 def test_serialize_graph():
-    """Serialize the graph to a json-serializable dictionary."""
-    start = NodeForTesting('start')
-    n11 = NodeForTesting('11')
-    n12 = NodeForTesting('12')
-    n21 = NodeForTesting('21')
-    n31 = NodeForTesting('31')
-    n32 = NodeForTesting('32')
-    n33 = NodeForTesting('33')
-    end = NodeForTesting('end')
-
-    # Connect them
-    start.outputs['out'] >> n11.inputs['in1']
-    start.outputs['out'] >> n21.inputs['in1']
-    start.outputs['out'] >> n31.inputs['in1']
-
-    n31.outputs['out'] >> n32.inputs['in1']
-    n32.outputs['out'] >> n33.inputs['in1']
-
-    n11.outputs['out'] >> n12.inputs['in1']
-    n33.outputs['out'] >> n12.inputs['in2']
-
-    n12.outputs['out'] >> end.inputs['in1']
-    n21.outputs['out'] >> end.inputs['in2']
-
-    nodes = [start, n11, n12, n21, n31, n32, n33, end]
-    graph = Graph(nodes=nodes)
+    """
+    +------------+          +------------+          +--------------------+
+    |   Start    |          |   Node2    |          |        End         |
+    |------------|          |------------|          |--------------------|
+    o in1<0>     |     +--->o in1<>      |          % in1                |
+    o in2<0>     |     |    o in2<0>     |     +--->o  in1.1<>           |
+    |        out o-----+    |        out o-----|--->o  in1.2<>           |
+    |       out2 o     |    |       out2 o     |    o in2<0>             |
+    +------------+     |    +------------+     |    |                out o
+                       |    +------------+     |    |               out2 o
+                       |    |   Node1    |     |    +--------------------+
+                       |    |------------|     |
+                       +--->o in1<>      |     |
+                            o in2<0>     |     |
+                            |        out o-----+
+                            |       out2 o
+                            +------------+
+    """
+    graph = Graph()
+    start = NodeForTesting(name='Start', graph=graph)
+    n1 = NodeForTesting(name='Node1', graph=graph)
+    n2 = NodeForTesting(name='Node2', graph=graph)
+    end = NodeForTesting(name='End', graph=graph)
+    start.outputs['out'] >> n1.inputs['in1']
+    start.outputs['out'] >> n2.inputs['in1']
+    n1.outputs['out'] >> end.inputs['in1']['1']
+    n2.outputs['out'] >> end.inputs['in1']['2']
 
     serialized = graph.serialize()
-    deserialized = graph.deserialize(serialized)
+    deserialized = graph.deserialize(serialized).serialize()
 
-    assert len(deserialized.nodes) == len(graph.nodes)
-    assert graph.name == deserialized.name
-
-    # Connections need to be deserialized as well
-    for i in range(len(graph.nodes)):
-        assert graph.nodes[i].identifier == deserialized.nodes[i].identifier
-        # inputs
-        for name, plug in graph.nodes[i].inputs.items():
-            ds_plug = deserialized.nodes[i].inputs[name]
-            for j in range(len(plug.connections)):
-                connection = plug.connections[j]
-                ds_connection = ds_plug.connections[j]
-                assert ds_connection.name == connection.name
-                assert ds_connection.node.identifier == connection.node.identifier
-        # outputs
-        for name, plug in graph.nodes[i].outputs.items():
-            ds_plug = deserialized.nodes[i].outputs[name]
-            for j in range(len(plug.connections)):
-                connection = plug.connections[j]
-                ds_connection = ds_plug.connections[j]
-                assert ds_connection.name == connection.name
-                assert ds_connection.node.name == connection.node.name
+    assert serialized == deserialized
 
 
 def test_string_representations():
     """Print the Graph."""
-    start = NodeForTesting('start')
-    end = NodeForTesting('end')
-    start.outputs['out'] >> end.inputs['in1']
-    graph = Graph(nodes=[start, end])
-    print(graph)
-    print(graph.list_repr())
+    graph = Graph()
+    start = NodeForTesting(name='Start', graph=graph)
+    n1 = NodeForTesting(name='Node1', graph=graph)
+    n2 = NodeForTesting(name='Node2', graph=graph)
+    end = NodeForTesting(name='End', graph=graph)
+    start.outputs['out'] >> n1.inputs['in1']
+    start.outputs['out'] >> n2.inputs['in1']
+    n1.outputs['out'] >> end.inputs['in1']['1']
+    n2.outputs['out'] >> end.inputs['in1']['2']
+
+    assert str(graph) == '\
++------------+          +------------+          +--------------------+\n\
+|   Start    |          |   Node1    |          |        End         |\n\
+|------------|          |------------|          |--------------------|\n\
+o in1<0>     |     +--->o in1<>      |          % in1                |\n\
+o in2<0>     |     |    o in2<0>     |     +--->o  in1.1<>           |\n\
+|        out o-----+    |        out o-----+--->o  in1.2<>           |\n\
+|       out2 o     |    |       out2 o     |    o in2<0>             |\n\
++------------+     |    +------------+     |    |                out o\n\
+                   |    +------------+     |    |               out2 o\n\
+                   |    |   Node2    |     |    +--------------------+\n\
+                   |    |------------|     |                          \n\
+                   +--->o in1<>      |     |                          \n\
+                        o in2<0>     |     |                          \n\
+                        |        out o-----+                          \n\
+                        |       out2 o                                \n\
+                        +------------+                                '
+
+    assert graph.list_repr() == '''\
+Graph
+ Start
+  [i] in1: 0
+  [i] in2: 0
+  [o] out >> Node1.in1, Node2.in1
+  [o] out2
+ Node1
+  [i] in1 << Start.out
+  [i] in2: 0
+  [o] out >> End.in1.1
+  [o] out2
+ Node2
+  [i] in1 << Start.out
+  [i] in2: 0
+  [o] out >> End.in1.2
+  [o] out2
+ End
+  [i] in1.1 << Node1.out
+  [i] in1.2 << Node2.out
+  [i] in2: 0
+  [o] out
+  [o] out2'''
 
 
 def test_nodes_can_be_added_to_graph():
