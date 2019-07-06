@@ -14,6 +14,10 @@ A lightweight framework for flow-based programming in python.
 pip install flowpipe
 ```
 
+## VFX Pipeline
+
+If you are working in the VFX/Animation industry, please check out this extensive guide on how to use [flowpipe in a vfx pipeline](flowpipe-for-vfx-pipelines.md)!
+
 ## Example: Implement a world clock with Flowpipe
 
 This is very simple and in the end it is just a one liner in python, but a simple example makes it easier to demonstrate the idea behind flowpipe.
