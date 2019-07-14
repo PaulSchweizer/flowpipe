@@ -2,8 +2,6 @@ from __future__ import print_function
 
 import pytest
 
-from ascii_canvas.canvas import Canvas
-
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.graph import Graph
@@ -11,12 +9,12 @@ from flowpipe.graph import Graph
 
 class NodeForTesting(INode):
 
-    def __init__(self, name=None, **kwargs):
+    def __init__(self, name=None, in1=None, in2=None, **kwargs):
         super(NodeForTesting, self).__init__(name, **kwargs)
         OutputPlug('out', self)
         OutputPlug('out2', self)
-        InputPlug('in1', self, 0)
-        InputPlug('in2', self, 0)
+        InputPlug('in1', self, in1)
+        InputPlug('in2', self, in2)
 
     def compute(self, in1, in2):
         """Multiply the two inputs."""
@@ -25,14 +23,14 @@ class NodeForTesting(INode):
 
 def test_evaluation_matrix():
     """The nodes as a 2D grid."""
-    start = NodeForTesting('start')
-    n11 = NodeForTesting('11')
-    n12 = NodeForTesting('12')
-    n21 = NodeForTesting('21')
-    n31 = NodeForTesting('31')
-    n32 = NodeForTesting('32')
-    n33 = NodeForTesting('33')
-    end = NodeForTesting('end')
+    start = NodeForTesting('start', in1=0, in2=0)
+    n11 = NodeForTesting('11', in1=0, in2=0)
+    n12 = NodeForTesting('12', in1=0, in2=0)
+    n21 = NodeForTesting('21', in1=0, in2=0)
+    n31 = NodeForTesting('31', in1=0, in2=0)
+    n32 = NodeForTesting('32', in1=0, in2=0)
+    n33 = NodeForTesting('33', in1=0, in2=0)
+    end = NodeForTesting('end', in1=0, in2=0)
 
     # Connect them
     start.outputs['out'] >> n11.inputs['in1']
@@ -178,52 +176,65 @@ def test_string_representations():
     n1 = NodeForTesting(name='Node1', graph=graph)
     n2 = NodeForTesting(name='Node2', graph=graph)
     end = NodeForTesting(name='End', graph=graph)
+
+    @Node(outputs=['out', 'out2'])
+    def N4T(in1, in2):
+        pass
+
+    # end = N4T(name='End', graph=graph)
+
     start.outputs['out'] >> n1.inputs['in1']
-    start.outputs['out'] >> n2.inputs['in1']
+    start.outputs['out'] >> n2.inputs['in1']['0']
     n1.outputs['out'] >> end.inputs['in1']['1']
-    n2.outputs['out'] >> end.inputs['in1']['2']
+    n2.outputs['out']['0'] >> end.inputs['in1']['2']
+    n2.outputs['out']['0'] >> end.inputs['in2']
 
     assert str(graph) == '\
-+------------+          +------------+          +--------------------+\n\
-|   Start    |          |   Node1    |          |        End         |\n\
-|------------|          |------------|          |--------------------|\n\
-o in1<0>     |     +--->o in1<>      |          % in1                |\n\
-o in2<0>     |     |    o in2<0>     |     +--->o  in1.1<>           |\n\
-|        out o-----+    |        out o-----+--->o  in1.2<>           |\n\
-|       out2 o     |    |       out2 o     |    o in2<0>             |\n\
-+------------+     |    +------------+     |    |                out o\n\
-                   |    +------------+     |    |               out2 o\n\
-                   |    |   Node2    |     |    +--------------------+\n\
-                   |    |------------|     |                          \n\
-                   +--->o in1<>      |     |                          \n\
-                        o in2<0>     |     |                          \n\
-                        |        out o-----+                          \n\
-                        |       out2 o                                \n\
-                        +------------+                                '
++------------+          +------------+                  +--------------------+\n\
+|   Start    |          |   Node1    |                  |        End         |\n\
+|------------|          |------------|                  |--------------------|\n\
+o in1<>      |     +--->o in1<>      |                  % in1                |\n\
+o in2<>      |     |    o in2<>      |         +------->o  in1.1<>           |\n\
+|        out o-----+    |        out o---------+   +--->o  in1.2<>           |\n\
+|       out2 o     |    |       out2 o             |--->o in2<>              |\n\
++------------+     |    +------------+             |    |                out o\n\
+                   |    +--------------------+     |    |               out2 o\n\
+                   |    |       Node2        |     |    +--------------------+\n\
+                   |    |--------------------|     |                          \n\
+                   |    % in1                |     |                          \n\
+                   +--->o  in1.0<>           |     |                          \n\
+                        o in2<>              |     |                          \n\
+                        |                out %     |                          \n\
+                        |             out.0  o-----+                          \n\
+                        |               out2 o                                \n\
+                        +--------------------+                                '
 
     assert graph.list_repr() == '''\
 Graph
  Start
-  [i] in1: 0
-  [i] in2: 0
-  [o] out >> Node1.in1, Node2.in1
-  [o] out2
+  [i] in1: null
+  [i] in2: null
+  [o] out >> Node1.in1, Node2.in1.0
+  [o] out2: null
  Node1
   [i] in1 << Start.out
-  [i] in2: 0
+  [i] in2: null
   [o] out >> End.in1.1
-  [o] out2
+  [o] out2: null
  Node2
-  [i] in1 << Start.out
-  [i] in2: 0
-  [o] out >> End.in1.2
-  [o] out2
- End
-  [i] in1.1 << Node1.out
-  [i] in1.2 << Node2.out
-  [i] in2: 0
+  [i] in1
+   [i] in1.0 << Start.out
+  [i] in2: null
   [o] out
-  [o] out2'''
+   [o] out.0 >> End.in1.2, End.in2
+  [o] out2: null
+ End
+  [i] in1
+   [i] in1.1 << Node1.out
+   [i] in1.2 << Node2.out.0
+  [i] in2 << Node2.out.0
+  [o] out: null
+  [o] out2: null'''
 
 
 def test_nodes_can_be_added_to_graph():
@@ -290,7 +301,7 @@ def test_nodes_can_be_accessed_via_name_through_indexing():
 
     assert graph[test_name] == node
 
-    with pytest.raises(Exception):
+    with pytest.raises(KeyError):
         graph["Does not exist"]
 
 
@@ -301,7 +312,7 @@ def test_node_names_on_graph_have_to_be_unique():
     graph.add_node(node_1)
     node_2 = NodeForTesting(name=same_name)
 
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         graph.add_node(node_2)
 
 

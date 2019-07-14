@@ -17,7 +17,7 @@ import json
 import time
 import uuid
 
-from .plug import OutputPlug, InputPlug, SubInputPlug
+from .plug import OutputPlug, InputPlug, SubInputPlug, SubOutputPlug
 from .log_observer import LogObserver
 from .stats_reporter import StatsReporter
 from .utilities import import_class
@@ -79,6 +79,8 @@ class INode(object):
         downstream_nodes = list()
         for output in self.outputs.values():
             downstream_nodes += [c.node for c in output.connections]
+            for sub_plug in output._sub_plugs.values():
+                downstream_nodes += [c.node for c in sub_plug.connections]
         return list(set(downstream_nodes))
 
     def evaluate(self):
@@ -101,10 +103,6 @@ class INode(object):
                 self.file_location, self.class_name,
                 json.dumps(self._sort_plugs(inputs), indent=2)))
 
-        inputs = {}
-        for name, plug in self.inputs.items():
-            inputs[name] = plug.value
-
         # Compute and redirect the output to the output plugs
         start_time = time.time()
         outputs = self.compute(**inputs) or dict()
@@ -118,11 +116,16 @@ class INode(object):
 
         StatsReporter.push_stats(stats)
 
+        # all_outputs = self.all_outputs()
         for name, value in outputs.items():
-            self.outputs[name].value = value
+            if '.' in name:
+                parent_plug, sub_plug = name.split('.')
+                self.outputs[parent_plug][sub_plug].value = value
+            else:
+                self.outputs[name].value = value
 
         # Set the inputs clean
-        for input_ in self.inputs.values():
+        for input_ in self.all_inputs().values():
             input_.is_dirty = False
 
         LogObserver.push_message(
@@ -187,26 +190,30 @@ class INode(object):
     def node_repr(self):
         """The node formated into a string looking like a node.
 
-        +-------------+
-        |  Node.Name  |
-        |-------------|
-        % compound    |
-        o  compound-1 |
-        o  compound-2 |
-        o in          |
-        |         out o
-        +-------------+
+        +------------------+
+        |     Node.Name    |
+        |------------------|
+        % compound_in      |
+        o  compound_in-1   |
+        o  compound_in-2   |
+        o in               |
+        |              out o
+        |     compound_out %
+        |  compound_out-1  o
+        |  compound_out-2  o
+        +------------------+
         """
         max_value_length = 10
 
         all_inputs = self.all_inputs()
+        all_outputs = self.all_outputs()
 
         offset = ''
         if [i for i in all_inputs.values() if i.connections]:
             offset = ' ' * 3
 
         width = len(max(list(all_inputs) +
-                        list(self.outputs) +
+                        list(all_outputs) +
                         [self.name] +
                         list(plug.name + "".join([
                             s for i, s in enumerate(str(plug.value))
@@ -216,7 +223,7 @@ class INode(object):
                         list(plug.name + "".join([
                             s for i, s in enumerate(str(plug.value))
                             if i < max_value_length])
-                            for plug in self.outputs.values()
+                            for plug in all_outputs.values()
                             if plug.value is not None),
                         key=len)) + 7
 
@@ -238,50 +245,81 @@ class INode(object):
             if in_plug.value is not None:
                 value = json.dumps(in_plug.value)
             plug = '{symbol} {dist}{input_}{value}'.format(
-                symbol='%' if getattr(in_plug, '_sub_plugs', None) else 'o',
+                symbol='%' if in_plug._sub_plugs else 'o',
                 dist=' ' if isinstance(in_plug, SubInputPlug)else '',
                 input_=input_,
                 value=('<{value}>'.format(value=''.join(
                     [s for i, s in enumerate(str(value))
                      if i < max_value_length]))
-                    if not getattr(in_plug, '_sub_plugs', None) else ''))
+                    if not in_plug._sub_plugs else ''))
             pretty += '{plug:{width}}|'.format(plug=plug, width=width + 1)
 
         # Outputs
-        for output in sorted(self.outputs.keys()):
-            pretty += '\n{offset}|{output:>{width}} o'.format(
-                offset=offset, output=output, width=width - 1)
-            if self.outputs[output].connections:
+        all_outputs = self.all_outputs()
+        for output in sorted(all_outputs.keys()):
+            out_plug = all_outputs[output]
+            dist = 2 if isinstance(out_plug, SubOutputPlug) else 1
+            pretty += '\n{offset}|{output:>{width}}{dist}{symbol}'.format(
+                offset=offset, output=output, width=width - dist,
+                dist=dist * ' ',
+                symbol='%' if out_plug._sub_plugs else 'o')
+            if all_outputs[output].connections:
                 pretty += '---'
 
         pretty += '\n' + offset + '+' + '-' * width + '+'
         return pretty
 
     def list_repr(self):
-        """List representation of the node showing inputs and their values."""
+        """List representation of the node showing inputs and their values.
+
+        Node
+          [i] in: "A"
+          [i] in_compound
+           [i] in_compound.0: "B"
+           [i] in_compound.1 << Node1.out
+          [o] compound_out
+           [o] in_compound.0: null
+           [o] compound_out.1 >> Node2.in, Node3.in
+          [o] out >> Node4.in
+        """
         pretty = []
         pretty.append(self.name)
         for name, plug in sorted(self.all_inputs().items()):
             if plug._sub_plugs:
+                pretty.append('  [i] {name}'.format(name=name))
                 continue
             if plug.connections:
-                pretty.append('  [i] {0} << {1}.{2}'.format(
-                    name, plug.connections[0].node.name,
-                    plug.connections[0].name))
+                pretty.append('{indent}[i] {name} << {node}.{plug}'.format(
+                    indent='   ' if isinstance(plug, SubInputPlug) else '  ',
+                    name=name,
+                    node=plug.connections[0].node.name,
+                    plug=plug.connections[0].name))
             else:
-                pretty.append('  [i] {0}: {1}'.format(
-                    name, json.dumps(plug.value)))
-        for name, plug in self.outputs.items():
+                pretty.append('{indent}[i] {name}: {value}'.format(
+                    indent='   ' if isinstance(plug, SubInputPlug) else '  ',
+                    name=name,
+                    value=json.dumps(plug.value)))
+        for name, plug in sorted(self.all_outputs().items()):
+            if plug._sub_plugs:
+                pretty.append('  [o] {name}'.format(name=name))
+                continue
             if plug.connections:
-                pretty.append('  [o] {0} >> {1}'.format(
-                    name,
-                    ', '.join(['{0}.{1}'.format(c.node.name, c.name)
-                               for c in plug.connections])))
+                pretty.append('{indent}[o] {name} >> {connections}'.format(
+                    indent='   ' if isinstance(plug, SubOutputPlug) else '  ',
+                    name=name,
+                    connections=', '.join(
+                        ['{node}.{plug}'.format(node=c.node.name, plug=c.name)
+                         for c in plug.connections])))
             else:
-                pretty.append('  [o] {0}'.format(name))
+                pretty.append('{indent}[o] {name}: {value}'.format(
+                    indent='   ' if isinstance(plug, SubOutputPlug) else '  ',
+                    name=name,
+                    value=json.dumps(plug.value)))
+
         return '\n'.join(pretty)
 
     def all_inputs(self):
+        """Collate all input plugs and their sub_plugs into one dictionary."""
         all_inputs = {}
         for plug in self.inputs.values():
             all_inputs[plug.name] = plug
@@ -289,8 +327,18 @@ class INode(object):
                 all_inputs[sub.name] = sub
         return all_inputs
 
+    def all_outputs(self):
+        """Collate all output plugs and their sub_plugs into one dictionary."""
+        all_outputs = {}
+        for plug in self.outputs.values():
+            all_outputs[plug.name] = plug
+            for sub in plug._sub_plugs.values():
+                all_outputs[sub.name] = sub
+        return all_outputs
+
     @staticmethod
     def _sort_plugs(plugs):
+        """Sort the given plugs alphabetically into an OrderedDict."""
         sorted_plugs = OrderedDict()
         for i in sorted(plugs, key=lambda x: x.lower()):
             sorted_plugs[i] = plugs[i]
@@ -308,7 +356,8 @@ class FunctionNode(INode):
         Other function attributes, name, __doc__ also transfer to the Node.
         """
         super(FunctionNode, self).__init__(
-            name or getattr(func, '__name__', None), identifier, metadata, graph)
+            name or getattr(func, '__name__', None),
+            identifier, metadata, graph)
         self._initialize(func, outputs or [], metadata)
         for plug, value in kwargs.items():
             self.inputs[plug].value = value

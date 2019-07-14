@@ -38,7 +38,7 @@ class Graph(object):
         for node in self.nodes:
             if node.name == key:
                 return node
-        raise Exception(
+        raise KeyError(
             "Graph does not contain a Node named '{0}'".format(key))
 
     @property
@@ -97,7 +97,7 @@ class Graph(object):
         if node not in self.nodes:
             for existing_node in self.nodes:
                 if existing_node.name == node.name:
-                    raise Exception(
+                    raise ValueError(
                         "Can not add Node of name '{0}', a Node with this "
                         "name already exists on this Graph. Node names on "
                         "a Graph have to be unique.".format(node.name))
@@ -175,12 +175,12 @@ class Graph(object):
             x += x_diff
 
         for node in self.nodes:
-            for j, plug in enumerate(node._sort_plugs(node.outputs)):
+            for j, plug in enumerate(node._sort_plugs(node.all_outputs())):
                 for connection in node._sort_plugs(
-                        node.outputs)[plug].connections:
+                        node.all_outputs())[plug].connections:
                     dnode = connection.node
                     start = [node.item.position[0] + node.item.bbox[2],
-                             node.item.position[1] + 3 + len(node.inputs) + j]
+                             node.item.position[1] + 3 + len(node.all_inputs()) + j]
                     end = [dnode.item.position[0],
                            dnode.item.position[1] + 3 +
                            list(dnode._sort_plugs(

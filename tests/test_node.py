@@ -1,10 +1,9 @@
 from __future__ import print_function
-import json
 
 import mock
 import pytest
 
-from flowpipe.node import INode
+from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
 
 
@@ -17,6 +16,7 @@ class SquareNode(INode):
         InputPlug('in1', self)
         InputPlug('compound_in', self)
         OutputPlug('out', self)
+        OutputPlug('compound_out', self)
 
     def compute(self, in1, compound_in=None):
         """Square the given input and send to the output."""
@@ -66,6 +66,20 @@ def test_evaluate():
     node.evaluate()
     assert test_input**2 == node.outputs['out'].value
 
+    @Node(outputs=['compound_out'])
+    def CompoundNode(compound_in):
+        return {
+            'compound_out.0': compound_in['0'],
+            'compound_out.1': compound_in['1'],
+            'compound_out.2': compound_in['2']
+        }
+
+    compound_node = CompoundNode(compound_in={'0': 0, '1': 1, '2': 2})
+    compound_node.evaluate()
+    assert compound_node.outputs['compound_out']['0'].value == 0
+    assert compound_node.outputs['compound_out']['1'].value == 1
+    assert compound_node.outputs['compound_out']['2'].value == 2
+
 
 def test_compute_receives_inputs():
     """The values from the inputs are sent to compute."""
@@ -100,6 +114,7 @@ def test_evaluate_sets_all_inputs_clean():
     """After the evaluation, the inputs are considered clean."""
     node = SquareNode()
     node.inputs['in1'].value = 2
+    node.inputs['compound_in']['0'].value = 0
     assert node.is_dirty
     node.evaluate()
     assert not node.is_dirty
@@ -108,57 +123,71 @@ def test_evaluate_sets_all_inputs_clean():
 def test_cannot_connect_node_to_itself():
     """A node can not create a cycle by connecting to itself."""
     node = SquareNode()
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         node.outputs['out'] >> node.inputs['in1']
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
         node.inputs['in1']['0'] >> node.outputs['out']
-    with pytest.raises(Exception):
+    with pytest.raises(ValueError):
+        node.outputs['out']['0'] >> node.inputs['in1']['0']
+    with pytest.raises(ValueError):
         node.inputs['in1'] >> node.outputs['out']
 
 
 def test_string_representations():
     """Print the node."""
-    node = SquareNode()
-    node1 = SquareNode()
+    node = SquareNode(name='Node1')
+    node1 = SquareNode(name='Node2')
+    node2 = SquareNode(name='Node3')
     node1.inputs['in1'].value = 'Test'
     node1.inputs['compound_in']['key-1'].value = 'value'
     node1.inputs['compound_in']['0'].value = 0
-    node.outputs['out'] >> node1.inputs['compound_in']['1']
+    node.outputs['out'] >> node1.inputs['in1']
+    node.outputs['compound_out']['1'] >> node1.inputs['compound_in']['1']
+    node1.outputs['compound_out']['1'] >> node2.inputs['in1']
 
     assert str(node) == '''\
-+------------------+
-|    SquareNode    |
-|------------------|
-o compound_in<>    |
-o in1<>            |
-|              out o---
-+------------------+'''
++-----------------------------+
+|            Node1            |
+|-----------------------------|
+o compound_in<>               |
+o in1<>                       |
+|                compound_out %
+|             compound_out.1  o---
+|                         out o---
++-----------------------------+'''
 
     assert str(node1) == '''\
    +-----------------------------+
-   |         SquareNode          |
+   |            Node2            |
    |-----------------------------|
    % compound_in                 |
    o  compound_in.0<0>           |
 -->o  compound_in.1<>            |
    o  compound_in.key-1<"value"> |
-   o in1<"Test">                 |
+-->o in1<>                       |
+   |                compound_out %
+   |             compound_out.1  o---
    |                         out o
    +-----------------------------+'''
 
     assert node.list_repr() == '''\
-SquareNode
+Node1
   [i] compound_in: null
   [i] in1: null
-  [o] out >> SquareNode.compound_in.1'''
+  [o] compound_out
+   [o] compound_out.1 >> Node2.compound_in.1
+  [o] out >> Node2.in1'''
 
     assert node1.list_repr() == '''\
-SquareNode
-  [i] compound_in.0: 0
-  [i] compound_in.1 << SquareNode.out
-  [i] compound_in.key-1: "value"
-  [i] in1: "Test"
-  [o] out'''
+Node2
+  [i] compound_in
+   [i] compound_in.0: 0
+   [i] compound_in.1 << Node1.compound_out.1
+   [i] compound_in.key-1: "value"
+  [i] in1 << Node1.out
+  [o] compound_out
+   [o] compound_out.1 >> Node3.in1
+  [o] out: null'''
 
 
 def test_node_has_unique_identifier():
@@ -207,6 +236,12 @@ def test_serialize_node_serialize_deserialize(mock_inspect):
             }
         },
         'outputs': {
+            'compound_out': {
+                'connections': {},
+                'name': 'compound_out',
+                'value': None,
+                'sub_plugs': {}
+            },
             'out': {
                 'connections': {
                     node2.identifier: [
@@ -224,59 +259,65 @@ def test_serialize_node_serialize_deserialize(mock_inspect):
 
     data2 = node2.serialize()
     assert data2 == {
-      'inputs': {
-        'compound_in': {
-          'connections': {},
-          'name': 'compound_in',
-          'value': None,
-          'sub_plugs': {
-            '1': {
-              'connections': {
-                node1.identifier: [
-                  'out'
-                ]
-              },
-              'name': 'compound_in.1',
-              'value': None,
-              'sub_plugs': {}
+        'inputs': {
+            'compound_in': {
+                'connections': {},
+                'name': 'compound_in',
+                'value': None,
+                'sub_plugs': {
+                    '1': {
+                        'connections': {
+                            node1.identifier: [
+                                'out'
+                            ]
+                        },
+                        'name': 'compound_in.1',
+                        'value': None,
+                        'sub_plugs': {}
+                    },
+                    'key': {
+                        'connections': {
+                            node1.identifier: [
+                                'out'
+                            ]
+                        },
+                        'name': 'compound_in.key',
+                        'value': None,
+                        'sub_plugs': {}
+                    }
+                }
             },
-            'key': {
-              'connections': {
-                node1.identifier: [
-                  'out'
-                ]
-              },
-              'name': 'compound_in.key',
-              'value': None,
-              'sub_plugs': {}
+            'in1': {
+                'connections': {
+                    node1.identifier: [
+                        'out'
+                    ]
+                },
+                'name': 'in1',
+                'value': None,
+                'sub_plugs': {}
             }
-          }
         },
-        'in1': {
-          'connections': {
-            node1.identifier: [
-              'out'
-            ]
-          },
-          'name': 'in1',
-          'value': None,
-          'sub_plugs': {}
-        }
-      },
-      'name': 'Node2',
-      'outputs': {
-        'out': {
-          'connections': {},
-          'name': 'out',
-          'value': None,
-          'sub_plugs': {}
-        }
-      },
-      'metadata': {},
-      'module': 'test_node',
-      'file_location': '/path/to/node/implementation.py',
-      'identifier': node2.identifier,
-      'cls': 'SquareNode'
+        'outputs': {
+            'compound_out': {
+                'connections': {},
+                'name': 'compound_out',
+                'value': None,
+                'sub_plugs': {}
+            },
+            'out': {
+                'connections': {},
+                'name': 'out',
+                'value': None,
+                'sub_plugs': {}
+            }
+        },
+        'name': 'Node2',
+        'metadata': {},
+        'module': 'test_node',
+        'file_location': '/path/to/node/implementation.py',
+        'identifier': node2.identifier,
+        'cls': 'SquareNode'
     }
 
 
@@ -308,6 +349,12 @@ def test_deserialize_from_json(mock_inspect):
         },
         'name': 'Node1',
         'outputs': {
+            'compound_out': {
+                'connections': {},
+                'name': 'compound_out',
+                'value': None,
+                'sub_plugs': {}
+            },
             'out': {
                 'connections': {},
                 'name': 'out',
@@ -353,6 +400,12 @@ def test_deserialize_from_json(mock_inspect):
         },
         'name': 'Node2',
         'outputs': {
+            'compound_out': {
+                'connections': {},
+                'name': 'compound_out',
+                'value': None,
+                'sub_plugs': {}
+            },
             'out': {
                 'connections': {},
                 'name': 'out',
@@ -390,3 +443,18 @@ def test_all_inputs_contains_all_sub_input_plugs():
         'compound_in.key-1',
         'compound_in.0',
         'compound_in.1'])
+
+
+def test_all_outputs_contains_all_sub_output_plugs():
+    node = SquareNode()
+    node.outputs['out'].value = 'Test'
+    node.outputs['compound_out']['key-1'].value = 'value'
+    node.outputs['compound_out']['0'].value = 0
+    node.outputs['compound_out']['1'].value = None
+
+    assert sorted(node.all_outputs().keys()) == sorted([
+        'out',
+        'compound_out',
+        'compound_out.key-1',
+        'compound_out.0',
+        'compound_out.1'])
