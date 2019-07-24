@@ -87,22 +87,6 @@ class IPlug(object):
             plug.connections.pop(plug.connections.index(self))
             plug.is_dirty = True
 
-    def serialize(self):
-        """Serialize the Plug containing all it's connections."""
-        connections = {}
-        for connection in self.connections:
-            connections.setdefault(connection.node.identifier, [])
-            connections[connection.node.identifier].append(connection.name)
-        return {
-            'name': self.name,
-            'value': self.value if not self._sub_plugs else None,
-            'connections': connections,
-            'sub_plugs': {
-                name: sub_plug.serialize()
-                for name, sub_plug in self._sub_plugs.items()
-            }
-        }
-
 
 class OutputPlug(IPlug):
     """Provides data to an InputPlug."""
@@ -125,10 +109,6 @@ class OutputPlug(IPlug):
         Args:
             key (str): The name of the sub plug
         """
-        if self._value is not None:
-            raise ValueError(
-                'Plug already has a value directly assigned and can '
-                'therefore not be used as a compound plug.')
         if not isinstance(key, str):
             raise TypeError(
                 'Only strings are allowed as sub-plug keys! '
@@ -152,10 +132,7 @@ class OutputPlug(IPlug):
     def value(self, value):
         """Propagate the dirty state to all connected Plugs as well."""
         if self._sub_plugs:
-            raise ValueError(
-                'This plug is used as a compound plug, values can only be '
-                'assigned to the individual sub plugs via indexing, '
-                'e.g. Plug[0].value = "value"')
+            return
         self._value = value
         self.is_dirty = True
         for plug in self.connections:
@@ -179,6 +156,22 @@ class OutputPlug(IPlug):
             self.is_dirty = True
         if self not in plug.connections:
             plug.connections = [self]
+
+    def serialize(self):
+        """Serialize the Plug containing all it's connections."""
+        connections = {}
+        for connection in self.connections:
+            connections.setdefault(connection.node.identifier, [])
+            connections[connection.node.identifier].append(connection.name)
+        return {
+            'name': self.name,
+            'value': self.value if not self._sub_plugs else None,
+            'connections': connections,
+            'sub_plugs': {
+                name: sub_plug.serialize()
+                for name, sub_plug in self._sub_plugs.items()
+            }
+        }
 
 
 class InputPlug(IPlug):
@@ -204,10 +197,6 @@ class InputPlug(IPlug):
         Args:
             key (str): The name of the sub plug
         """
-        if self._value is not None:
-            raise ValueError(
-                'Plug already has a value directly assigned and can '
-                'therefore not be used as a compound plug.')
         if not isinstance(key, str):
             raise TypeError(
                 'Only strings are allowed as sub-plug keys! '
@@ -231,10 +220,7 @@ class InputPlug(IPlug):
     def value(self, value):
         """Set the Plug dirty when the value is being changed."""
         if self._sub_plugs:
-            raise ValueError(
-                'This plug is used as a compound plug, values can only be '
-                'assigned to the individual sub plugs via indexing, '
-                'e.g. Plug[0].value = "value"')
+            return
         self._value = value
         self.is_dirty = True
 
@@ -255,6 +241,21 @@ class InputPlug(IPlug):
         if self not in plug.connections:
             plug.connections.append(self)
             plug.is_dirty = True
+
+    def serialize(self):
+        """Serialize the Plug containing all it's connections."""
+        connections = {}
+        if self.connections:
+            connections[self.connections[0].node.identifier] = self.connections[0].name
+        return {
+            'name': self.name,
+            'value': self.value if not self._sub_plugs else None,
+            'connections': connections,
+            'sub_plugs': {
+                name: sub_plug.serialize()
+                for name, sub_plug in self._sub_plugs.items()
+            }
+        }
 
 
 class SubInputPlug(IPlug):
@@ -304,6 +305,17 @@ class SubInputPlug(IPlug):
         if self not in plug.connections:
             plug.connections.append(self)
             plug.is_dirty = True
+
+    def serialize(self):
+        """Serialize the Plug containing all it's connections."""
+        connections = {}
+        if self.connections:
+            connections[self.connections[0].node.identifier] = self.connections[0].name
+        return {
+            'name': self.name,
+            'value': self.value,
+            'connections': connections
+        }
 
 
 class SubOutputPlug(IPlug):
@@ -368,3 +380,15 @@ class SubOutputPlug(IPlug):
             self.is_dirty = True
         if self not in plug.connections:
             plug.connections = [self]
+
+    def serialize(self):
+        """Serialize the Plug containing all it's connections."""
+        connections = {}
+        for connection in self.connections:
+            connections.setdefault(connection.node.identifier, [])
+            connections[connection.node.identifier].append(connection.name)
+        return {
+            'name': self.name,
+            'value': self.value,
+            'connections': connections
+        }

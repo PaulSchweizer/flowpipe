@@ -7,9 +7,8 @@ try:
 except ImportError:
     from ordereddict import OrderedDict
 
-from ascii_canvas.canvas import Canvas
-from ascii_canvas.item import Item
-from ascii_canvas.item import Line
+from ascii_canvas import canvas
+from ascii_canvas import item
 
 from .node import INode
 from .log_observer import LogObserver
@@ -132,19 +131,17 @@ class Graph(object):
             this = [n for n in graph.nodes
                     if n.identifier == node['identifier']][0]
             for name, input_ in node['inputs'].items():
-                for identifier, plugs in input_['connections'].items():
-                    for plug in plugs:
-                        upstream = [n for n in graph.nodes
-                                    if n.identifier == identifier][0]
-                        upstream.outputs[plug] >> this.inputs[name]
+                for identifier, plug in input_['connections'].items():
+                    upstream = [n for n in graph.nodes
+                                if n.identifier == identifier][0]
+                    upstream.outputs[plug] >> this.inputs[name]
                 for sub_plug_name, sub_plug in input_['sub_plugs'].items():
                     sub_plug_name = sub_plug_name.split('.')[-1]
-                    for identifier, plugs in sub_plug['connections'].items():
-                        for plug in plugs:
-                            upstream = [n for n in graph.nodes
-                                        if n.identifier == identifier][0]
-                            upstream.outputs[plug].connect(
-                                this.inputs[name][sub_plug_name])
+                    for identifier, plug in sub_plug['connections'].items():
+                        upstream = [n for n in graph.nodes
+                                    if n.identifier == identifier][0]
+                        upstream.outputs[plug].connect(
+                            this.inputs[name][sub_plug_name])
         return graph
 
     def _sort_node(self, node, parent, level):
@@ -160,18 +157,18 @@ class Graph(object):
 
     def node_repr(self):
         """Format to visualize the Graph."""
-        canvas = Canvas()
+        canvas_ = canvas.Canvas()
         x = 0
         for row in self.evaluation_matrix:
             y = 0
             x_diff = 0
             for j, node in enumerate(row):
-                item = Item(str(node), [x, y])
-                node.item = item
-                x_diff = (item.bbox[2] - item.bbox[0] + 4 if
-                          item.bbox[2] - item.bbox[0] + 4 > x_diff else x_diff)
-                y += item.bbox[3] - item.bbox[1]
-                canvas.add_item(item)
+                item_ = item.Item(str(node), [x, y])
+                node.item = item_
+                x_diff = (item_.bbox[2] - item_.bbox[0] + 4 if
+                          item_.bbox[2] - item_.bbox[0] + 4 > x_diff else x_diff)
+                y += item_.bbox[3] - item_.bbox[1]
+                canvas_.add_item(item_)
             x += x_diff
 
         for node in self.nodes:
@@ -186,8 +183,8 @@ class Graph(object):
                            list(dnode._sort_plugs(
                                 dnode.all_inputs()).values()).index(
                                     connection)]
-                    canvas.add_item(Line(start, end), 0)
-        return canvas.render()
+                    canvas_.add_item(item.Line(start, end), 0)
+        return canvas_.render()
 
     def list_repr(self):
         """List representation of the graph showing Nodes and connections."""

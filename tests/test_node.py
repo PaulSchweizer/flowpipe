@@ -267,31 +267,23 @@ def test_serialize_node_serialize_deserialize(mock_inspect):
                 'sub_plugs': {
                     '1': {
                         'connections': {
-                            node1.identifier: [
-                                'out'
-                            ]
+                            node1.identifier: 'out'
                         },
                         'name': 'compound_in.1',
-                        'value': None,
-                        'sub_plugs': {}
+                        'value': None
                     },
                     'key': {
                         'connections': {
-                            node1.identifier: [
-                                'out'
-                            ]
+                            node1.identifier: 'out'
                         },
                         'name': 'compound_in.key',
-                        'value': None,
-                        'sub_plugs': {}
+                        'value': None
                     }
                 }
             },
             'in1': {
                 'connections': {
-                    node1.identifier: [
-                        'out'
-                    ]
+                    node1.identifier: 'out'
                 },
                 'name': 'in1',
                 'value': None,
@@ -380,14 +372,12 @@ def test_deserialize_from_json(mock_inspect):
                     '1': {
                         'connections': {},
                         'name': 'compound_in.1',
-                        'value': None,
-                        'sub_plugs': {}
+                        'value': None
                     },
                     'key': {
                         'connections': {},
                         'name': 'compound_in.key',
-                        'value': None,
-                        'sub_plugs': {}
+                        'value': None
                     }
                 }
             },

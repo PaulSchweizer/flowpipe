@@ -235,9 +235,7 @@ def test_serialize():
         'name': 'in1',
         'value': 'out_value',
         'connections': {
-            out_plug.node.identifier: [
-                'out'
-            ]
+            out_plug.node.identifier: 'out'
         },
         'sub_plugs': {}
     }
@@ -259,22 +257,19 @@ def test_serialize():
             '0': {
                 'connections': {},
                 'name': 'compound_in.0',
-                'value': 0,
-                'sub_plugs': {}
+                'value': 0
             },
             'incoming': {
                 'connections': {
-                    out_plug.node.identifier: ['out']
+                    out_plug.node.identifier: 'out'
                 },
                 'name': 'compound_in.incoming',
-                'value': 'out_value',
-                'sub_plugs': {}
+                'value': 'out_value'
             },
             'key': {
                 'connections': {},
                 'name': 'compound_in.key',
-                'value': 'value',
-                'sub_plugs': {}
+                'value': 'value'
             }
         }
     }
@@ -305,8 +300,7 @@ def test_serialize():
                     ]
                 },
                 'name': 'compound_out.0',
-                'value': None,
-                'sub_plugs': {}
+                'value': None
             }
         }
     }
@@ -314,9 +308,7 @@ def test_serialize():
     in2_plug_serialized = in2_plug.serialize()
     assert in2_plug_serialized == {
         'connections': {
-            compound_out_plug.node.identifier: [
-                'compound_out.0'
-            ]
+            compound_out_plug.node.identifier: 'compound_out.0'
         },
         'name': 'in2',
         'value': None,
@@ -468,7 +460,7 @@ def test_compound_plugs_propagate_dirty_state_to_their_parent():
     assert node.outputs['compound_out'].is_dirty
 
 
-def test_compound_plug_exception_if_value_is_assigned_to_its_plug_directly():
+def test_compound_plug_ignores_direct_value_assignment():
 
     @Node(outputs=['compound_out'])
     def A(compound_in):
@@ -481,25 +473,8 @@ def test_compound_plug_exception_if_value_is_assigned_to_its_plug_directly():
     node.outputs['compound_out']['0'].value = 0
     node.outputs['compound_out']['1'].value = 1
 
-    with pytest.raises(ValueError):
-        node.inputs['compound_in'].value = 2
+    node.inputs['compound_in'].value = 2
+    assert node.inputs['compound_in'].value == {'0': 0, '1': 1}
 
-    with pytest.raises(ValueError):
-        node.outputs['compound_out'].value = 2
-
-
-def test_if_value_exists_compound_plug_assignment_raises_exception():
-
-    @Node(outputs=['not_compound_out'])
-    def A(not_compound_in):
-        pass
-
-    node = A()
-    node.inputs['not_compound_in'].value = 0
-    node.outputs['not_compound_out'].value = 0
-
-    with pytest.raises(ValueError):
-        node.inputs['not_compound_in']['0'].value = 0
-
-    with pytest.raises(ValueError):
-        node.outputs['not_compound_out']['0'].value = 0
+    node.outputs['compound_out'].value = 2
+    assert node.outputs['compound_out'].value == {'0': 0, '1': 1}

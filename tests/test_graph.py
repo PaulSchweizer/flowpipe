@@ -23,19 +23,23 @@ class NodeForTesting(INode):
 
 def test_evaluation_matrix():
     """The nodes as a 2D grid."""
-    start = NodeForTesting('start', in1=0, in2=0)
-    n11 = NodeForTesting('11', in1=0, in2=0)
-    n12 = NodeForTesting('12', in1=0, in2=0)
-    n21 = NodeForTesting('21', in1=0, in2=0)
-    n31 = NodeForTesting('31', in1=0, in2=0)
-    n32 = NodeForTesting('32', in1=0, in2=0)
-    n33 = NodeForTesting('33', in1=0, in2=0)
-    end = NodeForTesting('end', in1=0, in2=0)
+    @Node(outputs=["out", "out2"])
+    def DummyNode(in1, in2):
+        pass
+
+    start = DummyNode(name='start')
+    n11 = DummyNode(name='11')
+    n12 = DummyNode(name='12')
+    n21 = DummyNode(name='21')
+    n31 = DummyNode(name='31')
+    n32 = DummyNode(name='32')
+    n33 = DummyNode(name='33')
+    end = DummyNode(name='end')
 
     # Connect them
     start.outputs['out'] >> n11.inputs['in1']
     start.outputs['out'] >> n21.inputs['in1']
-    start.outputs['out'] >> n31.inputs['in1']
+    start.outputs['out'] >> n31.inputs['in1']['0']
 
     n31.outputs['out'] >> n32.inputs['in1']
     n32.outputs['out'] >> n33.inputs['in1']
@@ -44,7 +48,7 @@ def test_evaluation_matrix():
     n33.outputs['out'] >> n12.inputs['in2']
 
     n12.outputs['out'] >> end.inputs['in1']
-    n21.outputs['out'] >> end.inputs['in2']
+    n21.outputs['out2']['0'] >> end.inputs['in2']
 
     nodes = [start, n11, n12, n21, n31, n32, n33, end]
     graph = Graph(nodes=nodes)
@@ -63,14 +67,16 @@ def test_linar_evaluation_sequence():
     n1 = NodeForTesting('n1')
     n2 = NodeForTesting('n2')
     n3 = NodeForTesting('n3')
+    n4 = NodeForTesting('n4')
     n1.outputs['out'] >> n2.inputs['in1']
-    n2.outputs['out'] >> n3.inputs['in1']
-    nodes = [n2, n1, n3]
+    n2.outputs['out'] >> n3.inputs['in1']['0']
+    n3.outputs['out']['0'] >> n4.inputs['in1']
+    nodes = [n2, n1, n3, n4]
     graph = Graph(nodes=nodes)
 
     seq = [s.name for s in graph.evaluation_sequence]
 
-    assert ['n1', 'n2', 'n3'] == seq
+    assert ['n1', 'n2', 'n3', 'n4'] == seq
 
 
 def test_branching_evaluation_sequence():
@@ -176,13 +182,6 @@ def test_string_representations():
     n1 = NodeForTesting(name='Node1', graph=graph)
     n2 = NodeForTesting(name='Node2', graph=graph)
     end = NodeForTesting(name='End', graph=graph)
-
-    @Node(outputs=['out', 'out2'])
-    def N4T(in1, in2):
-        pass
-
-    # end = N4T(name='End', graph=graph)
-
     start.outputs['out'] >> n1.inputs['in1']
     start.outputs['out'] >> n2.inputs['in1']['0']
     n1.outputs['out'] >> end.inputs['in1']['1']
