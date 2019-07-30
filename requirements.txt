@@ -1,2 +1,3 @@
+git+https://github.com/abarker/strip-hints.git
 git+https://github.com/PaulSchweizer/ascii-canvas.git
 ordereddict
