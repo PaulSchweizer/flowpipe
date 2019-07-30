@@ -16,6 +16,7 @@ import inspect
 import json
 import time
 import uuid
+import warnings
 
 from .plug import OutputPlug, InputPlug
 from .log_observer import LogObserver
@@ -42,7 +43,14 @@ class INode(object):
         self.outputs = dict()
         self.metadata = metadata or {}
         self.omit = False
-        self.file_location = inspect.getfile(self.__class__)
+        try:
+            self.file_location = inspect.getfile(self.__class__)
+        except TypeError as e:
+            if str(e) == "<module '__main__'> is a built-in class":
+                warnings.warn("Cannot serialize nodes defined in '__main__'")
+                self.file_location = None
+            else:
+                raise
         self.class_name = self.__class__.__name__
         if graph is not None:
             graph.add_node(self)
@@ -145,6 +153,9 @@ class INode(object):
 
     def serialize(self):
         """Serialize the node to json."""
+        if self.file_location is None:
+            raise RuntimeError("Cannot serialize a node that was not defined "
+                               "in a file")
         inputs = OrderedDict()
         for plug in self.inputs.values():
             inputs[plug.name] = plug.serialize()
