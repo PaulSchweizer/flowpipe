@@ -1,12 +1,16 @@
 """Plugs are ins and outs for Nodes through which they exchange data."""
 from __future__ import print_function
 from abc import abstractmethod
+import sys
 __all__ = ['OutputPlug', 'InputPlug']
 
 try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
+
+if sys.version_info.major > 2:
+    basestring = str
 
 
 class IPlug(object):
@@ -109,7 +113,7 @@ class OutputPlug(IPlug):
         Args:
             key (str): The name of the sub plug
         """
-        if not isinstance(key, str):
+        if not isinstance(key, basestring):
             raise TypeError(
                 'Only strings are allowed as sub-plug keys! '
                 'This is due to the fact that JSON serialization only allows '
@@ -197,7 +201,7 @@ class InputPlug(IPlug):
         Args:
             key (str): The name of the sub plug
         """
-        if not isinstance(key, str):
+        if not isinstance(key, basestring):
             raise TypeError(
                 'Only strings are allowed as sub-plug keys! '
                 'This is due to the fact that JSON serialization only allows '
