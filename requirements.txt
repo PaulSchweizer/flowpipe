@@ -1,2 +1,3 @@
+strip-hints
 ascii-canvas
 ordereddict
