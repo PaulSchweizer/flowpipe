@@ -132,14 +132,12 @@ class Graph(object):
             this = nodes[node['identifier']]
             for name, input_ in node['inputs'].items():
                 for identifier, plug in input_['connections'].items():
-                    upstream = [n for n in graph.nodes
-                                if n.identifier == identifier][0]
+                    upstream = nodes[identifier]
                     upstream.outputs[plug] >> this.inputs[name]
                 for sub_plug_name, sub_plug in input_['sub_plugs'].items():
                     sub_plug_name = sub_plug_name.split('.')[-1]
                     for identifier, plug in sub_plug['connections'].items():
-                        upstream = [n for n in graph.nodes
-                                    if n.identifier == identifier][0]
+                        upstream = nodes[identifier]
                         upstream.outputs[plug].connect(
                             this.inputs[name][sub_plug_name])
         return graph
