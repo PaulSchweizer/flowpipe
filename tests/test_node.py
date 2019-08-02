@@ -106,6 +106,13 @@ def test_dirty_depends_on_inputs():
     node.inputs['compound_in'].is_dirty = False
     assert not node.is_dirty
 
+    node.inputs['compound_in']['0'].is_dirty = True
+    node.inputs['compound_in']['1'].is_dirty = False
+    assert node.is_dirty
+
+    node.inputs['compound_in']['0'].is_dirty = False
+    assert not node.is_dirty
+
     node.inputs['in1'].value = 2
     assert node.is_dirty
 

@@ -127,9 +127,9 @@ class Graph(object):
         graph._nodes = []
         for node in data['nodes']:
             graph._nodes.append(INode.deserialize(node))
+        nodes = {n.identifier: n for n in graph.nodes}
         for node in data['nodes']:
-            this = [n for n in graph.nodes
-                    if n.identifier == node['identifier']][0]
+            this = nodes[node['identifier']]
             for name, input_ in node['inputs'].items():
                 for identifier, plug in input_['connections'].items():
                     upstream = [n for n in graph.nodes

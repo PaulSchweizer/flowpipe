@@ -457,12 +457,11 @@ def test_compound_plugs_propagate_dirty_state_to_their_parent():
     node.outputs['compound_out']['0'].value = 0
     node.outputs['compound_out']['1'].value = 1
 
-    node.outputs['compound_out'].is_dirty = False
     node.outputs['compound_out']['0'].is_dirty = False
     node.outputs['compound_out']['1'].is_dirty = False
+    assert not node.outputs['compound_out'].is_dirty
 
     node.outputs['compound_out']['0'].is_dirty = True
-
     assert node.outputs['compound_out'].is_dirty
 
 
@@ -484,3 +483,16 @@ def test_compound_plug_ignores_direct_value_assignment():
 
     node.outputs['compound_out'].value = 2
     assert node.outputs['compound_out'].value == {'0': 0, '1': 1}
+
+
+def test_plugs_can_not_contain_dots():
+
+    @Node()
+    def A():
+        pass
+
+    with pytest.raises(ValueError):
+        OutputPlug(name='name.with.dots', node=A())
+
+    with pytest.raises(ValueError):
+        InputPlug(name='name.with.dots', node=A())

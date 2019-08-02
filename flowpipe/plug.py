@@ -69,7 +69,13 @@ class IPlug(object):
     @property
     def is_dirty(self):
         """Access to the dirty status on this Plug."""
-        return self._is_dirty
+        if self._sub_plugs:
+            for sub_plug in self._sub_plugs.values():
+                if sub_plug.is_dirty:
+                    return True
+            return False
+        else:
+            return self._is_dirty
 
     @is_dirty.setter
     def is_dirty(self, status):
@@ -103,6 +109,10 @@ class OutputPlug(IPlug):
             name (str): The name of the Plug.
             node (INode): The Node holding the Plug.
         """
+        if '.' in name:
+            raise ValueError(
+                'Names for plugs can not contain dots "." as these are '
+                'reserved to identify sub plugs.')
         super(OutputPlug, self).__init__(name, node, (InputPlug, SubInputPlug))
         self.node.outputs[self.name] = self
 
@@ -120,7 +130,7 @@ class OutputPlug(IPlug):
                 'strings as keys.')
         if not self._sub_plugs.get(key):
             self._sub_plugs[key] = SubOutputPlug(
-                name='{0}.{1}'.format(self.name, key),
+                key=key,
                 node=self.node,
                 parent_plug=self)
         return self._sub_plugs[key]
@@ -189,6 +199,11 @@ class InputPlug(IPlug):
             name (str): The name of the Plug.
             node (INode): The Node holding the Plug.
         """
+        if '.' in name:
+            raise ValueError(
+                'Names for plugs can not contain dots "." as these are '
+                'reserved to identify sub plugs.')
+
         super(InputPlug, self).__init__(name, node, (OutputPlug, SubOutputPlug))
         self.value = value
         self.is_dirty = True
@@ -208,7 +223,7 @@ class InputPlug(IPlug):
                 'strings as keys.')
         if not self._sub_plugs.get(key):
             self._sub_plugs[key] = SubInputPlug(
-                name='{0}.{1}'.format(self.name, key),
+                key=key,
                 node=self.node,
                 parent_plug=self)
         return self._sub_plugs[key]
@@ -265,17 +280,19 @@ class InputPlug(IPlug):
 class SubInputPlug(IPlug):
     """Held by a parent input plug to form a compound plug."""
 
-    def __init__(self, name, node, parent_plug, value=None):
+    def __init__(self, key, node, parent_plug, value=None):
         """Initialize the plug.
 
         Can be connected to an OutputPlug.
         Args:
-            name (str): The name of the Plug has to be in the form:
-                {parent_plug.name}.{name}.
+            key (str): The key will be used to form the name of the Plug:
+                {parent_plug.name}.{key}.
             node (INode): The Node holding the Plug.
             parent_plug (InputPlug): The parent plug holding this Plug.
         """
-        super(SubInputPlug, self).__init__(name, node, (OutputPlug, SubOutputPlug))
+        super(SubInputPlug, self).__init__(
+            '{0}.{1}'.format(parent_plug.name, key), node,
+            (OutputPlug, SubOutputPlug))
         self.parent_plug = parent_plug
         self.value = value
         self.is_dirty = True
@@ -325,18 +342,19 @@ class SubInputPlug(IPlug):
 class SubOutputPlug(IPlug):
     """Held by a parent output plug to form a compound plug."""
 
-    def __init__(self, name, node, parent_plug, value=None):
+    def __init__(self, key, node, parent_plug, value=None):
         """Initialize the plug.
 
         Can be connected to an InputPlug.
         Args:
-            name (str): The name of the Plug has to be in the form:
-                {parent_plug.name}.{name}.
+            key (str): The key will be used to form the name of the Plug:
+                {parent_plug.name}.{key}.
             node (INode): The Node holding the Plug.
             parent_plug (InputPlug): The parent plug holding this Plug.
         """
         super(SubOutputPlug, self).__init__(
-            name, node, (InputPlug, SubInputPlug))
+            '{0}.{1}'.format(parent_plug.name, key), node,
+            (InputPlug, SubInputPlug))
         self.parent_plug = parent_plug
         self.value = value
         self.is_dirty = True
