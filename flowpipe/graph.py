@@ -7,9 +7,8 @@ try:
 except ImportError:
     from ordereddict import OrderedDict
 
-from ascii_canvas.canvas import Canvas
-from ascii_canvas.item import Item
-from ascii_canvas.item import Line
+from ascii_canvas import canvas
+from ascii_canvas import item
 
 from .node import INode
 from .log_observer import LogObserver
@@ -38,7 +37,7 @@ class Graph(object):
         for node in self.nodes:
             if node.name == key:
                 return node
-        raise Exception(
+        raise KeyError(
             "Graph does not contain a Node named '{0}'".format(key))
 
     @property
@@ -74,6 +73,7 @@ class Graph(object):
             row = []
             for node in [n for n in levels if levels[n] == level]:
                 row.append(node)
+            row.sort(key=lambda key: key.name)
             matrix.append(row)
 
         return matrix
@@ -96,7 +96,7 @@ class Graph(object):
         if node not in self.nodes:
             for existing_node in self.nodes:
                 if existing_node.name == node.name:
-                    raise Exception(
+                    raise ValueError(
                         "Can not add Node of name '{0}', a Node with this "
                         "name already exists on this Graph. Node names on "
                         "a Graph have to be unique.".format(node.name))
@@ -127,14 +127,19 @@ class Graph(object):
         graph._nodes = []
         for node in data['nodes']:
             graph._nodes.append(INode.deserialize(node))
+        nodes = {n.identifier: n for n in graph.nodes}
         for node in data['nodes']:
-            this = [n for n in graph.nodes
-                    if n.identifier == node['identifier']][0]
+            this = nodes[node['identifier']]
             for name, input_ in node['inputs'].items():
                 for identifier, plug in input_['connections'].items():
-                    upstream = [n for n in graph.nodes
-                                if n.identifier == identifier][0]
+                    upstream = nodes[identifier]
                     upstream.outputs[plug] >> this.inputs[name]
+                for sub_plug_name, sub_plug in input_['sub_plugs'].items():
+                    sub_plug_name = sub_plug_name.split('.')[-1]
+                    for identifier, plug in sub_plug['connections'].items():
+                        upstream = nodes[identifier]
+                        upstream.outputs[plug].connect(
+                            this.inputs[name][sub_plug_name])
         return graph
 
     def _sort_node(self, node, parent, level):
@@ -150,31 +155,34 @@ class Graph(object):
 
     def node_repr(self):
         """Format to visualize the Graph."""
-        canvas = Canvas()
+        canvas_ = canvas.Canvas()
         x = 0
         for row in self.evaluation_matrix:
             y = 0
             x_diff = 0
             for j, node in enumerate(row):
-                item = Item(str(node), [x, y])
-                node.item = item
-                x_diff = (item.bbox[2] - item.bbox[0] + 4 if
-                          item.bbox[2] - item.bbox[0] + 4 > x_diff else x_diff)
-                y += item.bbox[3] - item.bbox[1]
-                canvas.add_item(item)
+                item_ = item.Item(str(node), [x, y])
+                node.item = item_
+                x_diff = (item_.bbox[2] - item_.bbox[0] + 4 if
+                          item_.bbox[2] - item_.bbox[0] + 4 > x_diff else x_diff)
+                y += item_.bbox[3] - item_.bbox[1]
+                canvas_.add_item(item_)
             x += x_diff
 
         for node in self.nodes:
-            for j, plug in enumerate(node._sort_plugs(node.outputs)):
-                for connection in node._sort_plugs(node.outputs)[plug].connections:
+            for j, plug in enumerate(node._sort_plugs(node.all_outputs())):
+                for connection in node._sort_plugs(
+                        node.all_outputs())[plug].connections:
                     dnode = connection.node
                     start = [node.item.position[0] + node.item.bbox[2],
-                             node.item.position[1] + 3 + len(node.inputs) + j]
+                             node.item.position[1] + 3 + len(node.all_inputs()) + j]
                     end = [dnode.item.position[0],
                            dnode.item.position[1] + 3 +
-                           list(dnode._sort_plugs(dnode.inputs).values()).index(connection)]
-                    canvas.add_item(Line(start, end), 0)
-        return canvas.render()
+                           list(dnode._sort_plugs(
+                                dnode.all_inputs()).values()).index(
+                                    connection)]
+                    canvas_.add_item(item.Line(start, end), 0)
+        return canvas_.render()
 
     def list_repr(self):
         """List representation of the graph showing Nodes and connections."""
