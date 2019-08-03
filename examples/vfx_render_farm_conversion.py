@@ -90,7 +90,7 @@ def convert_graph_to_job(graph):
             i = 0
             while i < len(frames) - 1:
                 end = i + batch_size
-                if end  > len(frames) - 1:
+                if end > len(frames) - 1:
                     end = len(frames)
                 f = frames[i:end]
 

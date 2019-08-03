@@ -19,7 +19,7 @@ import logging
 
 import flowpipe
 from flowpipe.graph import Graph
-from flowpipe.node import INode, Node
+from flowpipe.node import Node
 
 
 class Workflow(object):

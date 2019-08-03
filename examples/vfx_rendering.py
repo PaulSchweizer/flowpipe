@@ -30,7 +30,7 @@ o scene_file<"/scene/fo>    |     |                                       |     
 """
 
 from flowpipe.graph import Graph
-from flowpipe.node import INode, Node
+from flowpipe.node import Node
 
 
 @Node(outputs=['renderings'], metadata={'interpreter': 'maya'})

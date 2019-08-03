@@ -8,227 +8,177 @@
 # Flow-based Pipeline
 A lightweight framework for flow-based programming in python.
 
-## Install
+Benefits:
+  - Visualize code
+  - Re-usability
+  - Abstract ideas are represented in code structure
+  - Streamlined code design
+
+Consider this simple example on how to represent the construction of a house with Flowpipe:
+
+```python
+from flowpipe.node import INode, Node
+from flowpipe.graph import Graph
+
+
+class HireWorkers(INode):
+    """A node can be derived from the INode interface.
+
+    The plugs are defined in the init method.
+    The compute method received the inputs from any connected upstream nodes.
+    """
+
+    def __init__(self, amount=None, **kwargs):
+        super(HireWorkers, self).__init__(**kwargs)
+        InputPlug('amount', self, amount)
+        OutputPlug('workers', self)
+
+    def compute(self, amount):
+        workers = ['John', 'Jane', 'Mike', 'Michelle']
+        print('{0} workers are hired to build the house.'.format(amount))
+        return {'workers.{0}'.format(i): workers[i] for i in range(amount)}
+
+
+@Node(outputs=['workers'])
+def Build(workers, section):
+    """A node can also be created by the Node decorator.outputs
+
+    The inputs to the function are turned into InputsPlugs, otuputs are defined
+    in the decorator itself. The wrapped function is used as the compute method.
+    """
+    print('{0} are building the {1}'.format(', '.join(workers.values()), section))
+    return {'workers.{0}'.format(i): worker for i, worker in workers.items()}
+
+
+@Node()
+def Party(attendees):
+    print('{0} and {1} are having a great party!'.format(
+        ', '.join(attendees.values()[:-1]), attendees.values()[-1]))
+
+
+# Create a graph with the necessary nodes
+graph = Graph(name='How to build a house')
+workers = HireWorkers(graph=graph, amount=4)
+build_walls = Build(graph=graph, name='Build Walls', section='walls')
+build_roof = Build(graph=graph, name='Build Roof', section='roof')
+party = Party(graph=graph, name='Housewarming Party')
+
+# Wire up the connections between the nodes
+workers.outputs['workers']['0'].connect(build_walls.inputs['workers']['0'])
+workers.outputs['workers']['1'].connect(build_walls.inputs['workers']['1'])
+workers.outputs['workers']['2'].connect(build_roof.inputs['workers']['0'])
+workers.outputs['workers']['3'].connect(build_roof.inputs['workers']['1'])
+build_walls.outputs['workers']['0'] >> party.inputs['attendees']['0']
+build_walls.outputs['workers']['1'] >> party.inputs['attendees']['2']
+build_roof.outputs['workers']['0'] >> party.inputs['attendees']['1']
+build_roof.outputs['workers']['1'] >> party.inputs['attendees']['3']
+party.inputs['attendees']['4'].value = 'Homeowner'
+```
+
+Visualize the code:
+
+```python
+print(graph.name)
+print(graph)
+```
+
+Output:
 
 ```
-pip install flowpipe
+How to build a house
++------------------------+          +------------------------+          +---------------------------+
+|      HireWorkers       |          |       Build Roof       |          |    Housewarming Party     |
+|------------------------|          |------------------------|          |---------------------------|
+o amount<4>              |          o section<"roof">        |          % attendees                 |
+|                workers %          % workers                |     +--->o  attendees.0<>            |
+|             workers.0  o-----+--->o  workers.0<>           |     |--->o  attendees.1<>            |
+|             workers.1  o-----|--->o  workers.1<>           |     |--->o  attendees.2<>            |
+|             workers.2  o-----|    |                workers %     |--->o  attendees.3<>            |
+|             workers.3  o-----|    |             workers.0  o-----|    o  attendees.4<"Homeowner>  |
++------------------------+     |    |             workers.1  o-----|    +---------------------------+
+                               |    +------------------------+     |
+                               |    +------------------------+     |
+                               |    |      Build Walls       |     |
+                               |    |------------------------|     |
+                               |    o section<"walls">       |     |
+                               |    % workers                |     |
+                               +--->o  workers.0<>           |     |
+                               +--->o  workers.1<>           |     |
+                                    |                workers %     |
+                                    |             workers.0  o-----+
+                                    |             workers.1  o-----+
+                                    +------------------------+
 ```
+
+Now build the house:
+
+```python
+graph.evaluate()
+```
+
+Output:
+
+```
+4 workers are hired to build the house.
+Michelle, Mike are building the roof
+Jane, John are building the walls
+Mike, John, Michelle, Jane and Homeowner are having a great party!
+```
+
+We now know how to throw a party, so let's invite some people and re-use these skills for a birthday:
+
+```python
+graph = Graph(name='How to throw a birthday party')
+
+@Node(outputs=['people'])
+def InvitePeople(amount):
+    people = ['John', 'Jane', 'Mike', 'Michelle']
+    d = {'people.{0}'.format(i): people[i] for i in range(amount)}
+    d['people'] = {people[i]: people[i] for i in range(amount)}
+    return d
+
+invite = InvitePeople(graph=graph, amount=4)
+birthday_party = Party(graph=graph, name='Birthday Party')
+invite.outputs['people'] >> birthday_party.inputs['attendees']
+
+print(graph.name)
+print(graph)
+graph.evaluate()
+```
+
+Output:
+
+```
+How to throw a birthday party
++-------------------+          +---------------------+
+|   InvitePeople    |          |   Birthday Party    |
+|-------------------|          |---------------------|
+o amount<4>         |     +--->o attendees<>         |
+|            people o-----+    +---------------------+
++-------------------+
+
+Jane, Michelle, Mike and John are having a great party!
+```
+
+## More Examples
+
+There are more examples for common use cases of flowpipe:
+
+Using the command pattern with flowpipe successfully:
+[workflow_design_pattern.py](examples/workflow_design_pattern.py)!
+
+Use flowpipe on a remote cluster of machines, commonly refered to as a "render farm" in the VFX/Animation industry:
+[vfx_render_farm_conversion.py](examples/vfx_render_farm_conversion.py)!
+
+An example graph showcasing a common workflow encountered in the VFX/Animation industry:
+[vfx_rendering.py](examples/vfx_rendering.py)!
+
+The code for these examples:
+[house_and_birthday.py](examples/house_and_birthday.py)!
+
+Another simple example:
+[world_clock.py](examples/world_clock.py)!
 
 ## VFX Pipeline
 
 If you are working in the VFX/Animation industry, please check out this extensive guide on how to use [flowpipe in a vfx pipeline](flowpipe-for-vfx-pipelines.md)!
-
-## Example: Implement a world clock with Flowpipe
-
-This is very simple and in the end it is just a one liner in python, but a simple example makes it easier to demonstrate the idea behind flowpipe.
-
-Let's import the necessary classes:
-
-```python
-from datetime import datetime
-import logging
-from time import time
-
-from flowpipe import logger
-from flowpipe.node import INode, Node
-from flowpipe.plug import InputPlug, OutputPlug
-from flowpipe.graph import Graph
-```
-
-Then the desired functionality has to be implemented into Nodes. We need two nodes, one to get the current time and one to convert it to a timezone.
-
-```python
-@Node(outputs=['time'])
-def CurrentTime():
-    return {'time': time()}
-```
-
-The above Node is created via the shortcut decorator.
-
-For more complex Nodes, the INode interface can be implemented directly.
-
-```python
-class ConvertTime(INode):
-
-    def __init__(self, time=None, timezone=0, city=None, **kwargs):
-        super(ConvertTime, self).__init__(**kwargs)
-        InputPlug('time', self)
-        InputPlug('timezone', self, timezone)
-        InputPlug('city', self, city)
-        OutputPlug('converted_time', self)
-
-    def compute(self, time, timezone, city):
-        return {'converted_time': [time + timezone * 60 * 60, city]}
-```
-
-The World Clock will receive the times and locations and display it.
-
-```python
-@Node()
-def WorldClock(time1, time2, time3):
-    print('-- World Clock -------------------')
-    print('It is now {0} in {1}'.format(
-        datetime.fromtimestamp(time1[0]).strftime("%H:%M"), time1[1]))
-    print('It is now {0} in {1}'.format(
-        datetime.fromtimestamp(time2[0]).strftime("%H:%M"), time2[1]))
-    print('It is now {0} in {1}'.format(
-        datetime.fromtimestamp(time3[0]).strftime("%H:%M"), time3[1]))
-    print('----------------------------------')
-```
-
-Now we can create the Graph that represents the world clock:
-
-```python
-graph = Graph(name="WorldClockGraph")
-```
-
-Now we create all the necessary Nodes:
-
-```python
-current_time = CurrentTime(graph=graph)
-van = ConvertTime(city='Vancouver', timezone=-8, graph=graph)
-ldn = ConvertTime(city='London', timezone=0, graph=graph)
-muc = ConvertTime(city='Munich', timezone=1, graph=graph)
-world_clock = WorldClock(graph=graph)
-```
-
-By specifying the "graph" attribute on the Nodes get added to the Graph automatically.
-
-The Nodes can now be wired together. The bitshift operator is used as a shorthand to connect the plugs.
-
-```python
-
-current_time.outputs['time'] >> van.inputs['time']
-current_time.outputs['time'] >> ldn.inputs['time']
-current_time.outputs['time'] >> muc.inputs['time']
-van.outputs['converted_time'] >> world_clock.inputs['time1']
-ldn.outputs['converted_time'] >> world_clock.inputs['time2']
-muc.outputs['converted_time'] >> world_clock.inputs['time3']
-```
-
-The Graph can be visualized.
-
-```python
-print(graph)
-```
-
-```
- 0 | +----------------+          +-------------------+          +---------------+
- 1 | |  CurrentTime   |          |    ConvertTime    |          |  WorldClock   |
- 2 | |----------------|          |-------------------|          |---------------|
- 3 | |           time o-----+    o city<"Vancouver>  |     +--->o time1<>       |
- 4 | +----------------+     +--->o time<>            |     |--->o time2<>       |
- 5 |                        |    o timezone<-8>      |     |--->o time3<>       |
- 6 |                        |    |    converted_time o-----+    +---------------+
- 7 |                        |    +-------------------+     |
- 8 |                        |    +-------------------+     |
- 9 |                        |    |    ConvertTime    |     |
-10 |                        |    |-------------------|     |
-11 |                        |    o city<"Munich">    |     |
-12 |                        |--->o time<>            |     |
-13 |                        |    o timezone<1>       |     |
-14 |                        |    |    converted_time o-----|
-15 |                        |    +-------------------+     |
-16 |                        |    +-------------------+     |
-17 |                        |    |    ConvertTime    |     |
-18 |                        |    |-------------------|     |
-19 |                        |    o city<"London">    |     |
-20 |                        +--->o time<>            |     |
-21 |                             o timezone<0>       |     |
-22 |                             |    converted_time o-----+
-23 |                             +-------------------+
-```
-
-The Graph is can now be evaluated.
-
-
-```python
-graph.evaluate()
-```
-
-```
--- World Clock -------------------
-It is now 14:55 in Vancouver
-It is now 22:55 in London
-It is now 23:55 in Munich
-----------------------------------
-```
-
-For a more verbose output, set the flowpipe logger to DEBUG.
-
-
-```python
-import logging
-from flowpipe import logger
-
-logger.setLevel(logging.DEBUG)
-
-graph.evaluate()
-```
-
-```
-flowpipe DEBUG: Evaluating c:\projects\flowpipe\flowpipe\graph.pyc -> Graph.compute(**{})
-flowpipe DEBUG: Evaluating C:\PROJECTS\flowpipe\tests\test_a.py -> CurrentTime.compute(**{})
-flowpipe DEBUG: Evaluation result for C:\PROJECTS\flowpipe\tests\test_a.py -> CurrentTime: {
-  "time": 1528040105.439
-}
-flowpipe DEBUG: Evaluating C:\PROJECTS\flowpipe\tests\test_a.py -> ConvertTime.compute(**{
-  "city": "Munich",
-  "time": 1528040105.439,
-  "timezone": 1
-})
-flowpipe DEBUG: Evaluation result for C:\PROJECTS\flowpipe\tests\test_a.py -> ConvertTime: {
-  "converted_time": [
-    1528043705.439,
-    "Munich"
-  ]
-}
-flowpipe DEBUG: Evaluating C:\PROJECTS\flowpipe\tests\test_a.py -> ConvertTime.compute(**{
-  "city": "Vancouver",
-  "time": 1528040105.439,
-  "timezone": -8
-})
-flowpipe DEBUG: Evaluation result for C:\PROJECTS\flowpipe\tests\test_a.py -> ConvertTime: {
-  "converted_time": [
-    1528011305.439,
-    "Vancouver"
-  ]
-}
-flowpipe DEBUG: Evaluating C:\PROJECTS\flowpipe\tests\test_a.py -> ConvertTime.compute(**{
-  "city": "London",
-  "time": 1528040105.439,
-  "timezone": 0
-})
-flowpipe DEBUG: Evaluation result for C:\PROJECTS\flowpipe\tests\test_a.py -> ConvertTime: {
-  "converted_time": [
-    1528040105.439,
-    "London"
-  ]
-}
-flowpipe DEBUG: Evaluating C:\PROJECTS\flowpipe\tests\test_a.py -> WorldClock.compute(**{
-  "time1": [
-    1528011305.439,
-    "Vancouver"
-  ],
-  "time2": [
-    1528040105.439,
-    "London"
-  ],
-  "time3": [
-    1528043705.439,
-    "Munich"
-  ]
-})
--- World Clock -------------------
-It is now 08:35 in Vancouver
-It is now 16:35 in London
-It is now 17:35 in Munich
-----------------------------------
-flowpipe DEBUG: Evaluation result for C:\PROJECTS\flowpipe\tests\test_a.py -> WorldClock: {}
-flowpipe DEBUG: Evaluation result for c:\projects\flowpipe\flowpipe\graph.pyc -> Graph: {}
-```
-
-# Planned Features
-- Visual Editor
-- Celery Integration
-- API simplifications
