@@ -5,14 +5,30 @@
 [![Codacy_Badge_Coverage](https://api.codacy.com/project/badge/Coverage/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&utm_medium=referral&utm_content=PaulSchweizer/flowpipe&utm_campaign=Badge_Coverage)
 
 
-# Flow-based Pipeline
+# Flow-based Programming
 A lightweight framework for flow-based programming in python.
+
+```
++-------------------+          +---------------------+
+|   Invite People   |          |   Birthday Party    |
+|-------------------|          |---------------------|
+o amount<4>         |   +----->o attendees<>         |
+|            people o---+ +--->o cake<>              |
++-------------------+     |    +---------------------+
+                          |
++-------------------+     |
+|    Bake a cake    |     |
++-------------------+     |
+o type<"Chocolate"> |     |
+|              cake o-----+
++-------------------+
+```
 
 Benefits:
   - Visualize code
   - Re-usability
-  - Abstract ideas are represented in code structure
   - Streamlined code design
+  - Represent workflows one to one in the code
 
 Consider this simple example on how to represent the construction of a house with Flowpipe:
 
