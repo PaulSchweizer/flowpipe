@@ -180,6 +180,12 @@ Jane, Michelle, Mike and John are having a great party!
 
 There are more examples for common use cases of flowpipe:
 
+The code for these examples:
+[house_and_birthday.py](examples/house_and_birthday.py)!
+
+Another simple example:
+[world_clock.py](examples/world_clock.py)!
+
 Using the command pattern with flowpipe successfully:
 [workflow_design_pattern.py](examples/workflow_design_pattern.py)!
 
@@ -188,12 +194,6 @@ Use flowpipe on a remote cluster of machines, commonly refered to as a "render f
 
 An example graph showcasing a common workflow encountered in the VFX/Animation industry:
 [vfx_rendering.py](examples/vfx_rendering.py)!
-
-The code for these examples:
-[house_and_birthday.py](examples/house_and_birthday.py)!
-
-Another simple example:
-[world_clock.py](examples/world_clock.py)!
 
 ## VFX Pipeline
 
