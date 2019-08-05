@@ -7,6 +7,9 @@ try:
 except ImportError:
     from ordereddict import OrderedDict
 
+import threading
+import time
+
 from ascii_canvas import canvas
 from ascii_canvas import item
 
@@ -105,11 +108,42 @@ class Graph(object):
             LogObserver.push_message(
                 "Node '{0}' is already part of this Graph".format(node.name))
 
-    def evaluate(self, *args, **kwargs):
-        """Evaluate all Nodes."""
+    def evaluate(self, threaded=False, submission_delay=0.1):
+        """Evaluate all Nodes.
+
+        Paramters
+        ---------
+        threaded : bool
+            Whether to execute each node in a separate thread.
+        submission_delay : float
+            The delay in seconds between loops issuing new threads if nodes are
+            ready to process.
+
+        """
         LogObserver.push_message("Evaluating Graph '{0}'".format(self.name))
-        for node in self.evaluation_sequence:
-            node.evaluate()
+        if not threaded:
+            for node in self.evaluation_sequence:
+                node.evaluate()
+        else:
+            self._evaluate_threaded(submission_delay)
+
+    def _evaluate_threaded(self, submission_delay):
+        threads = {}
+        nodes = list(self.evaluation_sequence)
+        while not all(not n.is_dirty for n in nodes):
+            for node in nodes:
+                if not node.is_dirty:
+                    # If the node is done computing, drop it from the list
+                    nodes.remove(node)
+                    continue
+                if (node.name not in threads
+                        and all(not n.is_dirty for n in node.upstream_nodes)):
+                    # If all deps are ready and no thread is active, create one
+                    threads[node.name] = threading.Thread(
+                        target=node.evaluate,
+                        name="flowpipe.{0}.{1}".format(self.name, node.name))
+                    threads[node.name].start()
+            time.sleep(submission_delay)
 
     def serialize(self):
         """Serialize the graph in it's grid form."""

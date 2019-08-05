@@ -6,3 +6,4 @@ omit =
 exclude_lines =
     except ImportError:
     from ordereddict import OrderedDict
+    pragma: no cover
