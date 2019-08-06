@@ -21,7 +21,8 @@ import warnings
 from .plug import OutputPlug, InputPlug, SubInputPlug, SubOutputPlug
 from .log_observer import LogObserver
 from .stats_reporter import StatsReporter
-from .utilities import import_class
+from .utilities import deserialize_node
+from .graph import get_default_graph
 __all__ = ['INode']
 
 
@@ -35,6 +36,8 @@ class INode(object):
 
         Args:
             name (str): If not provided, the class name is used.
+            graph (Graph): The graph to add the node to. If set to None, the
+                Node is added to the default graph.
         """
         self.name = name if name is not None else self.__class__.__name__
         self.identifier = (identifier if identifier is not None
@@ -52,7 +55,9 @@ class INode(object):
             else:
                 raise
         self.class_name = self.__class__.__name__
-        if graph is not None:
+        if graph is None:
+            get_default_graph().add_node(self)
+        else:
             graph.add_node(self)
 
     def __unicode__(self):
@@ -180,10 +185,7 @@ class INode(object):
     @staticmethod
     def deserialize(data):
         """De-serialize from the given json data."""
-        node = import_class(
-            data['module'], data['cls'], data['file_location'])()
-        node.post_deserialize(data)
-        return node
+        return deserialize_node(data)
 
     def post_deserialize(self, data):
         """Perform more data operations after initial serialization."""

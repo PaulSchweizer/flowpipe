@@ -6,6 +6,15 @@ import pytest
 from flowpipe.node import INode, Node
 from flowpipe.stats_reporter import StatsReporter
 
+from flowpipe.graph import reset_default_graph
+
+
+@pytest.fixture
+def clear_default_graph():
+    reset_default_graph()
+    yield
+    reset_default_graph()
+
 
 @pytest.fixture
 def clear_listeners():
@@ -55,7 +64,7 @@ def test_push_stats(clear_listeners):
     assert 4 == len(test_calls)
 
 
-def test_node_reports_stats(clear_listeners):
+def test_node_reports_stats(clear_listeners, clear_default_graph):
     """Nodes report stats on evaluation."""
     global test_stats
 

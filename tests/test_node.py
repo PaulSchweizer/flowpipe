@@ -6,6 +6,15 @@ import pytest
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
 
+from flowpipe.graph import reset_default_graph
+
+
+@pytest.fixture
+def clear_default_graph():
+    reset_default_graph()
+    yield
+    reset_default_graph()
+
 
 class SquareNode(INode):
     """Square the given value."""
@@ -40,7 +49,7 @@ class SimpleNode(INode):
         SimpleNode.called_args = args
 
 
-def test_downstream_upstream_nodes():
+def test_downstream_upstream_nodes(clear_default_graph):
     """Verify downstream and upstream Nodes."""
     node_a = SquareNode('NodeA')
     node_b = SquareNode('NodeB')
@@ -57,7 +66,7 @@ def test_downstream_upstream_nodes():
     assert node_a in node_c.upstream_nodes
 
 
-def test_evaluate():
+def test_evaluate(clear_default_graph):
     """Evaluate the Node will push the new data to it's output."""
     node = SquareNode()
     test_input = 2
@@ -81,7 +90,7 @@ def test_evaluate():
     assert compound_node.outputs['compound_out']['2'].value == 2
 
 
-def test_compute_receives_inputs():
+def test_compute_receives_inputs(clear_default_graph):
     """The values from the inputs are sent to compute."""
     node = SimpleNode()
     node.inputs['in1'].value = 1
@@ -97,7 +106,7 @@ def test_compute_receives_inputs():
         assert test[k] == v
 
 
-def test_dirty_depends_on_inputs():
+def test_dirty_depends_on_inputs(clear_default_graph):
     """Dirty status of a Node depends on it's Plugs."""
     node = SquareNode()
     assert node.is_dirty
@@ -117,7 +126,7 @@ def test_dirty_depends_on_inputs():
     assert node.is_dirty
 
 
-def test_evaluate_sets_all_inputs_clean():
+def test_evaluate_sets_all_inputs_clean(clear_default_graph):
     """After the evaluation, the inputs are considered clean."""
     node = SquareNode()
     node.inputs['in1'].value = 2
@@ -127,7 +136,7 @@ def test_evaluate_sets_all_inputs_clean():
     assert not node.is_dirty
 
 
-def test_cannot_connect_node_to_itself():
+def test_cannot_connect_node_to_itself(clear_default_graph):
     """A node can not create a cycle by connecting to itself."""
     node = SquareNode()
     with pytest.raises(ValueError):
@@ -140,7 +149,7 @@ def test_cannot_connect_node_to_itself():
         node.inputs['in1'] >> node.outputs['out']
 
 
-def test_string_representations():
+def test_string_representations(clear_default_graph):
     """Print the node."""
     node = SquareNode(name='Node1')
     node1 = SquareNode(name='Node2')
@@ -197,13 +206,13 @@ Node2
   [o] out: null'''
 
 
-def test_node_has_unique_identifier():
+def test_node_has_unique_identifier(clear_default_graph):
     """A Node gets a unique identifiers assigned."""
     ids = [SquareNode().identifier for n in range(1000)]
     assert len(ids) == len(set(ids))
 
 
-def test_node_identifier_can_be_set_explicitely():
+def test_node_identifier_can_be_set_explicitely(clear_default_graph):
     """The identifier can be set manually."""
     node = SquareNode()
     node.identifier = 'Explicit'
@@ -321,7 +330,7 @@ def test_serialize_node_serialize_deserialize(mock_inspect):
 
 
 @mock.patch('inspect.getfile', return_value='/path/to/node/implementation.py')
-def test_deserialize_from_json(mock_inspect):
+def test_deserialize_from_json(mock_inspect, clear_default_graph):
     """De-serialize the node from json."""
     node1 = SquareNode('Node1')
     node2 = SquareNode('Node2')
@@ -418,7 +427,7 @@ def test_deserialize_from_json(mock_inspect):
     }
 
 
-def test_omitting_node_does_not_evaluate_it():
+def test_omitting_node_does_not_evaluate_it(clear_default_graph):
     node = SquareNode()
     node.omit = True
     node.outputs['out'].value = 666
@@ -427,7 +436,7 @@ def test_omitting_node_does_not_evaluate_it():
     assert 666 == node.outputs['out'].value
 
 
-def test_all_inputs_contains_all_sub_input_plugs():
+def test_all_inputs_contains_all_sub_input_plugs(clear_default_graph):
     node = SquareNode()
     node.inputs['in1'].value = 'Test'
     node.inputs['compound_in']['key-1'].value = 'value'
@@ -442,7 +451,7 @@ def test_all_inputs_contains_all_sub_input_plugs():
         'compound_in.1'])
 
 
-def test_all_outputs_contains_all_sub_output_plugs():
+def test_all_outputs_contains_all_sub_output_plugs(clear_default_graph):
     node = SquareNode()
     node.outputs['out'].value = 'Test'
     node.outputs['compound_out']['key-1'].value = 'value'
