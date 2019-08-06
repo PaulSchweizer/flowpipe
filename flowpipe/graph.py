@@ -111,13 +111,10 @@ class Graph(object):
     def evaluate(self, threaded=False, submission_delay=0.1):
         """Evaluate all Nodes.
 
-        Paramters
-        ---------
-        threaded : bool
-            Whether to execute each node in a separate thread.
-        submission_delay : float
-            The delay in seconds between loops issuing new threads if nodes are
-            ready to process.
+        Args:
+            threaded (bool): Whether to execute each node in a separate thread.
+            submission_delay (float): The delay in seconds between loops
+                issuing new threads if nodes are ready to process.
 
         """
         LogObserver.push_message("Evaluating Graph '{0}'".format(self.name))

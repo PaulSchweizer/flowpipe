@@ -339,6 +339,22 @@ def test_nodes_can_add_to_graph_on_init():
 
 
 def test_threaded_evluation():
+    """Test by having sleeper nodes sleep in parallel and check total grah timing.
+
+    +---------------+          +---------------+
+    |   Sleeper1    |          |   Sleeper2    |
+    |---------------|          |---------------|
+    o in1<>         |     +--->o in1<>         |
+    |           out o-----+    |           out o
+    +---------------+     |    +---------------+
+                          |    +---------------+
+                          |    |   Sleeper3    |
+                          |    |---------------|
+                          +--->o in1<>         |
+                               |           out o
+                               +---------------+
+
+    """
     sleep_time = .3
     delay = .05
     graph = Graph(name="threaded")
