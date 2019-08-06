@@ -102,6 +102,7 @@ party.inputs['attendees']['4'].value = 'Homeowner'
 print('---------------------------------------')
 print(graph.name)
 print(graph)
+print(graph.list_repr())
 print('---------------------------------------')
 graph.evaluate()
 print('---------------------------------------')

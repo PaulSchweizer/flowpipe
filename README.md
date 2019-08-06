@@ -2,7 +2,7 @@
 [![Version](https://img.shields.io/pypi/v/flowpipe.svg)](https://pypi.org/project/flowpipe/)
 [![Build Status](https://travis-ci.org/PaulSchweizer/flowpipe.svg?branch=master)](https://travis-ci.org/PaulSchweizer/flowpipe)
 [![Codacy_Badge_Grade](https://api.codacy.com/project/badge/Grade/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=PaulSchweizer/flowpipe&amp;utm_campaign=Badge_Grade)
-[![Codacy_Badge_Coverage](https://api.codacy.com/project/badge/Coverage/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&utm_medium=referral&utm_content=PaulSchweizer/flowpipe&utm_campaign=Badge_Coverage)
+[![Codacy_Badge_Coverage](https://api.codacy.com/project/badge/Coverage/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&utm_medium=referral&utm_content=PaulSchweizer/flowpipe&utm_campaign=Badge_Coverage) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![python 2.7](https://img.shields.io/badge/python-2.7%2B-blue.svg)](https://www.python.org/downloads/) [![python 3.6+](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/downloads/)
 
 
 # Flow-based Programming
@@ -91,11 +91,12 @@ build_roof.outputs['workers']['1'] >> party.inputs['attendees']['3']
 party.inputs['attendees']['4'].value = 'Homeowner'
 ```
 
-Visualize the code:
+Visualize the code as a graph or as a listing:
 
 ```python
 print(graph.name)
 print(graph)
+print(graph.list_repr())
 ```
 
 Output:
@@ -124,6 +125,38 @@ o amount<4>              |          o section<"roof">        |          % attend
                                     |             workers.0  o-----+
                                     |             workers.1  o-----+
                                     +------------------------+
+
+Build a House
+ HireWorkers
+  [i] amount: 4
+  [o] workers
+   [o] workers.0 >> Build Walls.workers.0
+   [o] workers.1 >> Build Walls.workers.1
+   [o] workers.2 >> Build Roof.workers.0
+   [o] workers.3 >> Build Roof.workers.1
+ Build Roof
+  [i] section: "roof"
+  [i] workers
+   [i] workers.0 << HireWorkers.workers.2
+   [i] workers.1 << HireWorkers.workers.3
+  [o] workers
+   [o] workers.0 >> Housewarming Party.attendees.1
+   [o] workers.1 >> Housewarming Party.attendees.3
+ Build Walls
+  [i] section: "walls"
+  [i] workers
+   [i] workers.0 << HireWorkers.workers.0
+   [i] workers.1 << HireWorkers.workers.1
+  [o] workers
+   [o] workers.0 >> Housewarming Party.attendees.0
+   [o] workers.1 >> Housewarming Party.attendees.2
+ Housewarming Party
+  [i] attendees
+   [i] attendees.0 << Build Walls.workers.0
+   [i] attendees.1 << Build Roof.workers.0
+   [i] attendees.2 << Build Walls.workers.1
+   [i] attendees.3 << Build Roof.workers.1
+   [i] attendees.4: "Homeowner"
 ```
 
 Now build the house:
