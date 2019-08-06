@@ -2,7 +2,6 @@ try:
     import importlib
 except ImportError:
     pass
-import inspect
 import imp
 
 
