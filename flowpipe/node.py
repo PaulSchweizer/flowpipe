@@ -31,13 +31,16 @@ class INode(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, name=None, identifier=None, metadata=None, graph=None):
+    def __init__(self, name=None, identifier=None, metadata=None,
+                 graph='default'):
         """Initialize the input and output dictionaries and the name.
 
         Args:
             name (str): If not provided, the class name is used.
-            graph (Graph): The graph to add the node to. If set to None, the
-                Node is added to the default graph.
+            graph (Graph): The graph to add the node to.
+                If set to 'default', the Node is added to the default graph.
+                If set to None, the Node is not added to any grpah.
+
         """
         self.name = name if name is not None else self.__class__.__name__
         self.identifier = (identifier if identifier is not None
@@ -55,10 +58,11 @@ class INode(object):
             else:
                 raise
         self.class_name = self.__class__.__name__
-        if graph is None:
-            get_default_graph().add_node(self)
-        else:
-            graph.add_node(self)
+        if graph is not None:
+            if graph == 'default':
+                get_default_graph().add_node(self)
+            else:
+                graph.add_node(self)
 
     def __unicode__(self):
         """Show all input and output Plugs."""
@@ -379,9 +383,11 @@ class FunctionNode(INode):
         """Create and return an instance of the Node."""
         metadata = copy.deepcopy(self.metadata)
         metadata.update(kwargs.pop("metadata", {}))
+        graph = kwargs.pop('graph', 'default')
         return self.__class__(func=self.func,
                               outputs=[o for o in self.outputs],
                               metadata=metadata,
+                              graph=graph,
                               **kwargs)
 
     def compute(self, *args, **kwargs):
