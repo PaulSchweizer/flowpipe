@@ -2,11 +2,12 @@ from __future__ import print_function
 
 import pytest
 
+import flowpipe.graph
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.graph import Graph
-
 from flowpipe.graph import reset_default_graph
+from flowpipe.graph import set_default_graph, get_default_graph
 
 
 @pytest.fixture
@@ -343,3 +344,28 @@ def test_nodes_can_add_to_graph_on_init(clear_default_graph):
         pass
     node = function(graph=graph)
     assert graph["function"] == node
+
+
+def test_get_default_graph():
+    direct = flowpipe.graph.default_graph
+    getter = get_default_graph()
+    assert direct is getter
+
+
+def test_set_default_graph(clear_default_graph):
+    new_default = Graph(name='new default')
+    set_default_graph(new_default)
+    direct = flowpipe.graph.default_graph
+    assert direct is new_default
+
+    new_default = "foo"
+    with pytest.raises(TypeError):
+        set_default_graph(new_default)
+
+
+def test_reset_default_graph(clear_default_graph):
+    new_default = Graph(name='new default')
+    set_default_graph(new_default)
+    assert get_default_graph().name == 'new default'
+    reset_default_graph()
+    assert get_default_graph().name == 'default'
