@@ -11,6 +11,7 @@ from flowpipe.graph import reset_default_graph
 
 @pytest.fixture
 def clear_default_graph():
+    reset_default_graph()
     yield
     reset_default_graph()
 
@@ -244,7 +245,7 @@ Graph
   [o] out2: null'''
 
 
-def test_nodes_can_be_added_to_graph():
+def test_nodes_can_be_added_to_graph(clear_default_graph):
     """Nodes add themselves to their graph as their parent."""
     graph = Graph()
     graph.add_node(NodeForTesting())
@@ -315,9 +316,9 @@ def test_nodes_can_be_accessed_via_name_through_indexing(clear_default_graph):
 def test_node_names_on_graph_have_to_be_unique(clear_default_graph):
     graph = Graph()
     same_name = "Same Name"
-    node_1 = NodeForTesting(name=same_name)
+    node_1 = NodeForTesting(name=same_name, graph=None)
     graph.add_node(node_1)
-    node_2 = NodeForTesting(name=same_name)
+    node_2 = NodeForTesting(name=same_name, graph=None)
 
     with pytest.raises(ValueError):
         graph.add_node(node_2)

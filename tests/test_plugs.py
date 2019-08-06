@@ -5,15 +5,25 @@ import pytest
 
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
+from flowpipe.graph import reset_default_graph
+
+
+@pytest.fixture
+def clear_default_graph():
+    reset_default_graph()
+    yield
+    reset_default_graph()
 
 
 class NodeForTesting(INode):
+    def __init__(self, **kwargs):
+        super(NodeForTesting, self).__init__(graph=None, **kwargs)
 
     def compute(self):
         pass
 
 
-def test_connecting_different_input_disconnects_existing_ones():
+def test_connecting_different_input_disconnects_existing_ones(clear_default_graph):
 
     @Node(outputs=['a_out'])
     def A(a):
@@ -67,7 +77,7 @@ def test_connecting_different_input_disconnects_existing_ones():
     assert len(d.outputs['d_out_compound']['0'].connections) == 2
 
 
-def test_connect_and_dicsonnect_nodes():
+def test_connect_and_dicsonnect_nodes(clear_default_graph):
     """Connect and disconnect nodes."""
     n1 = NodeForTesting()
     n2 = NodeForTesting()
@@ -124,7 +134,7 @@ def test_connect_and_dicsonnect_nodes():
     assert 1 == len(in_plug_compound['1'].connections)
 
 
-def test_change_connections_sets_plug_dirty():
+def test_change_connections_sets_plug_dirty(clear_default_graph):
     """Connecting and disconnecting sets the plug dirty."""
     n1 = NodeForTesting()
     n2 = NodeForTesting()
@@ -150,7 +160,7 @@ def test_change_connections_sets_plug_dirty():
     assert in_compound_plug['0'].is_dirty
 
 
-def test_set_value_sets_plug_dirty():
+def test_set_value_sets_plug_dirty(clear_default_graph):
     """Connecting and disconnecting sets the plug dirty."""
     n = NodeForTesting()
     in_plug = InputPlug('in', n)
@@ -167,7 +177,7 @@ def test_set_value_sets_plug_dirty():
     assert in_compound_plug.is_dirty
 
 
-def test_set_output_pushes_value_to_connected_input():
+def test_set_output_pushes_value_to_connected_input(clear_default_graph):
     """OutPlugs push their values to their connected input plugs."""
     n1 = NodeForTesting()
     n2 = NodeForTesting()
@@ -202,7 +212,7 @@ def test_set_output_pushes_value_to_connected_input():
     assert in_compound_plug.value == out_compound_plug.value
 
 
-def test_assign_initial_value_to_input_plug():
+def test_assign_initial_value_to_input_plug(clear_default_graph):
     """Assign an initial value to an InputPlug."""
     n = NodeForTesting()
     in_plug = InputPlug('in', n)
@@ -212,7 +222,7 @@ def test_assign_initial_value_to_input_plug():
     assert 123 == in_plug.value
 
 
-def test_serialize():
+def test_serialize(clear_default_graph):
     """Serialize the Plug to json."""
     n1 = NodeForTesting()
     n2 = NodeForTesting()
@@ -316,12 +326,12 @@ def test_serialize():
     }
 
 
-def test_compound_plugs_can_only_be_strings_or_unicodes():
+def test_compound_plugs_can_only_be_strings_or_unicodes(clear_default_graph):
     @Node(outputs=['compound_out'])
     def A(compound_in):
         pass
 
-    node = A()
+    node = A(graph=None)
 
     with pytest.raises(TypeError):
         node.inputs['compound_in'][0].value = 0
@@ -336,7 +346,7 @@ def test_compound_plugs_can_only_be_strings_or_unicodes():
     assert node.outputs['compound_out'][u"unicode"].value == "unicode"
 
 
-def test_compound_input_plugs_are_accessible_by_index():
+def test_compound_input_plugs_are_accessible_by_index(clear_default_graph):
 
     @Node(outputs=['value'])
     def A(value):
@@ -346,10 +356,10 @@ def test_compound_input_plugs_are_accessible_by_index():
     def B(compound_in):
         return {'sum': sum(compound_in.values())}
 
-    a1 = A(value=1)
-    a2 = A(value=2)
-    a3 = A(value=3)
-    b = B()
+    a1 = A(value=1, graph=None)
+    a2 = A(value=2, graph=None)
+    a3 = A(value=3, graph=None)
+    b = B(graph=None)
 
     a1.outputs['value'].connect(b.inputs['compound_in']['0'])
     a2.outputs['value'].connect(b.inputs['compound_in']['1'])
@@ -364,7 +374,7 @@ def test_compound_input_plugs_are_accessible_by_index():
     assert b.outputs['sum'].value == 6
 
 
-def test_compound_output_plugs_are_accessible_by_index():
+def test_compound_output_plugs_are_accessible_by_index(clear_default_graph):
 
     @Node(outputs=['compound_out'])
     def A(values):
@@ -378,8 +388,8 @@ def test_compound_output_plugs_are_accessible_by_index():
     def B(compound_in):
         return {'sum': sum(compound_in.values())}
 
-    a = A(values=[1, 2, 3])
-    b = B()
+    a = A(values=[1, 2, 3], graph=None)
+    b = B(graph=None)
 
     a.outputs['compound_out']['0'].connect(b.inputs['compound_in']['0'])
     a.outputs['compound_out']['1'].connect(b.inputs['compound_in']['1'])
@@ -391,26 +401,26 @@ def test_compound_output_plugs_are_accessible_by_index():
     assert b.outputs['sum'].value == 6
 
 
-def test_compound_plugs_can_be_connected_individually():
+def test_compound_plugs_can_be_connected_individually(clear_default_graph):
 
     @Node(outputs=['value', 'compound_out'])
     def A(compound_in, in1):
         pass
 
-    a1 = A()
-    a2 = A()
+    a1 = A(graph=None)
+    a2 = A(graph=None)
 
     a2.inputs['compound_in']['0'].connect(a1.outputs['value'])
     a1.outputs['compound_out']['0'].connect(a2.inputs['in1'])
 
 
-def test_compound_plugs_are_not_dirty_if_parent_plug_is_dirty():
+def test_compound_plugs_are_not_dirty_if_parent_plug_is_dirty(clear_default_graph):
 
     @Node(outputs=['compound_out'])
     def A(compound_in):
         pass
 
-    node = A()
+    node = A(graph=None)
     node.inputs['compound_in']['0'].value = 0
     node.inputs['compound_in']['1'].value = 1
 
@@ -436,7 +446,7 @@ def test_compound_plugs_are_not_dirty_if_parent_plug_is_dirty():
     assert not node.outputs['compound_out']['1'].is_dirty
 
 
-def test_compound_plugs_propagate_dirty_state_to_their_parent():
+def test_compound_plugs_propagate_dirty_state_to_their_parent(clear_default_graph):
 
     @Node(outputs=['compound_out'])
     def A(compound_in):
@@ -465,7 +475,7 @@ def test_compound_plugs_propagate_dirty_state_to_their_parent():
     assert node.outputs['compound_out'].is_dirty
 
 
-def test_compound_plug_ignores_direct_value_assignment():
+def test_compound_plug_ignores_direct_value_assignment(clear_default_graph):
 
     @Node(outputs=['compound_out'])
     def A(compound_in):
@@ -485,7 +495,7 @@ def test_compound_plug_ignores_direct_value_assignment():
     assert node.outputs['compound_out'].value == {'0': 0, '1': 1}
 
 
-def test_plugs_can_not_contain_dots():
+def test_plugs_can_not_contain_dots(clear_default_graph):
 
     @Node()
     def A():

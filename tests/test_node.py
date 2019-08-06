@@ -5,7 +5,6 @@ import pytest
 
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
-
 from flowpipe.graph import reset_default_graph
 
 
@@ -21,7 +20,7 @@ class SquareNode(INode):
 
     def __init__(self, name=None):
         """Init the node."""
-        super(SquareNode, self).__init__(name)
+        super(SquareNode, self).__init__(name, graph=None)
         InputPlug('in1', self)
         InputPlug('compound_in', self)
         OutputPlug('out', self)
@@ -220,7 +219,8 @@ def test_node_identifier_can_be_set_explicitely(clear_default_graph):
 
 
 @mock.patch('inspect.getfile', return_value='/path/to/node/implementation.py')
-def test_serialize_node_serialize_deserialize(mock_inspect):
+def test_serialize_node_serialize_deserialize(mock_inspect,
+                                              clear_default_graph):
     """Serialize the node to json with it's connections."""
     node1 = SquareNode('Node1')
     node2 = SquareNode('Node2')
