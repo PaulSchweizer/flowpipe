@@ -10,8 +10,6 @@ from flowpipe.graph import reset_default_graph
 @pytest.fixture
 def clear_default_graph():
     reset_default_graph()
-    pass
-    reset_default_graph()
 
 
 @Node(outputs=['out'])
