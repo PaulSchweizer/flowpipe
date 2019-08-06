@@ -30,6 +30,8 @@ Benefits:
   - Streamlined code design
   - Represent workflows one to one in the code
 
+# Quick Example
+
 Consider this simple example on how to represent the construction of a house with Flowpipe:
 
 ```python
