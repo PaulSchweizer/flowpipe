@@ -5,14 +5,6 @@ import pytest
 
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
-from flowpipe.graph import reset_default_graph
-
-
-@pytest.fixture
-def clear_default_graph():
-    reset_default_graph()
-    yield
-    reset_default_graph()
 
 
 class NodeForTesting(INode):
