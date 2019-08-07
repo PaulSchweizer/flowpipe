@@ -10,11 +10,6 @@ from flowpipe.graph import reset_default_graph
 from flowpipe.graph import set_default_graph, get_default_graph
 
 
-@pytest.fixture
-def clear_default_graph():
-    reset_default_graph()
-
-
 class NodeForTesting(INode):
 
     def __init__(self, name=None, in1=None, in2=None, **kwargs):

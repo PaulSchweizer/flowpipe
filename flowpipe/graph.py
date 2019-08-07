@@ -10,7 +10,6 @@ except ImportError:
 from ascii_canvas import canvas
 from ascii_canvas import item
 
-# from .node import INode
 from .log_observer import LogObserver
 from .utilities import deserialize_graph
 __all__ = ['Graph']
@@ -176,7 +175,7 @@ class Graph(object):
         return '\n '.join(pretty)
 
 
-default_graph = Graph(name="default")
+default_graph = Graph(name='default')
 
 
 def get_default_graph():
