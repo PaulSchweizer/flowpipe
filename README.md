@@ -28,6 +28,7 @@ Benefits:
   - Visualize code
   - Re-usability
   - Streamlined code design
+  - Built-in concurrency
   - Represent workflows one to one in the code
 
 # Quick Example
@@ -164,7 +165,7 @@ Build a House
 Now build the house:
 
 ```python
-graph.evaluate()
+graph.evaluate(threaded=True)  # The default graph evaluation is not threaded
 ```
 
 Output:
