@@ -51,7 +51,8 @@ class INode(object):
         self.omit = False
         try:
             self.file_location = inspect.getfile(self.__class__)
-        except TypeError as e:
+        except TypeError as e:  # pragma: no cover
+            # Excluded from tests, as this is a hard-to test fringe case
             if str(e) == "<module '__main__'> is a built-in class":
                 warnings.warn("Cannot serialize nodes defined in '__main__'")
                 self.file_location = None
@@ -167,7 +168,7 @@ class INode(object):
 
     def serialize(self):
         """Serialize the node to json."""
-        if self.file_location is None:
+        if self.file_location is None:  # pragma: no cover
             raise RuntimeError("Cannot serialize a node that was not defined "
                                "in a file")
         inputs = OrderedDict()
