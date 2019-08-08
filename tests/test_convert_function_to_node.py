@@ -4,6 +4,12 @@ import json
 import pytest
 
 from flowpipe.node import INode, FunctionNode, Node
+from flowpipe.graph import reset_default_graph
+
+
+@pytest.fixture
+def clear_default_graph():
+    reset_default_graph()
 
 
 @Node(outputs=['out'])
