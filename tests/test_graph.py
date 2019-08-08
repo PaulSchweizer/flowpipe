@@ -3,6 +3,8 @@ from __future__ import print_function
 import pytest
 
 import flowpipe.graph
+import time
+
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.graph import Graph
@@ -367,3 +369,44 @@ def test_reset_default_graph(clear_default_graph):
     assert get_default_graph().name == 'new default'
     reset_default_graph()
     assert get_default_graph().name == 'default'
+
+    
+def test_threaded_evluation():
+    """Test by having sleeper nodes sleep in parallel and check total grah timing.
+
+    +---------------+          +---------------+
+    |   Sleeper1    |          |   Sleeper2    |
+    |---------------|          |---------------|
+    o in1<>         |     +--->o in1<>         |
+    |           out o-----+    |           out o
+    +---------------+     |    +---------------+
+                          |    +---------------+
+                          |    |   Sleeper3    |
+                          |    |---------------|
+                          +--->o in1<>         |
+                               |           out o
+                               +---------------+
+
+    """
+    sleep_time = .3
+    delay = .05
+    graph = Graph(name="threaded")
+
+    @Node(outputs=["out"])
+    def Sleeper(in1):
+        time.sleep(sleep_time)
+
+    s1 = Sleeper(name="Sleeper1", graph=graph)
+    s2 = Sleeper(name="Sleeper2", graph=graph)
+    s3 = Sleeper(name="Sleeper3", graph=graph)
+
+    s1.outputs["out"] >> s2.inputs["in1"]
+    s1.outputs["out"] >> s3.inputs["in1"]
+
+    start = time.time()
+    graph.evaluate(threaded=True, submission_delay=delay)
+    end = time.time()
+
+    runtime = end - start
+    assert 2*sleep_time <= runtime
+    assert runtime <= 2 * sleep_time + 2 * delay

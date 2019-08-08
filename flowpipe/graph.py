@@ -7,6 +7,9 @@ try:
 except ImportError:
     from ordereddict import OrderedDict
 
+import threading
+import time
+
 from ascii_canvas import canvas
 from ascii_canvas import item
 
@@ -104,11 +107,50 @@ class Graph(object):
             LogObserver.push_message(
                 "Node '{0}' is already part of this Graph".format(node.name))
 
-    def evaluate(self, *args, **kwargs):
-        """Evaluate all Nodes."""
+    def evaluate(self, threaded=False, submission_delay=0.1):
+        """Evaluate all Nodes.
+
+        Args:
+            threaded (bool): Whether to execute each node in a separate thread.
+            submission_delay (float): The delay in seconds between loops
+                issuing new threads if nodes are ready to process.
+
+        """
         LogObserver.push_message("Evaluating Graph '{0}'".format(self.name))
-        for node in self.evaluation_sequence:
-            node.evaluate()
+        if not threaded:
+            for node in self.evaluation_sequence:
+                node.evaluate()
+        else:
+            self._evaluate_threaded(submission_delay)
+
+    def _evaluate_threaded(self, submission_delay):
+        threads = {}
+        nodes = list(self.evaluation_sequence)
+        while True:
+            for node in nodes:
+                if not node.is_dirty:
+                    # If the node is done computing, drop it from the list
+                    nodes.remove(node)
+                    continue
+                if (node.name not in threads
+                        and all(not n.is_dirty for n in node.upstream_nodes)):
+                    # If all deps are ready and no thread is active, create one
+                    threads[node.name] = threading.Thread(
+                        target=node.evaluate,
+                        name="flowpipe.{0}.{1}".format(self.name, node.name))
+                    threads[node.name].start()
+            graph_threads = [t for t in threading.enumerate()
+                             if t.name.startswith(
+                                 "flowpipe.{0}".format(self.name))]
+            if len(graph_threads) == 0:
+                # No more threads running after a round of submissions means
+                # we're either done or stuck
+                if not all(not n.is_dirty for n in nodes):  # pragma: no cover
+                    raise RuntimeError(
+                        "Could not sucessfully compute all nodes in the graph "
+                        "{0}".format(self.name))
+                break
+            time.sleep(submission_delay)
 
     def serialize(self):
         """Serialize the graph in it's grid form."""
