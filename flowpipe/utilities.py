@@ -14,11 +14,11 @@ def import_class(module, cls_name, file_location=None):
     """
     try:
         module = importlib.import_module(module)
-    except NameError:
+    except NameError:  # pragma: no cover
         module = __import__(module, globals(), locals(), ['object'], -1)
     try:
         cls = getattr(module, cls_name)
-    except AttributeError:
+    except AttributeError:  # pragma: no cover
         module = imp.load_source('module', file_location)
         cls = getattr(module, cls_name)
     return cls
