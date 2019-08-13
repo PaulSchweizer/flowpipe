@@ -36,6 +36,7 @@ Benefits:
 Consider this simple example on how to represent the construction of a house with Flowpipe:
 
 ```python
+from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.node import INode, Node
 from flowpipe.graph import Graph
 
@@ -72,7 +73,7 @@ def Build(workers, section):
 @Node()
 def Party(attendees):
     print('{0} and {1} are having a great party!'.format(
-        ', '.join(attendees.values()[:-1]), attendees.values()[-1]))
+        ', '.join(list(attendees.values())[:-1]), list(attendees.values())[-1]))
 
 
 # Create a graph with the necessary nodes
