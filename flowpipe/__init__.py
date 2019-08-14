@@ -1,7 +1,6 @@
 """Flow-based programming with python."""
 import logging
 
-
 PACKAGE = 'flowpipe'
 
 # create logger

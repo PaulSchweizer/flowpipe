@@ -21,7 +21,8 @@ import warnings
 from .plug import OutputPlug, InputPlug, SubInputPlug, SubOutputPlug
 from .log_observer import LogObserver
 from .stats_reporter import StatsReporter
-from .utilities import import_class
+from .utilities import deserialize_node
+from .graph import get_default_graph
 __all__ = ['INode']
 
 
@@ -30,11 +31,16 @@ class INode(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, name=None, identifier=None, metadata=None, graph=None):
+    def __init__(self, name=None, identifier=None, metadata=None,
+                 graph='default'):
         """Initialize the input and output dictionaries and the name.
 
         Args:
             name (str): If not provided, the class name is used.
+            graph (Graph): The graph to add the node to.
+                If set to 'default', the Node is added to the default graph.
+                If set to None, the Node is not added to any grpah.
+
         """
         self.name = name if name is not None else self.__class__.__name__
         self.identifier = (identifier if identifier is not None
@@ -54,7 +60,10 @@ class INode(object):
                 raise
         self.class_name = self.__class__.__name__
         if graph is not None:
-            graph.add_node(self)
+            if graph == 'default':
+                get_default_graph().add_node(self)
+            else:
+                graph.add_node(self)
 
     def __unicode__(self):
         """Show all input and output Plugs."""
@@ -181,10 +190,7 @@ class INode(object):
     @staticmethod
     def deserialize(data):
         """De-serialize from the given json data."""
-        node = import_class(
-            data['module'], data['cls'], data['file_location'])()
-        node.post_deserialize(data)
-        return node
+        return deserialize_node(data)
 
     def post_deserialize(self, data):
         """Perform more data operations after initial serialization."""
@@ -378,9 +384,11 @@ class FunctionNode(INode):
         """Create and return an instance of the Node."""
         metadata = copy.deepcopy(self.metadata)
         metadata.update(kwargs.pop("metadata", {}))
+        graph = kwargs.pop('graph', 'default')
         return self.__class__(func=self.func,
                               outputs=[o for o in self.outputs],
                               metadata=metadata,
+                              graph=graph,
                               **kwargs)
 
     def compute(self, *args, **kwargs):

@@ -2,11 +2,19 @@ from __future__ import print_function
 
 import pytest
 
+import flowpipe.graph
 import time
 
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.graph import Graph
+from flowpipe.graph import reset_default_graph
+from flowpipe.graph import set_default_graph, get_default_graph
+
+
+@pytest.fixture
+def clear_default_graph():
+    reset_default_graph()
 
 
 class NodeForTesting(INode):
@@ -23,7 +31,7 @@ class NodeForTesting(INode):
         return {'out': in1 * in2, 'out2': None}
 
 
-def test_evaluation_matrix():
+def test_evaluation_matrix(clear_default_graph):
     """The nodes as a 2D grid."""
     @Node(outputs=["out", "out2"])
     def DummyNode(in1, in2):
@@ -64,7 +72,7 @@ def test_evaluation_matrix():
     graph.evaluate()
 
 
-def test_linar_evaluation_sequence():
+def test_linar_evaluation_sequence(clear_default_graph):
     """A linear graph."""
     n1 = NodeForTesting('n1')
     n2 = NodeForTesting('n2')
@@ -81,7 +89,7 @@ def test_linar_evaluation_sequence():
     assert ['n1', 'n2', 'n3', 'n4'] == seq
 
 
-def test_branching_evaluation_sequence():
+def test_branching_evaluation_sequence(clear_default_graph):
     """Branching graph."""
     n1 = NodeForTesting('n1')
     n2 = NodeForTesting('n2')
@@ -98,7 +106,7 @@ def test_branching_evaluation_sequence():
     assert 'n3' in seq[1:]
 
 
-def test_complex_branching_evaluation_sequence():
+def test_complex_branching_evaluation_sequence(clear_default_graph):
     """Connect and disconnect nodes."""
     # The Nodes
     start = NodeForTesting('start')
@@ -142,7 +150,7 @@ def test_complex_branching_evaluation_sequence():
     assert 'end' == seq[-1]
 
 
-def test_serialize_graph():
+def test_serialize_graph(clear_default_graph):
     """
     +------------+          +------------+          +--------------------+
     |   Start    |          |   Node2    |          |        End         |
@@ -177,7 +185,7 @@ def test_serialize_graph():
     assert serialized == deserialized
 
 
-def test_string_representations():
+def test_string_representations(clear_default_graph):
     """Print the Graph."""
     graph = Graph()
     start = NodeForTesting(name='Start', graph=graph)
@@ -238,14 +246,14 @@ Graph
   [o] out2: null'''
 
 
-def test_nodes_can_be_added_to_graph():
+def test_nodes_can_be_added_to_graph(clear_default_graph):
     """Nodes add themselves to their graph as their parent."""
     graph = Graph()
     graph.add_node(NodeForTesting())
     assert 1 == len(graph.nodes)
 
 
-def test_nested_graphs_expand_sub_graphs():
+def test_nested_graphs_expand_sub_graphs(clear_default_graph):
     """Nested Graphs expand all nodes of their sub graphs on evaluation."""
 
     @Node(outputs=["out_put"])
@@ -294,7 +302,7 @@ def test_nested_graphs_expand_sub_graphs():
         assert sorted([n.name for n in nodes]) == sorted(order[i])
 
 
-def test_nodes_can_be_accessed_via_name_through_indexing():
+def test_nodes_can_be_accessed_via_name_through_indexing(clear_default_graph):
     graph = Graph()
     test_name = "TestName"
     node = NodeForTesting(name=test_name)
@@ -306,18 +314,18 @@ def test_nodes_can_be_accessed_via_name_through_indexing():
         graph["Does not exist"]
 
 
-def test_node_names_on_graph_have_to_be_unique():
+def test_node_names_on_graph_have_to_be_unique(clear_default_graph):
     graph = Graph()
     same_name = "Same Name"
-    node_1 = NodeForTesting(name=same_name)
+    node_1 = NodeForTesting(name=same_name, graph=None)
     graph.add_node(node_1)
-    node_2 = NodeForTesting(name=same_name)
+    node_2 = NodeForTesting(name=same_name, graph=None)
 
     with pytest.raises(ValueError):
         graph.add_node(node_2)
 
 
-def test_nodes_are_only_added_once():
+def test_nodes_are_only_added_once(clear_default_graph):
     graph = Graph()
     node = NodeForTesting()
     for i in range(10):
@@ -326,7 +334,7 @@ def test_nodes_are_only_added_once():
     assert len(graph.nodes) == 1
 
 
-def test_nodes_can_add_to_graph_on_init():
+def test_nodes_can_add_to_graph_on_init(clear_default_graph):
     graph = Graph()
     node = NodeForTesting(graph=graph)
     assert graph["NodeForTesting"] == node
@@ -338,6 +346,31 @@ def test_nodes_can_add_to_graph_on_init():
     assert graph["function"] == node
 
 
+def test_get_default_graph():
+    direct = flowpipe.graph.default_graph
+    getter = get_default_graph()
+    assert direct is getter
+
+
+def test_set_default_graph(clear_default_graph):
+    new_default = Graph(name='new default')
+    set_default_graph(new_default)
+    direct = flowpipe.graph.default_graph
+    assert direct is new_default
+
+    new_default = "foo"
+    with pytest.raises(TypeError):
+        set_default_graph(new_default)
+
+
+def test_reset_default_graph(clear_default_graph):
+    new_default = Graph(name='new default')
+    set_default_graph(new_default)
+    assert get_default_graph().name == 'new default'
+    reset_default_graph()
+    assert get_default_graph().name == 'default'
+
+    
 def test_threaded_evluation():
     """Test by having sleeper nodes sleep in parallel and check total grah timing.
 

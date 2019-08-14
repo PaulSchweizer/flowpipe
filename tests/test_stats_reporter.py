@@ -6,7 +6,6 @@ import pytest
 from flowpipe.node import INode, Node
 from flowpipe.stats_reporter import StatsReporter
 
-
 @pytest.fixture
 def clear_listeners():
     """Remove the listeners."""

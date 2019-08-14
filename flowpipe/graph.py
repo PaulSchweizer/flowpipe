@@ -13,9 +13,8 @@ import time
 from ascii_canvas import canvas
 from ascii_canvas import item
 
-from .node import INode
 from .log_observer import LogObserver
-from .utilities import import_class
+from .utilities import deserialize_graph
 __all__ = ['Graph']
 
 
@@ -165,24 +164,7 @@ class Graph(object):
     @staticmethod
     def deserialize(data):
         """De-serialize from the given json data."""
-        graph = import_class(data['module'], data['cls'])()
-        graph._nodes = []
-        for node in data['nodes']:
-            graph._nodes.append(INode.deserialize(node))
-        nodes = {n.identifier: n for n in graph.nodes}
-        for node in data['nodes']:
-            this = nodes[node['identifier']]
-            for name, input_ in node['inputs'].items():
-                for identifier, plug in input_['connections'].items():
-                    upstream = nodes[identifier]
-                    upstream.outputs[plug] >> this.inputs[name]
-                for sub_plug_name, sub_plug in input_['sub_plugs'].items():
-                    sub_plug_name = sub_plug_name.split('.')[-1]
-                    for identifier, plug in sub_plug['connections'].items():
-                        upstream = nodes[identifier]
-                        upstream.outputs[plug].connect(
-                            this.inputs[name][sub_plug_name])
-        return graph
+        return deserialize_graph(data)
 
     def _sort_node(self, node, parent, level):
         """Sort the node into the correct level."""
@@ -233,3 +215,25 @@ class Graph(object):
         for node in self.evaluation_sequence:
             pretty.append(node.list_repr())
         return '\n '.join(pretty)
+
+
+default_graph = Graph(name='default')
+
+
+def get_default_graph():
+    """Retrieve the default graph."""
+    return default_graph
+
+
+def set_default_graph(graph):
+    """Set a graph as the default graph."""
+    if not isinstance(graph, Graph):
+        raise TypeError("Can only set 'Graph' instances as default graph!")
+
+    global default_graph
+    default_graph = graph
+
+
+def reset_default_graph():
+    """Reset the default graph to an empty graph."""
+    set_default_graph(Graph(name="default"))
