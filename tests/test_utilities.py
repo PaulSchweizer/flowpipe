@@ -8,6 +8,12 @@ from hashlib import sha256
 import flowpipe.utilities as util
 
 
+class WeirdObject(object):
+    """An object that is not json serializable and has no bytes() interface."""
+
+    foo = "bar"
+
+
 def test_node_encoder():
     """Test the custom JSONEncoder."""
     valid_object = {"key": "value", "other_key": [1, 2, 3]}
@@ -16,8 +22,16 @@ def test_node_encoder():
     for k, v in valid_object.items():
         assert v == recovered_json[k]
 
-    invalid_object = {"key": "value", "other_key": bytes(42)}
-    json_string = json.dumps(invalid_object, cls=util.NodeEncoder)
+    bytes_object = {"key": "value", "other_key": bytes(42)}
+    json_string = json.dumps(bytes_object, cls=util.NodeEncoder)
     recovered_json = json.loads(json_string)
-    for k, v in invalid_object.items():
-        assert v == recovered_json[k] or sha256(v).hexdigest() == recovered_json[k]
+    for k, v in bytes_object.items():
+        assert v == recovered_json[k] \
+            or sha256(v).hexdigest() == recovered_json[k]
+
+    weird_object = {"key": "value", "other_key": WeirdObject()}
+    json_string = json.dumps(weird_object, cls=util.NodeEncoder)
+    recovered_json = json.loads(json_string)
+    for k, v in bytes_object.items():
+        assert v == recovered_json[k] \
+            or 'WeirdObject object at' in recovered_json[k]

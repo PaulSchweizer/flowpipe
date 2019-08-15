@@ -63,9 +63,12 @@ class NodeEncoder(JSONEncoder):
     encoded instead.
     """
 
-    def default(self, obj):
+    def default(self, o):
         """Encode the object, handling type errors by encoding into sha256."""
         try:
-            return super(NodeEncoder, self).default(obj)
+            return super(NodeEncoder, self).default(o)
         except TypeError:
-            return sha256(bytes(obj)).hexdigest()
+            try:
+                return sha256(bytes(o)).hexdigest()
+            except TypeError:
+                return str(o)
