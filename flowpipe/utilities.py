@@ -3,6 +3,8 @@ try:
 except ImportError:
     pass
 import imp
+from json import JSONEncoder
+from hashlib import sha256
 
 
 def import_class(module, cls_name, file_location=None):
@@ -25,11 +27,11 @@ def import_class(module, cls_name, file_location=None):
 
 
 def deserialize_node(data):
-        """De-serialize a node from the given json data."""
-        node = import_class(
-            data['module'], data['cls'], data['file_location'])()
-        node.post_deserialize(data)
-        return node
+    """De-serialize a node from the given json data."""
+    node = import_class(
+        data['module'], data['cls'], data['file_location'])()
+    node.post_deserialize(data)
+    return node
 
 
 def deserialize_graph(data):
@@ -52,3 +54,18 @@ def deserialize_graph(data):
                     upstream.outputs[plug].connect(
                         this.inputs[name][sub_plug_name])
     return graph
+
+
+class NodeEncoder(JSONEncoder):
+    """Custom JSONEncoder to handle non-json serializable node values.
+
+    If the value is not json serializable, a sha256 hash of its bytes is
+    encoded instead.
+    """
+
+    def default(self, obj):
+        """Encode the object, handling type errors by encoding into sha256."""
+        try:
+            return JSONEncoder.default(self, obj)
+        except TypeError:
+            return sha256(bytes(obj)).hexdigest()
