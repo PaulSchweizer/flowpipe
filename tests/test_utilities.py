@@ -17,8 +17,6 @@ def test_node_encoder():
         assert v == recovered_json[k]
 
     invalid_object = {"key": "value", "other_key": bytes(42)}
-    with pytest.raises(TypeError):
-        json.dumps(invalid_object)
     json_string = json.dumps(invalid_object, cls=util.NodeEncoder)
     recovered_json = json.loads(json_string)
     for k, v in invalid_object.items():
