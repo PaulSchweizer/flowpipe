@@ -6,12 +6,7 @@ try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
-try:
-    import importlib
-except ImportError:
-    pass
 import copy
-import imp
 import inspect
 import json
 import time
@@ -21,7 +16,7 @@ import warnings
 from .plug import OutputPlug, InputPlug, SubInputPlug, SubOutputPlug
 from .log_observer import LogObserver
 from .stats_reporter import StatsReporter
-from .utilities import deserialize_node
+from .utilities import deserialize_node, import_class
 from .graph import get_default_graph
 __all__ = ['INode']
 
@@ -413,8 +408,10 @@ class FunctionNode(INode):
         self.identifier = data['identifier']
         self.metadata = data['metadata']
         self.file_location = data['file_location']
-        module = imp.load_source('module', data['file_location'])
-        node = getattr(module, data['func']['name'])()
+        node = import_class(
+            data['func']['module'],
+            data['func']['name'],
+            data['file_location'])()
         self._initialize(node.func, data['outputs'].keys(), data['metadata'])
         for name, input_ in data['inputs'].items():
             self.inputs[name].value = input_['value']

@@ -25,11 +25,11 @@ def import_class(module, cls_name, file_location=None):
 
 
 def deserialize_node(data):
-        """De-serialize a node from the given json data."""
-        node = import_class(
-            data['module'], data['cls'], data['file_location'])()
-        node.post_deserialize(data)
-        return node
+    """De-serialize a node from the given json data."""
+    node = import_class(
+        data['module'], data['cls'], data['file_location'])()
+    node.post_deserialize(data)
+    return node
 
 
 def deserialize_graph(data):
