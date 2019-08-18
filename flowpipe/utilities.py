@@ -69,6 +69,6 @@ class NodeEncoder(JSONEncoder):
             return super(NodeEncoder, self).default(o)
         except TypeError:
             try:
-                return sha256(bytes(o)).hexdigest()
+                return sha256(o).hexdigest()
             except TypeError:
                 return str(o)
