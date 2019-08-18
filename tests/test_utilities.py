@@ -32,6 +32,6 @@ def test_node_encoder():
     weird_object = {"key": "value", "other_key": WeirdObject()}
     json_string = json.dumps(weird_object, cls=util.NodeEncoder)
     recovered_json = json.loads(json_string)
-    for k, v in bytes_object.items():
+    for k, v in weird_object.items():
         assert v == recovered_json[k] \
             or 'WeirdObject object at' in recovered_json[k]
