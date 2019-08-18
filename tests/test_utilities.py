@@ -36,7 +36,10 @@ def test_node_encoder():
     for k, v in weird_object.items():
         print(k)
         print(v)
-        print(sha256(v).hexdigest())
+        try:
+            print(sha256(v).hexdigest())
+        except:
+            print("Cannot compute sha")
         print(str(v))
         print(recovered_json[k])
         print(str(recovered_json[k]))
