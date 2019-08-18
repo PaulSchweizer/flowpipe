@@ -34,5 +34,7 @@ def test_node_encoder():
     json_string = json.dumps(weird_object, cls=util.NodeEncoder)
     recovered_json = json.loads(json_string)
     for k, v in weird_object.items():
+        print(k)
+        print(str(recovered_json[k]))
         assert v == recovered_json[k] \
             or re.search('WeirdObject object at', str(recovered_json[k]))
