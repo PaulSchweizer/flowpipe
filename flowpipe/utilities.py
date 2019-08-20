@@ -3,6 +3,8 @@ try:
 except ImportError:
     pass
 import imp
+from json import JSONEncoder
+from hashlib import sha256
 
 
 def import_class(module, cls_name, file_location=None):
@@ -52,3 +54,21 @@ def deserialize_graph(data):
                     upstream.outputs[plug].connect(
                         this.inputs[name][sub_plug_name])
     return graph
+
+
+class NodeEncoder(JSONEncoder):
+    """Custom JSONEncoder to handle non-json serializable node values.
+
+    If the value is not json serializable, a sha256 hash of its bytes is
+    encoded instead.
+    """
+
+    def default(self, o):
+        """Encode the object, handling type errors by encoding into sha256."""
+        try:
+            return super(NodeEncoder, self).default(o)
+        except TypeError:
+            try:
+                return sha256(o).hexdigest()
+            except TypeError:
+                return str(o)

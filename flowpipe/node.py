@@ -16,7 +16,7 @@ import warnings
 from .plug import OutputPlug, InputPlug, SubInputPlug, SubOutputPlug
 from .log_observer import LogObserver
 from .stats_reporter import StatsReporter
-from .utilities import deserialize_node, import_class
+from .utilities import deserialize_node, NodeEncoder, import_class
 from .graph import get_default_graph
 __all__ = ['INode']
 
@@ -114,7 +114,8 @@ class INode(object):
         LogObserver.push_message(
             'Evaluating {0} -> {1}.compute(**{2})'.format(
                 self.file_location, self.class_name,
-                json.dumps(self._sort_plugs(inputs), indent=2)))
+                json.dumps(self._sort_plugs(inputs), indent=2, cls=NodeEncoder)
+            ))
 
         # Compute and redirect the output to the output plugs
         start_time = time.time()
@@ -144,7 +145,8 @@ class INode(object):
         LogObserver.push_message(
             'Evaluation result for {0} -> {1}: {2}'.format(
                 self.file_location, self.class_name,
-                json.dumps(self._sort_plugs(outputs), indent=2)))
+                json.dumps(self._sort_plugs(outputs), indent=2, cls=NodeEncoder)
+            ))
 
         return outputs
 
@@ -256,7 +258,7 @@ class INode(object):
 
             value = ""
             if in_plug.value is not None:
-                value = json.dumps(in_plug.value)
+                value = json.dumps(in_plug.value, cls=NodeEncoder)
             plug = '{symbol} {dist}{input_}{value}'.format(
                 symbol='%' if in_plug._sub_plugs else 'o',
                 dist=' ' if isinstance(in_plug, SubInputPlug)else '',
@@ -311,7 +313,7 @@ class INode(object):
                 pretty.append('{indent}[i] {name}: {value}'.format(
                     indent='   ' if isinstance(plug, SubInputPlug) else '  ',
                     name=name,
-                    value=json.dumps(plug.value)))
+                    value=json.dumps(plug.value, cls=NodeEncoder)))
         for name, plug in sorted(self.all_outputs().items()):
             if plug._sub_plugs:
                 pretty.append('  [o] {name}'.format(name=name))
@@ -327,7 +329,7 @@ class INode(object):
                 pretty.append('{indent}[o] {name}: {value}'.format(
                     indent='   ' if isinstance(plug, SubOutputPlug) else '  ',
                     name=name,
-                    value=json.dumps(plug.value)))
+                    value=json.dumps(plug.value, cls=NodeEncoder)))
 
         return '\n'.join(pretty)
 
