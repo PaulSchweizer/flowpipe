@@ -199,8 +199,6 @@ class INode(object):
             self.inputs[name].value = input_['value']
             for sub_name, sub_plug in input_['sub_plugs'].items():
                 self.inputs[name][sub_name].value = sub_plug['value']
-        for name, input_ in data['outputs'].items():
-            self.outputs[name].value = input_['value']
         for name, output in data['outputs'].items():
             self.outputs[name].value = output['value']
             for sub_name, sub_plug in output['sub_plugs'].items():
