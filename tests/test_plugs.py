@@ -500,7 +500,7 @@ def test_plugs_can_not_contain_dots(clear_default_graph):
         pass
 
     with pytest.raises(ValueError):
-        OutputPlug(name='name.with.dots', node=A())
+        OutputPlug(name='name.with.dots', node=A(graph=None))
 
     with pytest.raises(ValueError):
-        InputPlug(name='name.with.dots', node=A())
+        InputPlug(name='name.with.dots', node=A(graph=None))

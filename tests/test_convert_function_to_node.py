@@ -173,3 +173,11 @@ def test_class_name_restored_after_deserialization(clear_default_graph):
 
     assert node.class_name == "function_for_testing"
     assert deserialized_node.class_name == "function_for_testing"
+
+
+def test_node_reserved_names():
+    with pytest.raises(ValueError):
+        @Node()
+        def function(func, name, identifier, inputs,
+                     outputs, metadata, omit, graph):
+            pass

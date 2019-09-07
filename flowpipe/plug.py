@@ -9,7 +9,7 @@ try:
 except ImportError:
     from ordereddict import OrderedDict
 
-if sys.version_info.major > 2:
+if sys.version_info.major > 2:  # pragma: no cover
     basestring = str
 
 
