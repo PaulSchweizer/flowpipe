@@ -5,7 +5,7 @@ import pytest
 
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
-from flowpipe.graph import reset_default_graph
+from flowpipe.graph import reset_default_graph, get_default_graph
 
 
 @pytest.fixture
@@ -16,9 +16,9 @@ def clear_default_graph():
 class SquareNode(INode):
     """Square the given value."""
 
-    def __init__(self, name=None):
+    def __init__(self, name=None, *args, **kwargs):
         """Init the node."""
-        super(SquareNode, self).__init__(name, graph=None)
+        super(SquareNode, self).__init__(name, *args, **kwargs)
         InputPlug('in1', self)
         InputPlug('compound_in', self)
         OutputPlug('out', self)
@@ -27,6 +27,11 @@ class SquareNode(INode):
     def compute(self, in1, compound_in=None):
         """Square the given input and send to the output."""
         return {'out': in1**2}
+
+
+@Node(outputs=['out', 'compound_out'])
+def SquareFunctionNode(in1, compound_in):
+    return {'out': in1**2}
 
 
 class SimpleNode(INode):
@@ -205,7 +210,7 @@ Node2
 
 def test_node_has_unique_identifier(clear_default_graph):
     """A Node gets a unique identifiers assigned."""
-    ids = [SquareNode().identifier for n in range(1000)]
+    ids = [SquareNode(graph=None).identifier for n in range(1000)]
     assert len(ids) == len(set(ids))
 
 
@@ -217,24 +222,25 @@ def test_node_identifier_can_be_set_explicitely(clear_default_graph):
 
 
 @mock.patch('inspect.getfile', return_value='/path/to/node/implementation.py')
-def test_serialize_node_serialize_deserialize(mock_inspect,
-                                              clear_default_graph):
+def test_serialize_node_serialize_to_json(mock_inspect, clear_default_graph):
     """Serialize the node to json with it's connections."""
     node1 = SquareNode('Node1')
-    node2 = SquareNode('Node2')
+    node2 = SquareFunctionNode(name='Node2')
     node1.inputs['in1'].value = 1
     node1.outputs['out'] >> node2.inputs['in1']
-    node1.outputs['out'] >> node2.inputs['compound_in']['key']
-    node1.outputs['out'] >> node2.inputs['compound_in']['1']
+    node1.outputs['compound_out']['key'] >> node2.inputs['compound_in']['key']
+    node1.outputs['compound_out']['1'] >> node2.inputs['compound_in']['1']
+
+    node1.outputs['out'].value = 'value'
+    node1.outputs['compound_out']['key'].value = 'value_key'
+    node1.outputs['compound_out']['1'].value = 'value_1'
+
+    node2.outputs['out'].value = 'value'
+    node2.outputs['compound_out']['key'].value = 'value_key'
+    node2.outputs['compound_out']['1'].value = 'value_1'
 
     data = node1.serialize()
     assert data == {
-        'file_location': '/path/to/node/implementation.py',
-        'module': 'test_node',
-        'cls': 'SquareNode',
-        'name': 'Node1',
-        'identifier': node1.identifier,
-        'metadata': {},
         'inputs': {
             'compound_in': {
                 'connections': {},
@@ -254,23 +260,45 @@ def test_serialize_node_serialize_deserialize(mock_inspect,
                 'connections': {},
                 'name': 'compound_out',
                 'value': None,
-                'sub_plugs': {}
+                'sub_plugs': {
+                    '1': {
+                        'connections': {
+                            node2.identifier: [
+                                'compound_in.1'
+                            ]
+                        },
+                        'name': 'compound_out.1',
+                        'value': 'value_1'
+                    },
+                    'key': {
+                        'connections': {
+                            node2.identifier: [
+                                'compound_in.key'
+                            ]
+                        },
+                        'name': 'compound_out.key',
+                        'value': 'value_key'
+                    }
+                }
             },
             'out': {
                 'connections': {
                     node2.identifier: [
-                        'in1',
-                        'compound_in.key',
-                        'compound_in.1'
+                        'in1'
                     ]
                 },
                 'name': 'out',
-                'value': None,
+                'value': 'value',
                 'sub_plugs': {}
             }
-        }
+        },
+        'name': 'Node1',
+        'metadata': {},
+        'module': 'test_node',
+        'file_location': '/path/to/node/implementation.py',
+        'identifier': node1.identifier,
+        'cls': 'SquareNode'
     }
-
     data2 = node2.serialize()
     assert data2 == {
         'inputs': {
@@ -281,17 +309,17 @@ def test_serialize_node_serialize_deserialize(mock_inspect,
                 'sub_plugs': {
                     '1': {
                         'connections': {
-                            node1.identifier: 'out'
+                            node1.identifier: 'compound_out.1'
                         },
                         'name': 'compound_in.1',
-                        'value': None
+                        'value': 'value_1'
                     },
                     'key': {
                         'connections': {
-                            node1.identifier: 'out'
+                            node1.identifier: 'compound_out.key'
                         },
                         'name': 'compound_in.key',
-                        'value': None
+                        'value': 'value_key'
                     }
                 }
             },
@@ -300,30 +328,45 @@ def test_serialize_node_serialize_deserialize(mock_inspect,
                     node1.identifier: 'out'
                 },
                 'name': 'in1',
-                'value': None,
+                'value': 'value',
                 'sub_plugs': {}
             }
         },
+        'name': 'Node2',
         'outputs': {
             'compound_out': {
                 'connections': {},
                 'name': 'compound_out',
                 'value': None,
-                'sub_plugs': {}
+                'sub_plugs': {
+                    '1': {
+                        'connections': {},
+                        'name': 'compound_out.1',
+                        'value': 'value_1'
+                    },
+                    'key': {
+                        'connections': {},
+                        'name': 'compound_out.key',
+                        'value': 'value_key'
+                    }
+                }
             },
             'out': {
                 'connections': {},
                 'name': 'out',
-                'value': None,
+                'value': 'value',
                 'sub_plugs': {}
             }
         },
-        'name': 'Node2',
         'metadata': {},
-        'module': 'test_node',
+        'module': 'flowpipe.node',
         'file_location': '/path/to/node/implementation.py',
         'identifier': node2.identifier,
-        'cls': 'SquareNode'
+        'cls': 'FunctionNode',
+        'func': {
+            'name': 'SquareFunctionNode',
+            'module': 'test_node'
+        }
     }
 
 
@@ -331,11 +374,19 @@ def test_serialize_node_serialize_deserialize(mock_inspect,
 def test_deserialize_from_json(mock_inspect, clear_default_graph):
     """De-serialize the node from json."""
     node1 = SquareNode('Node1')
-    node2 = SquareNode('Node2')
+    node2 = SquareFunctionNode(name='Node2')
     node1.inputs['in1'].value = 1
     node1.outputs['out'] >> node2.inputs['in1']
-    node1.outputs['out'] >> node2.inputs['compound_in']['key']
-    node1.outputs['out'] >> node2.inputs['compound_in']['1']
+    node1.outputs['compound_out']['key'] >> node2.inputs['compound_in']['key']
+    node1.outputs['compound_out']['1'] >> node2.inputs['compound_in']['1']
+
+    node1.outputs['out'].value = 'value'
+    node1.outputs['compound_out']['key'].value = 'value_key'
+    node1.outputs['compound_out']['1'].value = 'value_1'
+
+    node2.outputs['out'].value = 'value'
+    node2.outputs['compound_out']['key'].value = 'value_key'
+    node2.outputs['compound_out']['1'].value = 'value_1'
 
     deserialized_data = INode.deserialize(node1.serialize()).serialize()
     assert deserialized_data == {
@@ -359,12 +410,23 @@ def test_deserialize_from_json(mock_inspect, clear_default_graph):
                 'connections': {},
                 'name': 'compound_out',
                 'value': None,
-                'sub_plugs': {}
+                'sub_plugs': {
+                    'key': {
+                            'connections': {},
+                            'name': 'compound_out.key',
+                            'value': 'value_key'
+                    },
+                    '1': {
+                            'connections': {},
+                            'name': 'compound_out.1',
+                            'value': 'value_1'
+                    }
+                }
             },
             'out': {
                 'connections': {},
                 'name': 'out',
-                'value': None,
+                'value': 'value',
                 'sub_plugs': {}
             }
         },
@@ -386,19 +448,19 @@ def test_deserialize_from_json(mock_inspect, clear_default_graph):
                     '1': {
                         'connections': {},
                         'name': 'compound_in.1',
-                        'value': None
+                        'value': 'value_1'
                     },
                     'key': {
                         'connections': {},
                         'name': 'compound_in.key',
-                        'value': None
+                        'value': 'value_key'
                     }
                 }
             },
             'in1': {
                 'connections': {},
                 'name': 'in1',
-                'value': None,
+                'value': 'value',
                 'sub_plugs': {}
             }
         },
@@ -408,21 +470,49 @@ def test_deserialize_from_json(mock_inspect, clear_default_graph):
                 'connections': {},
                 'name': 'compound_out',
                 'value': None,
-                'sub_plugs': {}
+                'sub_plugs': {
+                    'key': {
+                        'connections': {},
+                        'name': 'compound_out.key',
+                        'value': 'value_key'
+                    },
+                    '1': {
+                        'connections': {},
+                        'name': 'compound_out.1',
+                        'value': 'value_1'
+                    }
+                }
             },
             'out': {
                 'connections': {},
                 'name': 'out',
-                'value': None,
+                'value': 'value',
                 'sub_plugs': {}
             }
         },
         'metadata': {},
-        'module': 'test_node',
+        'module': 'flowpipe.node',
         'file_location': '/path/to/node/implementation.py',
         'identifier': node2.identifier,
-        'cls': 'SquareNode'
+        'cls': 'FunctionNode',
+        'func': {
+            'module': 'test_node',
+            'name': 'SquareFunctionNode'
+        }
     }
+
+
+def test_deserialize_node_does_not_add_to_default_graph(clear_default_graph):
+    node1 = SquareNode('Node1')
+    node2 = SquareFunctionNode(name='Node2')
+
+    node1.deserialize(node1.serialize())
+    node1.deserialize(node1.serialize())
+
+    node2.deserialize(node2.serialize())
+    node2.deserialize(node2.serialize())
+
+    assert len(get_default_graph().nodes) == 2
 
 
 def test_omitting_node_does_not_evaluate_it(clear_default_graph):

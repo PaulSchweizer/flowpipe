@@ -199,8 +199,10 @@ class INode(object):
             self.inputs[name].value = input_['value']
             for sub_name, sub_plug in input_['sub_plugs'].items():
                 self.inputs[name][sub_name].value = sub_plug['value']
-        for name, input_ in data['outputs'].items():
-            self.outputs[name].value = input_['value']
+        for name, output in data['outputs'].items():
+            self.outputs[name].value = output['value']
+            for sub_name, sub_plug in output['sub_plugs'].items():
+                self.outputs[name][sub_name].value = sub_plug['value']
 
     def node_repr(self):
         """The node formated into a string looking like a node.
@@ -363,6 +365,11 @@ class INode(object):
 class FunctionNode(INode):
     """Wrap a function into a Node."""
 
+    # Some names have to stay reserved as they are used to construct the Node
+    RESERVED_INPUT_NAMES = (
+        "func", "name", "identifier", "inputs", "outputs", "metadata", "omit",
+        "graph")
+
     def __init__(self, func=None, outputs=None, name=None,
                  identifier=None, metadata=None, graph=None, **kwargs):
         """The data on the function is used to drive the Node.
@@ -413,12 +420,17 @@ class FunctionNode(INode):
         node = import_class(
             data['func']['module'],
             data['func']['name'],
-            data['file_location'])()
+            data['file_location'])(graph=None)
         self._initialize(node.func, data['outputs'].keys(), data['metadata'])
         for name, input_ in data['inputs'].items():
             self.inputs[name].value = input_['value']
-        for name, input_ in data['outputs'].items():
-            self.outputs[name].value = input_['value']
+            for sub_name, sub_plug in input_['sub_plugs'].items():
+                self.inputs[name][sub_name].value = sub_plug['value']
+        for name, output in data['outputs'].items():
+            self.outputs[name].value = output['value']
+            for sub_name, sub_plug in output['sub_plugs'].items():
+                self.outputs[name][sub_name].value = sub_plug['value']
+
 
     def _initialize(self, func, outputs, metadata):
         """Use the function and the list of outputs to setup the Node."""
@@ -434,12 +446,23 @@ class FunctionNode(INode):
             if arg_spec.defaults is not None:
                 defaults = dict(zip(arg_spec.args[-len(arg_spec.defaults):],
                                     arg_spec.defaults))
+            forbidden_inputs = []
             for input_ in arg_spec.args:
+                if input_ in self.RESERVED_INPUT_NAMES:
+                    forbidden_inputs.append(input_)
+                    continue
                 if input_ != 'self':
                     plug = InputPlug(input_, self)
                     plug.value = defaults.get(input_, None)
                 else:
                     self._use_self = True
+            if forbidden_inputs:
+                raise ValueError(
+                    "{0} are reserved names and can not be used as inputs!\n"
+                    "Reserved names are: {1}".format(
+                        ", ".join(forbidden_inputs),
+                        self.RESERVED_INPUT_NAMES))
+
         if outputs is not None:
             for output in outputs:
                 OutputPlug(output, self)
