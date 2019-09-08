@@ -448,7 +448,7 @@ class FunctionNode(INode):
                                     arg_spec.defaults))
             forbidden_inputs = []
             for input_ in arg_spec.args:
-                if input_ in FunctionNode.RESERVED_INPUT_NAMES:
+                if input_ in self.RESERVED_INPUT_NAMES:
                     forbidden_inputs.append(input_)
                     continue
                 if input_ != 'self':
@@ -461,7 +461,7 @@ class FunctionNode(INode):
                     "{0} are reserved names and can not be used as inputs!\n"
                     "Reserved names are: {1}".format(
                         ", ".join(forbidden_inputs),
-                        FunctionNode.RESERVED_INPUT_NAMES))
+                        self.RESERVED_INPUT_NAMES))
 
         if outputs is not None:
             for output in outputs:
