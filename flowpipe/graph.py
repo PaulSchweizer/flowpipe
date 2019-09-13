@@ -125,12 +125,12 @@ class Graph(object):
 
     def _evaluate_threaded(self, submission_delay):
         threads = {}
-        nodes = list(self.evaluation_sequence)
+        nodes_to_evaluate = list(self.evaluation_sequence)
         while True:
-            for node in nodes:
+            for node in nodes_to_evaluate:
                 if not node.is_dirty:
                     # If the node is done computing, drop it from the list
-                    nodes.remove(node)
+                    nodes_to_evaluate.remove(node)
                     continue
                 if (node.name not in threads
                         and all(not n.is_dirty for n in node.upstream_nodes)):
@@ -139,7 +139,7 @@ class Graph(object):
                         target=node.evaluate,
                         name="flowpipe.{0}.{1}".format(self.name, node.name))
                     threads[node.name].start()
-            if all(not n.is_dirty for n in nodes):
+            if not nodes_to_evaluate:
                 break
             time.sleep(submission_delay)
 
