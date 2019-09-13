@@ -154,10 +154,12 @@ class Graph(object):
             time.sleep(submission_delay)
 
     def evaluate_multiprocessed(self, submission_delay=0.1):
-        """Similar to the threaded evaluation but with mutliprocessing.
+        """Similar to the threaded evaluation but with multiprocessing.
 
         Nodes communicate via a manager and are evaluated in a dedicated
         function.
+        The original node objects are updated with the results from the
+        corresponding processes to reflect the evaluation.
         """
         manager = Manager()
         nodes_data = manager.dict()
@@ -171,6 +173,7 @@ class Graph(object):
                 if process and not process.is_alive():
                     # If the node is done computing, drop it from the list
                     nodes_to_evaluate.remove(node)
+                    update_node(node, nodes_data[node.identifier])
                     continue
 
                 upstream_ready = True
@@ -298,12 +301,12 @@ def evaluate_node_in_process(identifier, nodes_data):
     data = nodes_data[identifier]
     node = INode.deserialize(data)
 
-    for name, input_plug in data["inputs"].items():
-        for input_identifier, output_plug in input_plug["connections"].items():
+    for name, input_plug in data['inputs'].items():
+        for input_identifier, output_plug in input_plug['connections'].items():
             upstream_node = INode.deserialize(nodes_data[input_identifier])
             node.inputs[name].value = upstream_node.outputs[output_plug].value
-        for sub_name, sub_plug in input_plug["sub_plugs"].items():
-            for sub_id, sub_output in sub_plug["connections"].items():
+        for sub_name, sub_plug in input_plug['sub_plugs'].items():
+            for sub_id, sub_output in sub_plug['connections'].items():
                 upstream_node = INode.deserialize(nodes_data[sub_id])
                 node.inputs[name][sub_name].value = (
                     upstream_node.all_outputs()[sub_output].value)
@@ -311,9 +314,27 @@ def evaluate_node_in_process(identifier, nodes_data):
     node.evaluate()
 
     for name, plug in node.outputs.items():
-        data["outputs"][name]["value"] = plug.value
+        data['outputs'][name]['value'] = plug.value
         for sub_name, sub_plug in plug._sub_plugs.items():
-            data["outputs"][name]["sub_plugs"][sub_name]["value"] = (
+            data['outputs'][name]['sub_plugs'][sub_name]['value'] = (
                 sub_plug.value)
 
     nodes_data[identifier] = data
+
+
+def update_node(node, data):
+    """Apply the plug values of the data dict to the node object."""
+    for name, input_plug in data['inputs'].items():
+        node.inputs[name].value = input_plug['value']
+        for sub_name, sub_plug in input_plug['sub_plugs'].items():
+            for sub_id, sub_output in sub_plug['connections'].items():
+                node.inputs[name][sub_name].value = sub_output['value']
+                node.inputs[name][sub_name].is_dirty = False
+        node.inputs[name].is_dirty = False
+    for name, output_plug in data['outputs'].items():
+        node.outputs[name].value = output_plug['value']
+        for sub_name, sub_plug in output_plug['sub_plugs'].items():
+            for sub_id, sub_output in sub_plug['connections'].items():
+                node.outputs[name][sub_name].value = sub_output['value']
+                node.outputs[name][sub_name].is_dirty = False
+        node.outputs[name].is_dirty = False
