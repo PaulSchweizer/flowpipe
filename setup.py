@@ -12,7 +12,7 @@ REQUIREMENTS = [
 ]
 
 setup(name='flowpipe',
-      version='0.5.0',
+      version='0.5.1',
       author='Paul Schweizer',
       author_email='paulschweizer@gmx.net',
       description='Lightweight flow-based programming framework.',
