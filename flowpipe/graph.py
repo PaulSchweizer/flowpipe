@@ -139,16 +139,7 @@ class Graph(object):
                         target=node.evaluate,
                         name="flowpipe.{0}.{1}".format(self.name, node.name))
                     threads[node.name].start()
-            graph_threads = [t for t in threading.enumerate()
-                             if t.name.startswith(
-                                 "flowpipe.{0}".format(self.name))]
-            if len(graph_threads) == 0:
-                # No more threads running after a round of submissions means
-                # we're either done or stuck
-                if not all(not n.is_dirty for n in nodes):  # pragma: no cover
-                    raise RuntimeError(
-                        "Could not sucessfully compute all nodes in the graph "
-                        "{0}".format(self.name))
+            if all(not n.is_dirty for n in nodes):
                 break
             time.sleep(submission_delay)
 
