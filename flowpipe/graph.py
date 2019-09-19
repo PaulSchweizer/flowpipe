@@ -123,7 +123,7 @@ class Graph(object):
             for node in self.evaluation_sequence:
                 node.evaluate()
         else:
-            self._evaluate_threaded(submission_delay)
+            self._evaluate_threaded(submission_delay, raise_after)
 
     def _evaluate_threaded(self, submission_delay, raise_after_loops=3):
         threads = {}
