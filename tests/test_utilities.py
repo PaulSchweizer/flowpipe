@@ -6,6 +6,8 @@ import json
 import re
 from hashlib import sha256
 
+import numpy as np
+
 import flowpipe.utilities as util
 
 
@@ -37,3 +39,10 @@ def test_node_encoder():
         assert v == recovered_json[k] \
             or re.search('WeirdObject object at', str(recovered_json[k])) \
             or sha256(v).hexdigest() == recovered_json[k]
+
+    weird_np_array = {"key": "value", "other_key": np.arange(10)[::2]}
+    json_string = json.dumps(weird_np_array, cls=util.NodeEncoder)
+    recovered_json = json.loads(json_string)
+    for k, v in weird_np_array.items():
+        assert v == recovered_json[k]\
+            or sha256(bytes(v)).hexdigest() == recovered_json[k]

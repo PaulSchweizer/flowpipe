@@ -72,3 +72,5 @@ class NodeEncoder(JSONEncoder):
                 return sha256(o).hexdigest()
             except TypeError:
                 return str(o)
+            except ValueError:
+                return sha256(bytes(o)).hexdigest()
