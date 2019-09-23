@@ -4,3 +4,4 @@ mock
 coverage
 codacy-coverage
 doxypypy
+numpy
