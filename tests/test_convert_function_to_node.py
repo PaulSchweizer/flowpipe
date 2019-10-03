@@ -184,7 +184,7 @@ def test_node_reserved_names():
             pass
 
 
-@pytest.mark.skipif('sys.version_info >= (3, 6, 0)')
+@pytest.mark.skipif('sys.version_info < (3, 6, 0)')
 def test_type_hints_are_possible():
     """https://github.com/PaulSchweizer/flowpipe/issues/71"""
     eval("""\
