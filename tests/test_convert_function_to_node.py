@@ -187,8 +187,9 @@ def test_node_reserved_names():
 @pytest.mark.skipif('sys.version_info >= (3, 6, 0)')
 def test_type_hints_are_possible():
     """https://github.com/PaulSchweizer/flowpipe/issues/71"""
-    @Node(outputs=['bar'])
-    def foo(a: str) -> str:
-        return a + '_foo'
+    eval("""\
+@Node(outputs=['bar'])
+def foo(a: str) -> str:
+    return a + '_foo'
 
-    assert foo.compute('bar') == 'bar_foo'
+assert foo.compute('bar') == 'bar_foo'""")
