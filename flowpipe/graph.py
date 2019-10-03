@@ -107,7 +107,7 @@ class Graph(object):
             LogObserver.push_message(
                 "Node '{0}' is already part of this Graph".format(node.name))
 
-    def evaluate(self, threaded=False, submission_delay=0.1, raise_after=3):
+    def evaluate(self, threaded=False, submission_delay=0.1, raise_after=None):
         """Evaluate all Nodes.
 
         Args:
@@ -125,7 +125,7 @@ class Graph(object):
         else:
             self._evaluate_threaded(submission_delay, raise_after)
 
-    def _evaluate_threaded(self, submission_delay, raise_after_loops=3):
+    def _evaluate_threaded(self, submission_delay, raise_after_loops=None):
         threads = {}
         nodes_to_evaluate = list(self.evaluation_sequence)
         empty_loops = 0
