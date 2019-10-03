@@ -107,13 +107,15 @@ class Graph(object):
             LogObserver.push_message(
                 "Node '{0}' is already part of this Graph".format(node.name))
 
-    def evaluate(self, threaded=False, submission_delay=0.1):
+    def evaluate(self, threaded=False, submission_delay=0.1, raise_after=None):
         """Evaluate all Nodes.
 
         Args:
             threaded (bool): Whether to execute each node in a separate thread.
             submission_delay (float): The delay in seconds between loops
                 issuing new threads if nodes are ready to process.
+            raise_after (int): The number of loops without currently running
+                threads after which to raise a RuntimeError.
 
         """
         LogObserver.push_message("Evaluating Graph '{0}'".format(self.name))
@@ -121,16 +123,17 @@ class Graph(object):
             for node in self.evaluation_sequence:
                 node.evaluate()
         else:
-            self._evaluate_threaded(submission_delay)
+            self._evaluate_threaded(submission_delay, raise_after)
 
-    def _evaluate_threaded(self, submission_delay):
+    def _evaluate_threaded(self, submission_delay, raise_after_loops=None):
         threads = {}
-        nodes = list(self.evaluation_sequence)
+        nodes_to_evaluate = list(self.evaluation_sequence)
+        empty_loops = 0
         while True:
-            for node in nodes:
+            for node in nodes_to_evaluate:
                 if not node.is_dirty:
                     # If the node is done computing, drop it from the list
-                    nodes.remove(node)
+                    nodes_to_evaluate.remove(node)
                     continue
                 if (node.name not in threads
                         and all(not n.is_dirty for n in node.upstream_nodes)):
@@ -139,16 +142,23 @@ class Graph(object):
                         target=node.evaluate,
                         name="flowpipe.{0}.{1}".format(self.name, node.name))
                     threads[node.name].start()
+
             graph_threads = [t for t in threading.enumerate()
                              if t.name.startswith(
                                  "flowpipe.{0}".format(self.name))]
-            if len(graph_threads) == 0:
+            if len(graph_threads) == 0 \
+                    and not all(not n.is_dirty for n in nodes_to_evaluate):  # pragma: no cover
                 # No more threads running after a round of submissions means
                 # we're either done or stuck
-                if not all(not n.is_dirty for n in nodes):  # pragma: no cover
+                if raise_after_loops is not None \
+                        and empty_loops > raise_after_loops:
                     raise RuntimeError(
-                        "Could not sucessfully compute all nodes in the graph "
-                        "{0}".format(self.name))
+                        "Could not sucessfully compute all nodes in the "
+                        "graph {0}".format(self.name))
+                else:
+                    empty_loops += 1
+
+            if not nodes_to_evaluate:
                 break
             time.sleep(submission_delay)
 
