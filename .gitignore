@@ -1,3 +1,5 @@
+venv/
+docs/build
 *____*
 gui
 celery
