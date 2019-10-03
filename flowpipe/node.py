@@ -21,6 +21,13 @@ from .graph import get_default_graph
 __all__ = ['INode']
 
 
+# Use getfullargspec on py3.x to make type hints work
+try:
+    getargspec = inspect.getfullargspec
+except AttributeError:
+    getargspec = inspect.getargspec
+
+
 class INode(object):
     """Holds input and output Plugs and a method for computing."""
 
@@ -431,7 +438,6 @@ class FunctionNode(INode):
             for sub_name, sub_plug in output['sub_plugs'].items():
                 self.outputs[name][sub_name].value = sub_plug['value']
 
-
     def _initialize(self, func, outputs, metadata):
         """Use the function and the list of outputs to setup the Node."""
         self.func = func
@@ -441,7 +447,7 @@ class FunctionNode(INode):
         if func is not None:
             self.file_location = inspect.getfile(func)
             self.class_name = self.func.__name__
-            arg_spec = inspect.getargspec(func)
+            arg_spec = getargspec(func)
             defaults = {}
             if arg_spec.defaults is not None:
                 defaults = dict(zip(arg_spec.args[-len(arg_spec.defaults):],
