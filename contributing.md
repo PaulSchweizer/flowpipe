@@ -20,7 +20,7 @@ With that being said, we also aim for compatibility with python 3.6+.
 ## Unittests
 
 We have an extensive, reliable test suite and we want to keep it that way, so please write sufficient tests for your contributions.
-We also want to keep the coverage at 100%. If there are good reasons for not covering parts of the code, please explicitely exclude them either via `# pragma: no cover` directly in the code or by specifying it in the [.coveragerc}(.coveragerc) file.
+We also want to keep the coverage at 100%. If there are good reasons for not covering parts of the code, please explicitely exclude them either via `# pragma: no cover` directly in the code or by specifying it in the [.coveragerc](.coveragerc) file.
 The tests have to pass on travis (py2.7 and py3.6).
 
 ## Coding styleguide
