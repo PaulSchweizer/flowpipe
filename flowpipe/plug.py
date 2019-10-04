@@ -145,8 +145,6 @@ class OutputPlug(IPlug):
     @value.setter
     def value(self, value):
         """Propagate the dirty state to all connected Plugs as well."""
-        if self._sub_plugs:
-            return
         self._value = value
         self.is_dirty = True
         for plug in self.connections:
@@ -293,6 +291,7 @@ class SubInputPlug(IPlug):
         super(SubInputPlug, self).__init__(
             '{0}.{1}'.format(parent_plug.name, key), node,
             (OutputPlug, SubOutputPlug))
+        self.key = key
         self.parent_plug = parent_plug
         self.value = value
         self.is_dirty = True
@@ -355,6 +354,7 @@ class SubOutputPlug(IPlug):
         super(SubOutputPlug, self).__init__(
             '{0}.{1}'.format(parent_plug.name, key), node,
             (InputPlug, SubInputPlug))
+        self.key = key
         self.parent_plug = parent_plug
         self.value = value
         self.is_dirty = True
@@ -371,6 +371,9 @@ class SubOutputPlug(IPlug):
         self.is_dirty = True
         for plug in self.connections:
             plug.value = value
+        parent_value = self.parent_plug.value or {}
+        parent_value[self.key] = value
+        self.parent_plug.value = parent_value
 
     @property
     def is_dirty(self):

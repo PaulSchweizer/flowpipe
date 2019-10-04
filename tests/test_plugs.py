@@ -5,7 +5,7 @@ import pytest
 
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
-from flowpipe.graph import reset_default_graph
+from flowpipe.graph import Graph, reset_default_graph
 
 
 @pytest.fixture
@@ -504,3 +504,31 @@ def test_plugs_can_not_contain_dots(clear_default_graph):
 
     with pytest.raises(ValueError):
         InputPlug(name='name.with.dots', node=A(graph=None))
+
+
+def test_compound_output_plugs_inform_parent_on_value_set(clear_default_graph):
+    """
+    +--------------------+          +----------------------+
+    |      Generate      |          |       MyPrint        |
+    |--------------------|          |----------------------|
+    |                out %--------->o value<{"1": 1, ">    |
+    |             out.0  o          +----------------------+
+    |             out.1  o
+    |             out.2  o
+    +--------------------+
+    """
+    @Node(outputs=['out'])
+    def Generate():
+        return {'out.{0}'.format(i): i for i in range(3)}
+
+    @Node(outputs=['out'])
+    def TestNode(value):
+        return {'out': value}
+
+    graph = Graph()
+    generate = Generate(graph=graph)
+    test = TestNode(graph=graph)
+    generate.outputs['out'] >> test.inputs['value']
+    graph.evaluate()
+
+    assert test.outputs['out'].value == {'0': 0, '1': 1, '2': 2}
