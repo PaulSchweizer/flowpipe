@@ -191,7 +191,6 @@ class Graph(object):
                         name="flowpipe.{0}.{1}".format(self.name, node.name),
                         args=(node.identifier, nodes_data))
                     processes[node.name].start()
-                    processes[node.name].join()
 
             if not nodes_to_evaluate:
                 break
