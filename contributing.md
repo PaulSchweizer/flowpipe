@@ -1,16 +1,21 @@
 # Contributing to Flowpipe
 
-:+1::tada: First off, thanks for taking the time to contribute! :tada::+1:
+:+1::tada: Thank you very much for taking the time to contribute! :tada::+1:
 
 ## Questions
 
-Feel free to submit your questions as tickets on github.
-Please also note that we have set of [examples](examples) and a [readme](README.md) so you might find an answer in there as well.
+Please don't hesitate to submit any questions as tickets on github!
+Please also note that we have set of [examples](examples) and a [readme](README.md) so you might be able to find answers in there as well.
+
+## Feature Requests, Bug Reports, Ideas
+
+Same as for questions, please submit your feature requests, ideas and bug reports as tickets on github. Any such contribution is very much appreciated as it helps to improve this project further.
 
 ## Pull Requests
 
-Pull Requests should follow the below conventions.
-We are always squashing when merging the PRs so don't worry about the number of commits on your PR.
+Please fork the repo, create a branch for your changes and submit a pull request.
+Pull requests should follow the below conventions.
+Also note that we are always squashing when merging the PRs so don't worry about the number of commits on your PR.
 
 ## Compatibility
 
@@ -35,3 +40,7 @@ We generally follow [pep8](https://www.python.org/dev/peps/pep-0008/) with these
 Currently there is no specific release policy enacted, so please state in your Pull Request whether you'd need a new PyPi release after the merge and we will release it.
 
 Generally we release to PyPi by drafting a new release in github, updating the `__version__` in [flowpipe/__init__.py](flowpipe/__init__.py) and then triggering (or waiting for) the travis build.
+
+# Next Steps: Become a Collaborator on github
+
+If you have made some contributions already and want to become more involved in the project please don't hesitate to ask about becoming a collaborator.
