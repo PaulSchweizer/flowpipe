@@ -1,4 +1,7 @@
 """Flow-based programming with python."""
+
+__version__ = '0.5.3'
+
 import logging
 
 PACKAGE = 'flowpipe'
