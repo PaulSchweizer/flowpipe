@@ -370,7 +370,7 @@ def test_reset_default_graph(clear_default_graph):
     reset_default_graph()
     assert get_default_graph().name == 'default'
 
-    
+
 def test_threaded_evluation():
     """Test by having sleeper nodes sleep in parallel and check total grah timing.
 
@@ -388,7 +388,7 @@ def test_threaded_evluation():
                                +---------------+
 
     """
-    sleep_time = .3
+    sleep_time = 1
     delay = .05
     graph = Graph(name="threaded")
 
@@ -408,5 +408,5 @@ def test_threaded_evluation():
     end = time.time()
 
     runtime = end - start
-    assert 2*sleep_time <= runtime
-    assert runtime <= 2 * sleep_time + 2 * delay
+
+    assert runtime < len(graph.nodes) * sleep_time + len(graph.nodes) * delay

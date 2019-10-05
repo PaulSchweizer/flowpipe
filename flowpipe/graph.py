@@ -190,6 +190,7 @@ class Graph(object):
                         target=evaluate_node_in_process,
                         name="flowpipe.{0}.{1}".format(self.name, node.name),
                         args=(node.identifier, nodes_data))
+                    processes[node.name].daemon = True
                     processes[node.name].start()
 
             if not nodes_to_evaluate:
