@@ -163,7 +163,7 @@ class Graph(object):
                 break
             time.sleep(submission_delay)
 
-    def evaluate_multiprocessed(self, submission_delay=0.1):
+    def evaluate_multiprocessed(self, submission_delay=0):
         """Similar to the threaded evaluation but with multiprocessing.
 
         Nodes communicate via a manager and are evaluated in a dedicated
@@ -176,6 +176,13 @@ class Graph(object):
         processes = {}
         nodes_to_evaluate = list(self.evaluation_sequence)
 
+        def upstream_ready(processes, node):
+            for n in node.upstream_nodes:
+                process = processes.get(n.name)
+                if not process or process.is_alive():
+                    return False
+            return True
+
         while True:
             for node in nodes_to_evaluate:
 
@@ -186,19 +193,13 @@ class Graph(object):
                     update_node(node, nodes_data[node.identifier])
                     continue
 
-                upstream_ready = True
-                for n in node.upstream_nodes:
-                    process = processes.get(n.name)
-                    if not process or process.is_alive():
-                        upstream_ready = False
-                        break
-
-                if node.name not in processes and upstream_ready:
+                if node.name not in processes and upstream_ready(
+                        processes, node):
                     # If all deps are ready and no thread is active, create one
                     nodes_data[node.identifier] = node.serialize()
                     processes[node.name] = Process(
                         target=evaluate_node_in_process,
-                        name="flowpipe.{0}.{1}".format(self.name, node.name),
+                        name='flowpipe.{0}.{1}'.format(self.name, node.name),
                         args=(node.identifier, nodes_data))
                     processes[node.name].daemon = True
                     processes[node.name].start()
@@ -326,6 +327,9 @@ def evaluate_node_in_process(identifier, nodes_data):
     for name, plug in node.outputs.items():
         data['outputs'][name]['value'] = plug.value
         for sub_name, sub_plug in plug._sub_plugs.items():
+            if sub_name not in data['outputs'][name]['sub_plugs']:
+                data['outputs'][name]['sub_plugs'][sub_name] = (
+                    sub_plug.serialize())
             data['outputs'][name]['sub_plugs'][sub_name]['value'] = (
                 sub_plug.value)
 
@@ -338,13 +342,13 @@ def update_node(node, data):
         node.inputs[name].value = input_plug['value']
         for sub_name, sub_plug in input_plug['sub_plugs'].items():
             for sub_output in sub_plug['connections'].values():
-                node.inputs[name][sub_name].value = sub_output['value']
+                node.inputs[name][sub_name].value = sub_plug['value']
                 node.inputs[name][sub_name].is_dirty = False
         node.inputs[name].is_dirty = False
     for name, output_plug in data['outputs'].items():
         node.outputs[name].value = output_plug['value']
         for sub_name, sub_plug in output_plug['sub_plugs'].items():
             for sub_output in sub_plug['connections'].values():
-                node.outputs[name][sub_name].value = sub_output['value']
+                node.outputs[name][sub_name].value = sub_plug['value']
                 node.outputs[name][sub_name].is_dirty = False
         node.outputs[name].is_dirty = False
