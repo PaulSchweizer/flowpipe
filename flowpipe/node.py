@@ -9,6 +9,7 @@ except ImportError:
 import copy
 import inspect
 import json
+import pickle
 import time
 import uuid
 import warnings
@@ -170,8 +171,29 @@ class INode(object):
             for connected_plug in output_plug.connections:
                 connected_plug.is_dirty = True
 
-    def serialize(self):
+    def to_pickle(self):
+        """Serialize the node into a pickle."""
+        return pickle.dumps(self)
+
+    def to_json(self):
         """Serialize the node to json."""
+        return self._serialize()
+
+    def serialize(self):
+        """Serialize the node to json.
+
+        Deprecated and kept for backwards compatibility.
+        """
+        trace = inspect.getouterframes(inspect.currentframe())
+        if not any(frame.function == 'to_json' for frame in trace):
+            warnings.warn(
+                'Node.serialize is deprecated. Use Node.to_json instead',
+                DeprecationWarning)
+
+        return self._serialize()
+
+    def _serialize(self):
+        """Perform the serialization to json."""
         if self.file_location is None:  # pragma: no cover
             raise RuntimeError("Cannot serialize a node that was not defined "
                                "in a file")
@@ -192,8 +214,21 @@ class INode(object):
             metadata=self.metadata)
 
     @staticmethod
+    def from_pickle(data):
+        """De-serialize from the given pickle data."""
+        return pickle.loads(data)
+
+    @staticmethod
+    def from_json(data):
+        """De-serialize from the given json data."""
+        return deserialize_node(data)
+
+    @staticmethod
     def deserialize(data):
         """De-serialize from the given json data."""
+        warnings.warn(
+            'Node.deserialize is deprecated. Use Node.from_json instead',
+            DeprecationWarning)
         return deserialize_node(data)
 
     def post_deserialize(self, data):

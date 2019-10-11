@@ -209,7 +209,28 @@ class Graph(object):
 
             time.sleep(submission_delay)
 
+    def to_pickle(self):
+        """Serialize the graph into a pickle."""
+        return pickle.dumps(self)
+
+    def to_json(self):
+        """Serialize the graph into a json."""
+        return self._serialize()
+
     def serialize(self):
+        """Serialize the graph in it's grid form.
+
+        Deprecated.
+        """
+        trace = inspect.getouterframes(inspect.currentframe())
+        if not any(frame.function == 'to_json' for frame in trace):
+            warnings.warn(
+                'Graph.serialize is deprecated. Use Graph.to_json instead',
+                DeprecationWarning)
+
+        return self._serialize()
+
+    def _serialize(self):
         """Serialize the graph in it's grid form."""
         data = OrderedDict(
             module=self.__module__,
@@ -219,8 +240,21 @@ class Graph(object):
         return data
 
     @staticmethod
+    def from_pickle(data):
+        """De-serialize from the given pickle data."""
+        return pickle.loads(data)
+
+    @staticmethod
+    def from_json(data):
+        """De-serialize from the given json data."""
+        return deserialize_graph(data)
+
+    @staticmethod
     def deserialize(data):
         """De-serialize from the given json data."""
+        warnings.warn(
+            'Graph.deserialize is deprecated. Use Graph.from_json instead',
+            DeprecationWarning)
         return deserialize_graph(data)
 
     def _sort_node(self, node, parent, level):
