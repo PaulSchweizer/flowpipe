@@ -406,7 +406,7 @@ def test_threaded_evaluation():
     n1.outputs['result'] >> n3.inputs['number1']
 
     start = time.time()
-    graph.evaluate(threaded=True, submission_delay=delay)
+    graph.evaluate(mode="threading", submission_delay=delay)
     end = time.time()
 
     runtime = end - start
