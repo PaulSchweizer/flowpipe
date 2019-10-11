@@ -372,7 +372,9 @@ def test_reset_default_graph(clear_default_graph):
 
 
 def test_threaded_evaluation():
-    """Testing the threaded evaluation by asserting the result value.
+    """Testing the threaded evaluation by asserting the result value
+
+    Also testing the evaluation time.
     +---------------+          +---------------+
     |   AddNode1    |          |   AddNode2    |
     |---------------|          |---------------|
@@ -388,6 +390,7 @@ def test_threaded_evaluation():
                                |        result o
                                +---------------+
     """
+    sleep_time = 1
     delay = .05
     graph = Graph(name='threaded')
 
@@ -402,7 +405,12 @@ def test_threaded_evaluation():
     n1.outputs['result'] >> n2.inputs['number1']
     n1.outputs['result'] >> n3.inputs['number1']
 
+    start = time.time()
     graph.evaluate(threaded=True, submission_delay=delay)
+    end = time.time()
 
+    runtime = end - start
+
+    assert runtime < len(graph.nodes) * sleep_time + len(graph.nodes) * delay
     assert n2.outputs['result'].value == 3
     assert n3.outputs['result'].value == 3
