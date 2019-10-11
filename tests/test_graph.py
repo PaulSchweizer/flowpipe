@@ -414,3 +414,8 @@ def test_threaded_evaluation():
     assert runtime < len(graph.nodes) * sleep_time + len(graph.nodes) * delay
     assert n2.outputs['result'].value == 3
     assert n3.outputs['result'].value == 3
+
+
+def test_invalid_evaluation_mode():
+    with pytest.raises(ValueError):
+        Graph().evaluate(mode="foo")
