@@ -190,7 +190,7 @@ class Graph(object):
                 else:
                     empty_loops += 1
             else:
-                empty_loop = 0
+                empty_loops = 0
 
             if not nodes_to_evaluate:
                 break
