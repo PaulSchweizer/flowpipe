@@ -416,6 +416,12 @@ def test_threaded_evaluation():
     assert n3.outputs['result'].value == 3
 
 
+def test_valid_evaluation_mode():
+    eval_modes = ["linear", "threading", "multiprocessing"]
+    for mode in eval_modes:
+        Graph().evaluate(mode=mode)
+
+
 def test_invalid_evaluation_mode():
     with pytest.raises(ValueError):
         Graph().evaluate(mode="foo")

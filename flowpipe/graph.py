@@ -113,20 +113,23 @@ class Graph(object):
         """Evaluate all Nodes in the graph.
 
         Sorts the nodes in the graph into a resolution order and evaluates the
-        nodes. Nodes that do not depend on each other can be parallelized
-        either by threading or multiprocessing, see the "mode" keyword.
+        nodes. Evaluation can be parallelized by utilizing the dependencies
+        between the nodes - see the "mode" keyword for the options.
 
         Note that no checks are in place whether the node execution is actually
         thread-safe or fit for multiprocessing. It is assumed to be given if
         the respective mode is selected.
 
+        Some keyword arguments do not affect all evaluation modes.
+
         Args:
             mode (str): The evaluation mode. Possible modes are
                 * linear : Iterates over all nodes in a single thread
-                * threading : Spawns independent nodes in new threads
-                * multiprocessing : Spawns independent nodes in new processes
-            skip_clean (bool): Whether to skip nodes that are 'clean', i.e.
-                whose inputs have not changed since their output was computed
+                * threading : Evaluates each node in a new thread
+                * multiprocessing : Evaluates each node in a new process
+            skip_clean (bool): Whether to skip nodes that are 'clean' (as
+                tracked by the 'is_dirty' attribute on the node), i.e. whose
+                inputs have not changed since their output was computed
             submission_delay (float): The delay in seconds between loops
                 issuing new threads/processes if nodes are ready to process.
             raise_after (int): The number of loops without currently running
@@ -154,11 +157,13 @@ class Graph(object):
         eval_func(skip_clean=skip_clean, submission_delay=submission_delay,
                   raise_after=raise_after)
 
+    # kwargs are included to allow for the factory pattern for eval modes
     def _evaluate_linear(self, skip_clean, **kwargs):
         for node in self.evaluation_sequence:
             if node.is_dirty or not skip_clean:
                 node.evaluate()
 
+    # kwargs are included to allow for the factory pattern for eval modes
     def _evaluate_threaded(self, skip_clean, submission_delay, raise_after,
                            **kwargs):
         threads = {}
@@ -196,6 +201,7 @@ class Graph(object):
                 break
             time.sleep(submission_delay)
 
+    # kwargs are included to allow for the factory pattern for eval modes
     def _evaluate_multiprocessed(self, skip_clean, submission_delay, **kwargs):
         """Similar to the threaded evaluation but with multiprocessing.
 
