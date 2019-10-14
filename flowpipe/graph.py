@@ -7,9 +7,12 @@ try:
 except ImportError:
     from ordereddict import OrderedDict
 
+import inspect
 from multiprocessing import Manager, Process
+import pickle
 import threading
 import time
+import warnings
 
 from ascii_canvas import canvas
 from ascii_canvas import item
@@ -217,7 +220,7 @@ class Graph(object):
         """Serialize the graph into a json."""
         return self._serialize()
 
-    def serialize(self):
+    def serialize(self):  # pragma: no cover
         """Serialize the graph in it's grid form.
 
         Deprecated.
@@ -250,7 +253,7 @@ class Graph(object):
         return deserialize_graph(data)
 
     @staticmethod
-    def deserialize(data):
+    def deserialize(data):  # pragma: no cover
         """De-serialize from the given json data."""
         warnings.warn(
             'Graph.deserialize is deprecated. Use Graph.from_json instead',

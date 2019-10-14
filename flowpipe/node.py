@@ -179,7 +179,7 @@ class INode(object):
         """Serialize the node to json."""
         return self._serialize()
 
-    def serialize(self):
+    def serialize(self):  # pragma: no cover
         """Serialize the node to json.
 
         Deprecated and kept for backwards compatibility.
@@ -224,7 +224,7 @@ class INode(object):
         return deserialize_node(data)
 
     @staticmethod
-    def deserialize(data):
+    def deserialize(data):  # pramga: no cover
         """De-serialize from the given json data."""
         warnings.warn(
             'Node.deserialize is deprecated. Use Node.from_json instead',
@@ -444,9 +444,9 @@ class FunctionNode(INode):
         else:
             return self.func(*args, **kwargs)
 
-    def serialize(self):
+    def _serialize(self):
         """Also serialize the location of the wrapped function."""
-        data = super(FunctionNode, self).serialize()
+        data = super(FunctionNode, self)._serialize()
         data['func'] = {
             'module': self.func.__module__,
             'name': self.func.__name__
@@ -507,6 +507,11 @@ class FunctionNode(INode):
         if outputs is not None:
             for output in outputs:
                 OutputPlug(output, self)
+
+    def to_pickle(self):  # pragma: no cover
+        """Pickle the node. -- DOES NOT WORK FOR FunctionNode!"""
+        raise NotImplementedError("Pickling is not implemented for "
+                                  "FunctionNode.")
 
 
 def Node(*args, **kwargs):

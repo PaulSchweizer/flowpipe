@@ -4,7 +4,9 @@ __version__ = '0.5.4'
 
 import logging
 
+
 PACKAGE = 'flowpipe'
+
 
 # create logger
 logger = logging.getLogger(PACKAGE)
@@ -21,3 +23,7 @@ handler.setFormatter(formatter)
 
 # add handler to logger
 logger.addHandler(handler)
+
+from .graph import Graph
+from .node import INode, Node
+from .plug import InputPlug, OutputPlug
