@@ -35,9 +35,7 @@ o amount<4>         |     +--->o attendees<>         |
 +-------------------+
 
 """
-from flowpipe.node import INode, Node
-from flowpipe.plug import InputPlug, OutputPlug
-from flowpipe.graph import Graph
+from flowpipe import Graph, INode, Node, InputPlug, OutputPlug
 
 
 class HireWorkers(INode):
@@ -74,7 +72,7 @@ def Build(workers, section):
 def Party(attendees):
     """Nodes do not necessarily need to have output or input plugs."""
     print('{0} and {1} are having a great party!'.format(
-        ', '.join(attendees.values()[:-1]), attendees.values()[-1]))
+        ', '.join(list(attendees.values())[:-1]), list(attendees.values())[-1]))
 
 
 graph = Graph(name='Build a House')

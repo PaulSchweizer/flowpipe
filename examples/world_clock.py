@@ -29,10 +29,7 @@ import logging
 from time import time
 
 from flowpipe import logger
-from flowpipe.plug import InputPlug, OutputPlug
-from flowpipe.node import INode, Node
-
-from flowpipe.graph import Graph
+from flowpipe import Graph, INode, Node, InputPlug, OutputPlug
 
 
 @Node(outputs=['time'])
