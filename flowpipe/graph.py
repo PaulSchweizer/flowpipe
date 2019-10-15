@@ -172,14 +172,17 @@ class Graph(object):
         empty_loops = 0
         while True:
             for node in nodes_to_evaluate:
-                if (node.name not in threads
-                        and all(not n.is_dirty for n in node.upstream_nodes)):
+                thread = threads.get(node.name)
+                if thread and not thread.is_alive():
+                    # If the node is done computing, drop it from the list
+                    nodes_to_evaluate.remove(node)
+                    continue
+                if not thread and all(not n.is_dirty for n in node.upstream_nodes):
                     # If all deps are ready and no thread is active, create one
                     threads[node.name] = threading.Thread(
                         target=node.evaluate,
                         name="flowpipe.{0}.{1}".format(self.name, node.name))
                     threads[node.name].start()
-                    nodes_to_evaluate.remove(node)
 
             graph_threads = [t for t in threading.enumerate()
                              if t.name.startswith(
