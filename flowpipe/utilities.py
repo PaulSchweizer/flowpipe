@@ -5,6 +5,7 @@ except ImportError:
 import imp
 import json
 from hashlib import sha256
+import sys
 
 
 def import_class(module, cls_name, file_location=None):
@@ -101,7 +102,10 @@ def get_hash(obj, hash_func=lambda x: sha256(x).hexdigest()):
             obj = js
         if isinstance(obj, str):
             return hash_func(obj.encode('utf-8'))
-        try:
-            return hash_func(bytes(obj))
-        except TypeError:
+        if sys.version_info.major > 2:
+            try:
+                return hash_func(bytes(obj))
+            except TypeError:
+                return None
+        else:
             return None
