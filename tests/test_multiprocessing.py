@@ -48,7 +48,7 @@ def test_multiprocessed_evaluation_is_faster():
     s1.outputs['out'] >> s4.inputs['in1']
 
     start = time.time()
-    graph.evaluate_multiprocessed()
+    graph.evaluate(mode="multiprocessing")
     end = time.time()
 
     runtime = end - start
@@ -121,7 +121,7 @@ def test_multiprocessing_evaluation_updates_the_original_graph():
 
     n4.outputs['results'] >> n5.inputs['numbers']
 
-    graph.evaluate_multiprocessed()
+    graph.evaluate(mode="multiprocessing", submission_delay=0)
 
     assert n2.outputs['result'].value == 3
     assert n3.outputs['result'].value == 3

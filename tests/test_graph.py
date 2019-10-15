@@ -406,7 +406,7 @@ def test_threaded_evaluation():
     n1.outputs['result'] >> n3.inputs['number1']
 
     start = time.time()
-    graph.evaluate(threaded=True, submission_delay=delay)
+    graph.evaluate(mode="threading", submission_delay=delay)
     end = time.time()
 
     runtime = end - start
@@ -414,3 +414,14 @@ def test_threaded_evaluation():
     assert runtime < len(graph.nodes) * sleep_time + len(graph.nodes) * delay
     assert n2.outputs['result'].value == 3
     assert n3.outputs['result'].value == 3
+
+
+def test_valid_evaluation_mode():
+    eval_modes = ["linear", "threading", "multiprocessing"]
+    for mode in eval_modes:
+        Graph().evaluate(mode=mode)
+
+
+def test_invalid_evaluation_mode():
+    with pytest.raises(ValueError):
+        Graph().evaluate(mode="foo")
