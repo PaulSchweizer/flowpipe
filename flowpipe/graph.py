@@ -7,7 +7,6 @@ try:
 except ImportError:
     from ordereddict import OrderedDict
 
-import inspect
 from multiprocessing import Manager, Process
 import pickle
 import threading
@@ -225,11 +224,9 @@ class Graph(object):
 
         Deprecated.
         """
-        trace = inspect.getouterframes(inspect.currentframe())
-        if not any(frame.function == 'to_json' for frame in trace):
-            warnings.warn(
-                'Graph.serialize is deprecated. Use Graph.to_json instead',
-                DeprecationWarning)
+        warnings.warn('Graph.serialize is deprecated. Instead, use one of '
+                      'Graph.to_json or Graph.to_pickle',
+                      DeprecationWarning)
 
         return self._serialize()
 
@@ -255,9 +252,9 @@ class Graph(object):
     @staticmethod
     def deserialize(data):  # pragma: no cover
         """De-serialize from the given json data."""
-        warnings.warn(
-            'Graph.deserialize is deprecated. Use Graph.from_json instead',
-            DeprecationWarning)
+        warnings.warn('Graph.deserialize is deprecated. Instead, use one of '
+                      'Graph.from_json or Graph.from_pickle',
+                      DeprecationWarning)
         return deserialize_graph(data)
 
     def _sort_node(self, node, parent, level):

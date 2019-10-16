@@ -184,12 +184,9 @@ class INode(object):
 
         Deprecated and kept for backwards compatibility.
         """
-        trace = inspect.getouterframes(inspect.currentframe())
-        if not any(frame.function == 'to_json' for frame in trace):
-            warnings.warn(
-                'Node.serialize is deprecated. Use Node.to_json instead',
-                DeprecationWarning)
-
+        warnings.warn('Node.serialize is deprecated. Instead, use one of '
+                      'Node.to_json or Node.to_pickle',
+                      DeprecationWarning)
         return self._serialize()
 
     def _serialize(self):
@@ -226,9 +223,9 @@ class INode(object):
     @staticmethod
     def deserialize(data):  # pramga: no cover
         """De-serialize from the given json data."""
-        warnings.warn(
-            'Node.deserialize is deprecated. Use Node.from_json instead',
-            DeprecationWarning)
+        warnings.warn('Node.deserialize is deprecated. Instead, use one of '
+                      'Node.from_json or Node.from_pickle',
+                      DeprecationWarning)
         return deserialize_node(data)
 
     def post_deserialize(self, data):
@@ -509,9 +506,10 @@ class FunctionNode(INode):
                 OutputPlug(output, self)
 
     def to_pickle(self):  # pragma: no cover
-        """Pickle the node. -- DOES NOT WORK FOR FunctionNode!"""
-        raise NotImplementedError("Pickling is not implemented for "
-                                  "FunctionNode.")
+        """Pickle the node. -- DOES NOT WORK FOR FunctionNode."""
+        raise NotImplementedError(
+            "Pickling is not implemented for FunctionNode. "
+            "Consider subclassing flowpipe.node.INode to pickle nodes.")
 
 
 def Node(*args, **kwargs):
