@@ -6,6 +6,7 @@ import pytest
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.graph import Graph, reset_default_graph
+from flowpipe.utilities import get_hash
 
 
 @pytest.fixture
@@ -532,3 +533,37 @@ def test_compound_output_plugs_inform_parent_on_value_set(clear_default_graph):
     graph.evaluate()
 
     assert test.outputs['out'].value == {'0': 0, '1': 1, '2': 2}
+
+
+def test_plug_gets_dirty_only_on_change(clear_default_graph):
+    """Test that plugs only change dirtyness if a real change happens."""
+    in_test, out_test = "foo", "bar"
+    n1 = NodeForTesting()
+    n2 = NodeForTesting()
+    out_plug = OutputPlug('out', n1)
+    in_plug = InputPlug('in', n2)
+
+    out_plug >> in_plug
+
+    in_plug.value = in_test
+    out_plug.value = out_test
+    assert in_plug.is_dirty
+    assert out_plug.is_dirty
+
+    in_plug.is_dirty = False
+    out_plug.is_dirty = False
+    assert not in_plug.is_dirty
+    assert not out_plug.is_dirty
+
+    same_val = in_plug.value
+    in_plug.value = same_val
+    assert not in_plug.is_dirty
+    assert not out_plug.is_dirty
+
+    out_plug.value = out_test
+    assert not in_plug.is_dirty
+    assert not out_plug.is_dirty
+
+    out_plug.value = "baz"
+    assert in_plug.is_dirty
+    assert out_plug.is_dirty

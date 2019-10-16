@@ -6,6 +6,7 @@ import pytest
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.graph import reset_default_graph, get_default_graph
+from flowpipe.utilities import get_hash
 
 
 @pytest.fixture
@@ -124,7 +125,7 @@ def test_dirty_depends_on_inputs(clear_default_graph):
     node.inputs['compound_in']['0'].is_dirty = False
     assert not node.is_dirty
 
-    node.inputs['in1'].value = 2
+    node.inputs['in1'].value = 42
     assert node.is_dirty
 
 

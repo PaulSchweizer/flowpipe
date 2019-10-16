@@ -2,6 +2,7 @@
 from __future__ import print_function
 from abc import abstractmethod
 import sys
+from .utilities import get_hash
 __all__ = ['OutputPlug', 'InputPlug']
 
 try:
@@ -55,6 +56,15 @@ class IPlug(object):
         if isinstance(other, self.accepted_plugs):
             self.disconnect(other)
 
+    # Extra function to make re-use in subclasses easier
+    def _update_value(self, value):
+        """Update the internal value."""
+        old_hash = get_hash(self._value)
+        new_hash = get_hash(value)
+        self._value = value
+        if old_hash is None or new_hash is None or (old_hash != new_hash):
+            self.is_dirty = True
+
     @property
     def value(self):
         """Access to the value on this Plug."""
@@ -63,8 +73,7 @@ class IPlug(object):
     @value.setter
     def value(self, value):
         """Set the Plug dirty when the value is being changed."""
-        self._value = value
-        self.is_dirty = True
+        self._update_value(value)
 
     @property
     def is_dirty(self):
@@ -145,8 +154,7 @@ class OutputPlug(IPlug):
     @value.setter
     def value(self, value):
         """Propagate the dirty state to all connected Plugs as well."""
-        self._value = value
-        self.is_dirty = True
+        self._update_value(value)
         for plug in self.connections:
             plug.value = value
 
@@ -166,8 +174,10 @@ class OutputPlug(IPlug):
             self.connections.append(plug)
             plug.value = self.value
             self.is_dirty = True
+            plug.is_dirty = True
         if self not in plug.connections:
             plug.connections = [self]
+            plug.is_dirty = True
 
     def serialize(self):
         """Serialize the Plug containing all it's connections."""
@@ -238,8 +248,7 @@ class InputPlug(IPlug):
         """Set the Plug dirty when the value is being changed."""
         if self._sub_plugs:
             return
-        self._value = value
-        self.is_dirty = True
+        self._update_value(value)
 
     def connect(self, plug):
         """Connect this Plug to the given OutputPlug.
@@ -255,6 +264,7 @@ class InputPlug(IPlug):
 
         self.connections = [plug]
         self.is_dirty = True
+        plug.is_dirty = True
         if self not in plug.connections:
             plug.connections.append(self)
             plug.is_dirty = True
@@ -367,8 +377,7 @@ class SubOutputPlug(IPlug):
     @value.setter
     def value(self, value):
         """Propagate the dirty state to all connected Plugs as well."""
-        self._value = value
-        self.is_dirty = True
+        self._update_value(value)
         for plug in self.connections:
             plug.value = value
         parent_value = self.parent_plug.value or {}
@@ -403,8 +412,10 @@ class SubOutputPlug(IPlug):
             self.connections.append(plug)
             plug.value = self.value
             self.is_dirty = True
+            plug.is_dirty = True
         if self not in plug.connections:
             plug.connections = [self]
+            plug.is_dirty = True
 
     def serialize(self):
         """Serialize the Plug containing all it's connections."""

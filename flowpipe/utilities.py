@@ -3,8 +3,9 @@ try:
 except ImportError:
     pass
 import imp
-from json import JSONEncoder
+import json
 from hashlib import sha256
+import sys
 
 
 def import_class(module, cls_name, file_location=None):
@@ -56,7 +57,7 @@ def deserialize_graph(data):
     return graph
 
 
-class NodeEncoder(JSONEncoder):
+class NodeEncoder(json.JSONEncoder):
     """Custom JSONEncoder to handle non-json serializable node values.
 
     If the value is not json serializable, a sha256 hash of its bytes is
@@ -74,3 +75,37 @@ class NodeEncoder(JSONEncoder):
                 return str(o)
             except ValueError:
                 return sha256(bytes(o)).hexdigest()
+
+
+def get_hash(obj, hash_func=lambda x: sha256(x).hexdigest()):
+    """Safely get the hash of an object.
+
+    This function tries to compute the hash as safely as possible, dealing with
+    json data and strings in a well-defined manner.
+
+    Args:
+        obj: The object to hash
+        hash_func (func(obj) -> str): The hashing function to use
+
+    Returns:
+        (str): A hash of the obj
+
+    """
+    try:
+        return hash_func(obj)
+    except TypeError:
+        try:
+            js = json.dumps(obj, sort_keys=True)
+        except TypeError:  # pragma: no cover
+            pass
+        else:
+            obj = js
+        if isinstance(obj, str):
+            return hash_func(obj.encode('utf-8'))
+        if sys.version_info.major > 2:
+            try:
+                return hash_func(bytes(obj))
+            except TypeError:
+                return None
+        else:
+            return None
