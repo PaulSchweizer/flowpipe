@@ -21,3 +21,7 @@ handler.setFormatter(formatter)
 
 # add handler to logger
 logger.addHandler(handler)
+
+from .graph import Graph
+from .node import INode, Node
+from .plug import InputPlug, OutputPlug, SubInputPlug, SubOutputPlug
