@@ -125,9 +125,6 @@ def test_dirty_depends_on_inputs(clear_default_graph):
     node.inputs['compound_in']['0'].is_dirty = False
     assert not node.is_dirty
 
-    print(node.inputs['in1'].value)
-    print(get_hash(node.inputs['in1'].value))
-    print(get_hash(42))
     node.inputs['in1'].value = 42
     assert node.is_dirty
 
