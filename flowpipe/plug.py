@@ -381,7 +381,6 @@ class SubOutputPlug(IPlug):
     def value(self, value):
         """Propagate the dirty state to all connected Plugs as well."""
         if get_hash(self._value) != get_hash(value):
-            print("Setting plug dirty!")
             self.is_dirty = True
         self._value = value
         for plug in self.connections:
