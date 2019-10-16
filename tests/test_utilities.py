@@ -57,11 +57,11 @@ def test_get_hash():
     js = {"foo": "bar", "baz": {"zoom": "zulu"}}
     assert util.get_hash(js) == '8336ea0f6e482df0c7a738c83a2b8d3357cf0234c29cfd232fa6627bdc54289e'
 
-    string = "kazoo{"  # Not a valid json!
+    invalid_js = "kazoo{"  # A generic string that's not json
     if sys.version_info.major > 2:
-        assert util.get_hash(string) == 'c21e3435e752b72514e34139f116afee1f72cf496c1cc94c9087088c139dfb7d'
+        assert util.get_hash(invalid_js) == 'c21e3435e752b72514e34139f116afee1f72cf496c1cc94c9087088c139dfb7d'
     else:
-        assert util.get_hash(string) == '5324bcf2641f119108d1f99b92687b0af513e572c68dfed217344ffeff1f35a9'
+        assert util.get_hash(invalid_js) == '5324bcf2641f119108d1f99b92687b0af513e572c68dfed217344ffeff1f35a9'
 
     x = WeirdObject()
     assert util.get_hash(x) is None
