@@ -36,9 +36,7 @@ Benefits:
 Consider this simple example on how to represent the construction of a house with Flowpipe:
 
 ```python
-from flowpipe.plug import InputPlug, OutputPlug
-from flowpipe.node import INode, Node
-from flowpipe.graph import Graph
+from flowpipe import Graph, INode, Node, InputPlug, OutputPlug
 
 
 class HireWorkers(INode):
