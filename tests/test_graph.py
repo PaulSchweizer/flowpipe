@@ -150,7 +150,7 @@ def test_complex_branching_evaluation_sequence(clear_default_graph):
     assert 'end' == seq[-1]
 
 
-def test_serialize_graph(clear_default_graph):
+def test_serialize_graph_to_json(clear_default_graph):
     """
     +------------+          +------------+          +--------------------+
     |   Start    |          |   Node2    |          |        End         |
@@ -179,8 +179,43 @@ def test_serialize_graph(clear_default_graph):
     n1.outputs['out'] >> end.inputs['in1']['1']
     n2.outputs['out'] >> end.inputs['in1']['2']
 
-    serialized = graph.serialize()
-    deserialized = graph.deserialize(serialized).serialize()
+    serialized = graph.to_json()
+    deserialized = Graph.from_json(serialized).to_json()
+
+    assert serialized == deserialized
+
+
+def test_serialize_graph_to_pickle(clear_default_graph):
+    """
+    +------------+          +------------+          +--------------------+
+    |   Start    |          |   Node2    |          |        End         |
+    |------------|          |------------|          |--------------------|
+    o in1<0>     |     +--->o in1<>      |          % in1                |
+    o in2<0>     |     |    o in2<0>     |     +--->o  in1.1<>           |
+    |        out o-----+    |        out o-----|--->o  in1.2<>           |
+    |       out2 o     |    |       out2 o     |    o in2<0>             |
+    +------------+     |    +------------+     |    |                out o
+                       |    +------------+     |    |               out2 o
+                       |    |   Node1    |     |    +--------------------+
+                       |    |------------|     |
+                       +--->o in1<>      |     |
+                            o in2<0>     |     |
+                            |        out o-----+
+                            |       out2 o
+                            +------------+
+    """
+    graph = Graph()
+    start = NodeForTesting(name='Start', graph=graph)
+    n1 = NodeForTesting(name='Node1', graph=graph)
+    n2 = NodeForTesting(name='Node2', graph=graph)
+    end = NodeForTesting(name='End', graph=graph)
+    start.outputs['out'] >> n1.inputs['in1']
+    start.outputs['out'] >> n2.inputs['in1']
+    n1.outputs['out'] >> end.inputs['in1']['1']
+    n2.outputs['out'] >> end.inputs['in1']['2']
+
+    serialized = graph.to_pickle()
+    deserialized = Graph.from_pickle(serialized).to_pickle()
 
     assert serialized == deserialized
 

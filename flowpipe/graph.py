@@ -8,8 +8,10 @@ except ImportError:
     from ordereddict import OrderedDict
 
 from multiprocessing import Manager, Process
+import pickle
 import threading
 import time
+import warnings
 
 from ascii_canvas import canvas
 from ascii_canvas import item
@@ -239,7 +241,7 @@ class Graph(object):
                 if node.name not in processes and upstream_ready(
                         processes, node):
                     # If all deps are ready and no thread is active, create one
-                    nodes_data[node.identifier] = node.serialize()
+                    nodes_data[node.identifier] = node.to_json()
                     processes[node.name] = Process(
                         target=evaluate_node_in_process,
                         name='flowpipe.{0}.{1}'.format(self.name, node.name),
@@ -252,18 +254,50 @@ class Graph(object):
 
             time.sleep(submission_delay)
 
-    def serialize(self):
+    def to_pickle(self):
+        """Serialize the graph into a pickle."""
+        return pickle.dumps(self)
+
+    def to_json(self):
+        """Serialize the graph into a json."""
+        return self._serialize()
+
+    def serialize(self):  # pragma: no cover
+        """Serialize the graph in it's grid form.
+
+        Deprecated.
+        """
+        warnings.warn('Graph.serialize is deprecated. Instead, use one of '
+                      'Graph.to_json or Graph.to_pickle',
+                      DeprecationWarning)
+
+        return self._serialize()
+
+    def _serialize(self):
         """Serialize the graph in it's grid form."""
         data = OrderedDict(
             module=self.__module__,
             cls=self.__class__.__name__,
             name=self.name)
-        data['nodes'] = [node.serialize() for node in self.nodes]
+        data['nodes'] = [node.to_json() for node in self.nodes]
         return data
 
     @staticmethod
-    def deserialize(data):
+    def from_pickle(data):
+        """De-serialize from the given pickle data."""
+        return pickle.loads(data)
+
+    @staticmethod
+    def from_json(data):
         """De-serialize from the given json data."""
+        return deserialize_graph(data)
+
+    @staticmethod
+    def deserialize(data):  # pragma: no cover
+        """De-serialize from the given json data."""
+        warnings.warn('Graph.deserialize is deprecated. Instead, use one of '
+                      'Graph.from_json or Graph.from_pickle',
+                      DeprecationWarning)
         return deserialize_graph(data)
 
     def _sort_node(self, node, parent, level):
@@ -353,15 +387,15 @@ def evaluate_node_in_process(identifier, nodes_data):
     """
     from flowpipe.node import INode
     data = nodes_data[identifier]
-    node = INode.deserialize(data)
+    node = INode.from_json(data)
 
     for name, input_plug in data['inputs'].items():
         for input_identifier, output_plug in input_plug['connections'].items():
-            upstream_node = INode.deserialize(nodes_data[input_identifier])
+            upstream_node = INode.from_json(nodes_data[input_identifier])
             node.inputs[name].value = upstream_node.outputs[output_plug].value
         for sub_name, sub_plug in input_plug['sub_plugs'].items():
             for sub_id, sub_output in sub_plug['connections'].items():
-                upstream_node = INode.deserialize(nodes_data[sub_id])
+                upstream_node = INode.from_json(nodes_data[sub_id])
                 node.inputs[name][sub_name].value = (
                     upstream_node.all_outputs()[sub_output].value)
 

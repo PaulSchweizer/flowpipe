@@ -4,7 +4,9 @@ __version__ = '0.5.6'
 
 import logging
 
+
 PACKAGE = 'flowpipe'
+
 
 # create logger
 logger = logging.getLogger(PACKAGE)

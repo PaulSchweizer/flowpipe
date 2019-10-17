@@ -9,6 +9,7 @@ except ImportError:
 import copy
 import inspect
 import json
+import pickle
 import time
 import uuid
 import warnings
@@ -170,8 +171,26 @@ class INode(object):
             for connected_plug in output_plug.connections:
                 connected_plug.is_dirty = True
 
-    def serialize(self):
+    def to_pickle(self):
+        """Serialize the node into a pickle."""
+        return pickle.dumps(self)
+
+    def to_json(self):
         """Serialize the node to json."""
+        return self._serialize()
+
+    def serialize(self):  # pragma: no cover
+        """Serialize the node to json.
+
+        Deprecated and kept for backwards compatibility.
+        """
+        warnings.warn('Node.serialize is deprecated. Instead, use one of '
+                      'Node.to_json or Node.to_pickle',
+                      DeprecationWarning)
+        return self._serialize()
+
+    def _serialize(self):
+        """Perform the serialization to json."""
         if self.file_location is None:  # pragma: no cover
             raise RuntimeError("Cannot serialize a node that was not defined "
                                "in a file")
@@ -192,8 +211,21 @@ class INode(object):
             metadata=self.metadata)
 
     @staticmethod
-    def deserialize(data):
+    def from_pickle(data):
+        """De-serialize from the given pickle data."""
+        return pickle.loads(data)
+
+    @staticmethod
+    def from_json(data):
         """De-serialize from the given json data."""
+        return deserialize_node(data)
+
+    @staticmethod
+    def deserialize(data):  # pramga: no cover
+        """De-serialize from the given json data."""
+        warnings.warn('Node.deserialize is deprecated. Instead, use one of '
+                      'Node.from_json or Node.from_pickle',
+                      DeprecationWarning)
         return deserialize_node(data)
 
     def post_deserialize(self, data):
@@ -409,9 +441,9 @@ class FunctionNode(INode):
         else:
             return self.func(*args, **kwargs)
 
-    def serialize(self):
+    def _serialize(self):
         """Also serialize the location of the wrapped function."""
-        data = super(FunctionNode, self).serialize()
+        data = super(FunctionNode, self)._serialize()
         data['func'] = {
             'module': self.func.__module__,
             'name': self.func.__name__
@@ -472,6 +504,12 @@ class FunctionNode(INode):
         if outputs is not None:
             for output in outputs:
                 OutputPlug(output, self)
+
+    def to_pickle(self):  # pragma: no cover
+        """Pickle the node. -- DOES NOT WORK FOR FunctionNode."""
+        raise NotImplementedError(
+            "Pickling is not implemented for FunctionNode. "
+            "Consider subclassing flowpipe.node.INode to pickle nodes.")
 
 
 def Node(*args, **kwargs):
