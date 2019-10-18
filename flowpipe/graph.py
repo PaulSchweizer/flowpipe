@@ -159,15 +159,23 @@ class Graph(object):
         eval_func(skip_clean=skip_clean, submission_delay=submission_delay,
                   raise_after=raise_after)
 
-    # kwargs are included to allow for the factory pattern for eval modes
     def _evaluate_linear(self, skip_clean, **kwargs):
+        """Iterate over all nodes in a single thread (the current one).
+
+        Args:
+            kwargs: included to allow for the factory pattern for eval modes
+        """
         for node in self.evaluation_sequence:
             if node.is_dirty or not skip_clean:
                 node.evaluate()
 
-    # kwargs are included to allow for the factory pattern for eval modes
     def _evaluate_threaded(self, skip_clean, submission_delay, raise_after,
                            **kwargs):
+        """Evaluate each node in a new thread.
+
+        Args:
+            kwargs: included to allow for the factory pattern for eval modes
+        """
         threads = {}
         nodes_to_evaluate = [n for n in self.evaluation_sequence
                              if n.is_dirty or not skip_clean]
@@ -206,7 +214,6 @@ class Graph(object):
                 break
             time.sleep(submission_delay)
 
-    # kwargs are included to allow for the factory pattern for eval modes
     def _evaluate_multiprocessed(self, skip_clean, submission_delay, **kwargs):
         """Similar to the threaded evaluation but with multiprocessing.
 
@@ -214,6 +221,9 @@ class Graph(object):
         function.
         The original node objects are updated with the results from the
         corresponding processes to reflect the evaluation.
+
+        Args:
+            kwargs: included to allow for the factory pattern for eval modes
         """
         manager = Manager()
         nodes_data = manager.dict()
@@ -222,22 +232,19 @@ class Graph(object):
                              if n.is_dirty or not skip_clean]
 
         def upstream_ready(processes, node):
-            for n in node.upstream_nodes:
-                process = processes.get(n.name)
-                if not process or process.is_alive():
+            for upstream in node.upstream_nodes:
+                if upstream in nodes_to_evaluate:
                     return False
             return True
 
         while True:
             for node in nodes_to_evaluate:
-
                 process = processes.get(node.name)
                 if process and not process.is_alive():
                     # If the node is done computing, drop it from the list
                     nodes_to_evaluate.remove(node)
                     update_node(node, nodes_data[node.identifier])
                     continue
-
                 if node.name not in processes and upstream_ready(
                         processes, node):
                     # If all deps are ready and no thread is active, create one
@@ -251,7 +258,6 @@ class Graph(object):
 
             if not nodes_to_evaluate:
                 break
-
             time.sleep(submission_delay)
 
     def to_pickle(self):
