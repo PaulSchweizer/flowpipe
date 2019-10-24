@@ -121,7 +121,7 @@ def test_multiprocessing_evaluation_updates_the_original_graph():
 
     n4.outputs['results'] >> n5.inputs['numbers']
 
-    graph.evaluate(mode="multiprocessing", submission_delay=0)
+    graph.evaluate(mode="multiprocessing", submission_delay=0.05)
 
     assert n2.outputs['result'].value == 3
     assert n3.outputs['result'].value == 3
