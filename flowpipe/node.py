@@ -6,6 +6,7 @@ try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
+import logging
 import copy
 import inspect
 import json
@@ -15,11 +16,12 @@ import uuid
 import warnings
 
 from .plug import OutputPlug, InputPlug, SubInputPlug, SubOutputPlug
-from .log_observer import LogObserver
-from .stats_reporter import StatsReporter
+from .event import Event
 from .utilities import deserialize_node, NodeEncoder, import_class
 from .graph import get_default_graph
-__all__ = ['INode']
+
+
+log = logging.getLogger(__name__)
 
 
 # Use getfullargspec on py3.x to make type hints work
@@ -34,6 +36,12 @@ class INode(object):
 
     __metaclass__ = ABCMeta
 
+    EVENTS = {
+        'evaluation-omitted': Event('evaluation-omitted'),
+        'evaluation-started': Event('evaluation-started'),
+        'evaluation-finished': Event('evaluation-finished')
+    }
+
     def __init__(self, name=None, identifier=None, metadata=None,
                  graph='default'):
         """Initialize the input and output dictionaries and the name.
@@ -43,7 +51,6 @@ class INode(object):
             graph (Graph): The graph to add the node to.
                 If set to 'default', the Node is added to the default graph.
                 If set to None, the Node is not added to any grpah.
-
         """
         self.name = name if name is not None else self.__class__.__name__
         self.identifier = (identifier if identifier is not None
@@ -111,32 +118,24 @@ class INode(object):
         evaluation time and timestamp the computation started.
         """
         if self.omit:
-            LogObserver.push_message('Omitting {0} -> {1}'.format(
-                self.file_location, self.class_name))
+            INode.EVENTS['evaluation-omitted'].emit(self)
             return {}
+
+        INode.EVENTS['evaluation-started'].emit(self)
 
         inputs = {}
         for name, plug in self.inputs.items():
             inputs[name] = plug.value
-
-        LogObserver.push_message(
-            'Evaluating {0} -> {1}.compute(**{2})'.format(
-                self.file_location, self.class_name,
-                json.dumps(self._sort_plugs(inputs), indent=2, cls=NodeEncoder)
-            ))
 
         # Compute and redirect the output to the output plugs
         start_time = time.time()
         outputs = self.compute(**inputs) or dict()
         eval_time = time.time() - start_time
 
-        stats = {
-            "node": self,
-            "eval_time": eval_time,
-            "timestamp": start_time
+        self.stats = {
+            'eval_time': eval_time,
+            'start_time': start_time
         }
-
-        StatsReporter.push_stats(stats)
 
         # all_outputs = self.all_outputs()
         for name, value in outputs.items():
@@ -150,11 +149,7 @@ class INode(object):
         for input_ in self.all_inputs().values():
             input_.is_dirty = False
 
-        LogObserver.push_message(
-            'Evaluation result for {0} -> {1}: {2}'.format(
-                self.file_location, self.class_name,
-                json.dumps(self._sort_plugs(outputs), indent=2, cls=NodeEncoder)
-            ))
+        INode.EVENTS['evaluation-finished'].emit(self)
 
         return outputs
 
@@ -221,7 +216,7 @@ class INode(object):
         return deserialize_node(data)
 
     @staticmethod
-    def deserialize(data):  # pramga: no cover
+    def deserialize(data):  # pragma: no cover
         """De-serialize from the given json data."""
         warnings.warn('Node.deserialize is deprecated. Instead, use one of '
                       'Node.from_json or Node.from_pickle',

@@ -1,12 +1,11 @@
 """A Graph of Nodes."""
 from __future__ import print_function
 from __future__ import absolute_import
-
 try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
-
+import logging
 from multiprocessing import Manager, Process
 import pickle
 import threading
@@ -16,9 +15,10 @@ import warnings
 from ascii_canvas import canvas
 from ascii_canvas import item
 
-from .log_observer import LogObserver
 from .utilities import deserialize_graph
-__all__ = ['Graph']
+
+
+log = logging.getLogger(__name__)
 
 
 class Graph(object):
@@ -107,8 +107,8 @@ class Graph(object):
                         "a Graph have to be unique.".format(node.name))
             self._nodes.append(node)
         else:
-            LogObserver.push_message(
-                "Node '{0}' is already part of this Graph".format(node.name))
+            log.warning(
+                'Node "{0}" is already part of this Graph'.format(node.name))
 
     def evaluate(self, mode="linear", skip_clean=False,
                  submission_delay=0.1, raise_after=None):
@@ -136,9 +136,8 @@ class Graph(object):
                 issuing new threads/processes if nodes are ready to process.
             raise_after (int): The number of loops without currently running
                 threads/processes after which to raise a RuntimeError.
-
         """
-        LogObserver.push_message("Evaluating Graph '{0}'".format(self.name))
+        log.info('Evaluating Graph "{0}"'.format(self.name))
 
         eval_modes = {
             "linear": self._evaluate_linear,

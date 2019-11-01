@@ -164,7 +164,7 @@ Build a House
 Now build the house:
 
 ```python
-graph.evaluate(threaded=True)  # The default graph evaluation is not threaded
+graph.evaluate(mode='threading')  # Options are linear, threading and multiprocessing
 ```
 
 Output:

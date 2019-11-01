@@ -7,7 +7,6 @@ import logging
 import os
 from tempfile import gettempdir
 
-import flowpipe
 from flowpipe import Graph, INode, Node
 
 
@@ -139,7 +138,7 @@ def evaluate_on_farm(serialized_json, frames=None):
         not be the 'last' batch actually executed.
     """
     # Debug logs might be useful on the farm
-    flowpipe.logger.setLevel(logging.DEBUG)
+    logging.baseConfig.setLevel(logging.DEBUG)
 
     # Deserialize the node from the serialized json
     with open(serialized_json, 'r') as f:

@@ -18,10 +18,10 @@ def clear_default_graph():
 class SquareNode(INode):
     """Square the given value."""
 
-    def __init__(self, name=None, *args, **kwargs):
+    def __init__(self, name=None, in1=None, *args, **kwargs):
         """Init the node."""
         super(SquareNode, self).__init__(name, *args, **kwargs)
-        InputPlug('in1', self)
+        InputPlug('in1', self, value=in1)
         InputPlug('compound_in', self)
         OutputPlug('out', self)
         OutputPlug('compound_out', self)
@@ -578,3 +578,37 @@ def test_all_outputs_contains_all_sub_output_plugs(clear_default_graph):
         'compound_out.key-1',
         'compound_out.0',
         'compound_out.1'])
+
+
+def test_node_reports_stats(clear_default_graph):
+    node = SquareNode(in1=1)
+    node.evaluate()
+    assert 'eval_time' in node.stats.keys()
+    assert 'start_time' in node.stats.keys()
+
+
+def test_node_events(clear_default_graph):
+    def omitted_listener(node):
+        assert node.omit
+        node.omit_listener_called = True
+
+    def started_listener(node):
+        node.started_listener_called = True
+
+    def finished_listener(node):
+        node.finished_listener_called = True
+
+    INode.EVENTS['evaluation-omitted'].register(omitted_listener)
+    INode.EVENTS['evaluation-started'].register(started_listener)
+    INode.EVENTS['evaluation-finished'].register(finished_listener)
+
+    node = SquareNode(in1=1)
+
+    node.omit = True
+    node.evaluate()
+    assert node.omit_listener_called
+
+    node.omit = False
+    node.evaluate()
+    assert node.started_listener_called
+    assert node.finished_listener_called
