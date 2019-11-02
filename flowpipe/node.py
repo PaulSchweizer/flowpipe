@@ -74,6 +74,7 @@ class INode(object):
                 get_default_graph().add_node(self)
             else:
                 graph.add_node(self)
+        self.stats = {}
 
     def __unicode__(self):
         """Show all input and output Plugs."""

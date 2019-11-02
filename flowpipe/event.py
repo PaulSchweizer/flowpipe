@@ -1,3 +1,7 @@
+"""Events are emitted during node evaluation.
+
+They an be used to observe the evaluation process.
+"""
 import logging
 
 
