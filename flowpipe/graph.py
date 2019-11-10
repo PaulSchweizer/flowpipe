@@ -27,7 +27,7 @@ class Graph(object):
     def __init__(self, name=None, nodes=None):
         """Initialize the list of Nodes."""
         self.name = name or self.__class__.__name__
-        self._nodes = nodes or []
+        self.nodes = nodes or []
 
     def __unicode__(self):
         """Display the Graph."""
@@ -46,15 +46,47 @@ class Graph(object):
             "Graph does not contain a Node named '{0}'".format(key))
 
     @property
-    def nodes(self):
-        """Aggregate the Nodes of this Graph and all it's sub graphs."""
-        nodes = []
-        for node in self._nodes:
-            if isinstance(node, Graph):
-                nodes += node.nodes
-            else:
-                nodes.append(node)
+    def all_nodes(self):
+        """Expand the graph with all it's subgraphs into a flat list of nodes.
+
+        Please note that in this expanded list, the node names are no longer
+        guaranteed to be unique!
+
+        Returns:
+            (list of INode): All nodes, including the nodes from subgraphs
+        """
+        nodes = [n for n in self.nodes]
+        for subgraph in self.subgraphs:
+            nodes += subgraph.nodes
         return nodes
+
+    @property
+    def subgraphs(self):
+        """All graphs 'downstream' from this graph."""
+        subgraphs = []
+        for node in self.nodes:
+            for downstream_node in node.downstream_nodes:
+                graph = downstream_node.graph
+                if graph != self and graph not in subgraphs:
+                    subgraphs.append(graph)
+                    for sub in graph.subgraphs:
+                        if sub not in subgraphs:
+                            subgraphs.append(sub)
+        return subgraphs
+
+    @property
+    def parent_graphs(self):
+        """All graphs 'upstream' from this graph."""
+        parent_graphs = []
+        for node in self.nodes:
+            for upstream_node in node.upstream_nodes:
+                graph = upstream_node.graph
+                if graph != self and graph not in parent_graphs:
+                    parent_graphs.append(graph)
+                    for parent in graph.parent_graphs:
+                        if parent not in parent_graphs:
+                            parent_graphs.append(parent)
+        return parent_graphs
 
     @property
     def evaluation_matrix(self):
@@ -70,7 +102,7 @@ class Graph(object):
         """
         levels = {}
 
-        for node in self.nodes:
+        for node in self.all_nodes:
             self._sort_node(node, levels, level=0)
 
         matrix = []
@@ -105,7 +137,8 @@ class Graph(object):
                         "Can not add Node of name '{0}', a Node with this "
                         "name already exists on this Graph. Node names on "
                         "a Graph have to be unique.".format(node.name))
-            self._nodes.append(node)
+            self.nodes.append(node)
+            node.graph = self
         else:
             log.warning(
                 'Node "{0}" is already part of this Graph'.format(node.name))
@@ -332,7 +365,7 @@ class Graph(object):
                 canvas_.add_item(item_)
             x += x_diff
 
-        for node in self.nodes:
+        for node in self.all_nodes:
             for j, plug in enumerate(node._sort_plugs(node.all_outputs())):
                 for connection in node._sort_plugs(
                         node.all_outputs())[plug].connections:
