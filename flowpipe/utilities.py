@@ -93,7 +93,7 @@ def get_hash(obj, hash_func=lambda x: sha256(x).hexdigest()):
     """
     try:
         return hash_func(obj)
-    except TypeError:
+    except (TypeError, ValueError):
         try:
             js = json.dumps(obj, sort_keys=True)
         except TypeError:  # pragma: no cover
