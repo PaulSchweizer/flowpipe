@@ -4,6 +4,7 @@ celery
 cover
 .coverage
 .pytest_cache*
+logos/
 
 # Sublime
 *.sublime-project
