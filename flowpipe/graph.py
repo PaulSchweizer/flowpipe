@@ -15,6 +15,8 @@ import warnings
 from ascii_canvas import canvas
 from ascii_canvas import item
 
+from .errors import CycleError
+from .plug import InputPlug, OutputPlug
 from .utilities import deserialize_graph
 
 
@@ -25,9 +27,11 @@ class Graph(object):
     """A graph of Nodes."""
 
     def __init__(self, name=None, nodes=None):
-        """Initialize the list of Nodes."""
+        """Initialize the list of Nodes, inputs and outpus."""
         self.name = name or self.__class__.__name__
         self.nodes = nodes or []
+        self.inputs = {}
+        self.outputs = {}
 
     def __unicode__(self):
         """Display the Graph."""
@@ -56,37 +60,26 @@ class Graph(object):
             (list of INode): All nodes, including the nodes from subgraphs
         """
         nodes = [n for n in self.nodes]
-        for subgraph in self.subgraphs:
+        for subgraph in self.subgraphs.values():
             nodes += subgraph.nodes
-        return nodes
+        return list(set(nodes))
 
     @property
     def subgraphs(self):
-        """All graphs 'downstream' from this graph."""
-        subgraphs = []
-        for node in self.nodes:
-            for downstream_node in node.downstream_nodes:
-                graph = downstream_node.graph
-                if graph != self and graph not in subgraphs:
-                    subgraphs.append(graph)
-                    for sub in graph.subgraphs:
-                        if sub not in subgraphs:
-                            subgraphs.append(sub)
-        return subgraphs
+        """All other graphs that the ndoes of this graph are connected to.
 
-    @property
-    def parent_graphs(self):
-        """All graphs 'upstream' from this graph."""
-        parent_graphs = []
+        Returns:
+            A dict in the form of {graph.name: graph}
+        """
+        subgraphs = {}
         for node in self.nodes:
-            for upstream_node in node.upstream_nodes:
-                graph = upstream_node.graph
-                if graph != self and graph not in parent_graphs:
-                    parent_graphs.append(graph)
-                    for parent in graph.parent_graphs:
-                        if parent not in parent_graphs:
-                            parent_graphs.append(parent)
-        return parent_graphs
+            for downstream in node.downstream_nodes:
+                if downstream.graph is not self:
+                    subgraphs[downstream.graph.name] = downstream.graph
+            for upstream in node.upstream_nodes:
+                if upstream.graph is not self:
+                    subgraphs[upstream.graph.name] = upstream.graph
+        return subgraphs
 
     @property
     def evaluation_matrix(self):
@@ -142,6 +135,72 @@ class Graph(object):
         else:
             log.warning(
                 'Node "{0}" is already part of this Graph'.format(node.name))
+
+    def add_plug(self, plug, name=None):
+        """Promote the given plug this graph.
+
+        Args:
+            plug (flowpipe.plug.IPlug): The plug to promote to this graph
+            name (str): Optionally use the given name instead of the name of
+                the given plug
+        """
+        if isinstance(plug, InputPlug):
+            if plug not in self.inputs.values():
+                self.inputs[name or plug.name] = plug
+            else:
+                key = self.inputs.keys()[self.inputs.values().index(plug)]
+                raise ValueError(
+                    "The given plug '{0}' has already been promoted to this "
+                    "Graph und the key '{1}'".format(plug.name, key))
+        elif isinstance(plug, OutputPlug):
+            if plug not in self.outputs.values():
+                self.outputs[name or plug.name] = plug
+            else:
+                key = self.outputs.keys()[self.outputs.values().index(plug)]
+                raise ValueError(
+                    "The given plug {0} has already been promoted to this "
+                    "Graph und the key '{1}'".format(plug.name, key))
+        else:
+            raise TypeError(
+                "Plugs of type '{0}' can not be promoted directly to a Graph. "
+                "Only plugs of type '{1}' or '{2}' can be promoted.".format(
+                    type(plug), InputPlug, OutputPlug))
+
+    def accepts_connection(self, output_plug, input_plug):
+        """Raise exception if new connection would violate integrity of graph.
+
+        Args:
+            output_plug (flowpipe.plug.OutputPlug): The output plug
+            input_plug (flowpipe.plug.InputPlug): The input plug
+        Raises:
+            CycleError and ValueError
+        Returns:
+            True if the connection is accepted
+        """
+        out_node = output_plug.node
+        in_node = input_plug.node
+
+        # Plugs can't be connected to other plugs on their own node
+        if in_node is out_node:
+            raise CycleError(
+                'Can\'t connect plugs that are part of the same node.')
+
+        # If that is downstream of this
+        if out_node in in_node.downstream_nodes:
+            raise CycleError(
+                'Can\'t connect OutputPlugs to plugs of an upstream node.')
+
+        # Names of subgraphs have to be unique
+        if (
+                in_node.graph.name in self.subgraphs and
+                in_node.graph not in self.subgraphs.values()):
+            raise ValueError(
+                "This node is part of graph '{0}', but a different "
+                "graph with the same name is already part of this "
+                "graph. Subgraph names on a Graph have to "
+                "be unique".format(in_node.graph.name))
+
+        return True
 
     def evaluate(self, mode="linear", skip_clean=False,
                  submission_delay=0.1, raise_after=None):
@@ -311,13 +370,21 @@ class Graph(object):
 
         return self._serialize()
 
-    def _serialize(self):
-        """Serialize the graph in it's grid form."""
+    def _serialize(self, with_subgraphs=True):
+        """Serialize the graph in it's grid form.
+
+        Args:
+            with_subgraphs (bool): Set to false to avoid infinite recursion
+        """
         data = OrderedDict(
             module=self.__module__,
             cls=self.__class__.__name__,
             name=self.name)
         data['nodes'] = [node.to_json() for node in self.nodes]
+        if with_subgraphs:
+            data['subgraphs'] = [
+                graph._serialize(with_subgraphs=False)
+                for graph in self.subgraphs.values()]
         return data
 
     @staticmethod
@@ -353,10 +420,13 @@ class Graph(object):
         """Format to visualize the Graph."""
         canvas_ = canvas.Canvas()
         x = 0
-        for row in self.evaluation_matrix:
+
+        evaluation_matrix = self.evaluation_matrix
+
+        for row in evaluation_matrix:
             y = 0
             x_diff = 0
-            for j, node in enumerate(row):
+            for node in row:
                 item_ = item.Item(str(node), [x, y])
                 node.item = item_
                 x_diff = (item_.bbox[2] - item_.bbox[0] + 4 if
@@ -366,12 +436,12 @@ class Graph(object):
             x += x_diff
 
         for node in self.all_nodes:
-            for j, plug in enumerate(node._sort_plugs(node.all_outputs())):
+            for i, plug in enumerate(node._sort_plugs(node.all_outputs())):
                 for connection in node._sort_plugs(
                         node.all_outputs())[plug].connections:
                     dnode = connection.node
                     start = [node.item.position[0] + node.item.bbox[2],
-                             node.item.position[1] + 3 + len(node.all_inputs()) + j]
+                             node.item.position[1] + 3 + len(node.all_inputs()) + i]
                     end = [dnode.item.position[0],
                            dnode.item.position[1] + 3 +
                            list(dnode._sort_plugs(

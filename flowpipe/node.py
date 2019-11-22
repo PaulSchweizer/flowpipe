@@ -69,11 +69,11 @@ class INode(object):
             else:
                 raise
         self.class_name = self.__class__.__name__
+        self.graph = graph
         if graph is not None:
             if graph == 'default':
-                get_default_graph().add_node(self)
-            else:
-                graph.add_node(self)
+                graph = get_default_graph()
+            graph.add_node(self)
         self.stats = {}
 
     def __unicode__(self):
@@ -94,22 +94,28 @@ class INode(object):
 
     @property
     def upstream_nodes(self):
-        """Upper level Nodes feed inputs into this Node."""
-        upstream_nodes = list()
+        """Nodes connected directly or indirectly to inputs of this Node."""
+        upstream_nodes = []
         for input_ in self.inputs.values():
-            upstream_nodes += [c.node for c in input_.connections]
+            upstream = [c.node for c in input_.connections]
             for sub_plug in input_._sub_plugs.values():
-                upstream_nodes += [c.node for c in sub_plug.connections]
+                upstream += [c.node for c in sub_plug.connections]
+            upstream_nodes += upstream
+            for d in upstream:
+                upstream_nodes += d.upstream_nodes
         return list(set(upstream_nodes))
 
     @property
     def downstream_nodes(self):
-        """Lower level nodes that this node feeds output to."""
-        downstream_nodes = list()
+        """Nodes connected directly or indirectly to outputs of this Node"""
+        downstream_nodes = []
         for output in self.outputs.values():
-            downstream_nodes += [c.node for c in output.connections]
+            downstream = [c.node for c in output.connections]
             for sub_plug in output._sub_plugs.values():
-                downstream_nodes += [c.node for c in sub_plug.connections]
+                downstream += [c.node for c in sub_plug.connections]
+            downstream_nodes += downstream
+            for d in downstream:
+                downstream_nodes += d.downstream_nodes
         return list(set(downstream_nodes))
 
     def evaluate(self):
@@ -242,18 +248,18 @@ class INode(object):
     def node_repr(self):
         """The node formated into a string looking like a node.
 
-        +------------------+
-        |     Node.Name    |
-        |------------------|
-        % compound_in      |
-        o  compound_in-1   |
-        o  compound_in-2   |
-        o in               |
-        |              out o
-        |     compound_out %
-        |  compound_out-1  o
-        |  compound_out-2  o
-        +------------------+
+        +--Node.graph.name--+
+        |     Node.Name     |
+        |-------------------|
+        % compound_in       |
+        o  compound_in-1    |
+        o  compound_in-2    |
+        o in                |
+        |               out o
+        |      compound_out %
+        |   compound_out-1  o
+        |   compound_out-2  o
+        +-------------------+
         """
         max_value_length = 10
 
@@ -279,7 +285,13 @@ class INode(object):
                             if plug.value is not None),
                         key=len)) + 7
 
-        pretty = offset + '+' + '-' * width + '+'
+        if self.graph.subgraphs:
+            width = max([width, len(self.graph.name) + 7])
+            pretty = '{offset}+{graph_name:-^{width}}+'.format(
+                offset=offset, graph_name=self.graph.name, width=width)
+        else:
+            pretty = offset + '+' + '-' * width + '+'
+
         pretty += '\n{offset}|{name:^{width}}|'.format(
             offset=offset, name=' ' + self.name + ' ', width=width)
         pretty += '\n' + offset + '|' + '-' * width + '|'

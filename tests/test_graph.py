@@ -10,6 +10,7 @@ from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.graph import Graph
 from flowpipe.graph import reset_default_graph
 from flowpipe.graph import set_default_graph, get_default_graph
+from flowpipe.errors import CycleError
 
 
 @pytest.fixture
@@ -29,6 +30,11 @@ class NodeForTesting(INode):
     def compute(self, in1, in2):
         """Multiply the two inputs."""
         return {'out': in1 * in2, 'out2': None}
+
+
+@Node(outputs=["out"])
+def FunctionNodeForTesting(in_, in_1, in_2):
+    return {"out": None}
 
 
 def test_evaluation_matrix(clear_default_graph):
@@ -169,7 +175,7 @@ def test_serialize_graph_to_json(clear_default_graph):
                             |       out2 o
                             +------------+
     """
-    graph = Graph()
+    graph = Graph(name="TestGraph")
     start = NodeForTesting(name='Start', graph=graph)
     n1 = NodeForTesting(name='Node1', graph=graph)
     n2 = NodeForTesting(name='Node2', graph=graph)
@@ -180,9 +186,10 @@ def test_serialize_graph_to_json(clear_default_graph):
     n2.outputs['out'] >> end.inputs['in1']['2']
 
     serialized = graph.to_json()
-    deserialized = Graph.from_json(serialized).to_json()
+    deserialized = Graph.from_json(serialized)
 
-    assert serialized == deserialized
+    assert graph.name == deserialized.name
+    assert serialized == deserialized.to_json()
 
 
 def test_serialize_graph_to_pickle(clear_default_graph):
@@ -281,6 +288,43 @@ Graph
   [o] out2: null'''
 
 
+def test_string_representations_with_subgraphs(clear_default_graph):
+    """For nested graphs, graph names are shown in header of nodes."""
+    main = Graph(name="main")
+    sub1 = Graph(name="sub1")
+    sub2 = Graph(name="sub2")
+
+    start = NodeForTesting(name='Start', graph=main)
+    n1 = NodeForTesting(name='Node1', graph=sub1)
+    n2 = NodeForTesting(name='Node2', graph=sub1)
+    end = NodeForTesting(name='End', graph=sub2)
+    start.outputs['out'] >> n1.inputs['in1']
+    start.outputs['out'] >> n2.inputs['in1']['0']
+    n1.outputs['out'] >> end.inputs['in1']['1']
+    n2.outputs['out']['0'] >> end.inputs['in1']['2']
+    n2.outputs['out']['0'] >> end.inputs['in2']
+
+    assert str(main) == '\
++----main----+          +----sub1----+                  +--------sub2--------+\n\
+|   Start    |          |   Node1    |                  |        End         |\n\
+|------------|          |------------|                  |--------------------|\n\
+o in1<>      |     +--->o in1<>      |                  % in1                |\n\
+o in2<>      |     |    o in2<>      |         +------->o  in1.1<>           |\n\
+|        out o-----+    |        out o---------+   +--->o  in1.2<>           |\n\
+|       out2 o     |    |       out2 o             |--->o in2<>              |\n\
++------------+     |    +------------+             |    |                out o\n\
+                   |    +--------sub1--------+     |    |               out2 o\n\
+                   |    |       Node2        |     |    +--------------------+\n\
+                   |    |--------------------|     |                          \n\
+                   |    % in1                |     |                          \n\
+                   +--->o  in1.0<>           |     |                          \n\
+                        o in2<>              |     |                          \n\
+                        |                out %     |                          \n\
+                        |             out.0  o-----+                          \n\
+                        |               out2 o                                \n\
+                        +--------------------+                                '
+
+
 def test_nodes_can_be_added_to_graph(clear_default_graph):
     """Nodes add themselves to their graph as their parent."""
     graph = Graph()
@@ -289,47 +333,56 @@ def test_nodes_can_be_added_to_graph(clear_default_graph):
 
 
 def test_nested_graphs_expand_sub_graphs(clear_default_graph):
-    """Nested Graphs expand all nodes of their sub graphs on evaluation."""
+    """Nested Graphs expand all nodes of their sub graphs on evaluation.
 
-    @Node(outputs=["out_put"])
-    def N(in_put_1, in_put_2):
-        return {"out_put": "G1_Node1"}
+    +----G1-----+          +----G2-----+          +----G3-----+          +----G3-----+          +----G2-----+          +----G1-----+
+    |    N1     |          |    N3     |          |    N4     |          |    N5     |          |    N6     |          |    N7     |
+    |-----------|          |-----------|          |-----------|          |-----------|          |-----------|          |-----------|
+    o in_<>     |          o in_<>     |          o in_<>     |          o in_<>     |          o in_<>     |          o in_<>     |
+    o in_1<>    |     +--->o in_1<>    |     +--->o in_1<>    |     +--->o in_1<>    |     +--->o in_1<>    |     +--->o in_1<>    |
+    o in_2<>    |     |    o in_2<>----|-----|--->o in_2<>    |     +----o-in_2<>----|----------o-in_2<>----|--------->o in_2<>    |
+    |       out o-----+----|-------out-o----------|-------out-o-----+    |       out o-----+    |       out o-----+    |       out o
+    +-----------+          +-----------+          +-----------+          +-----------+          +-----------+          +-----------+
+    +----G2-----+                 |
+    |    N2     |                 |
+    |-----------|                 |
+    o in_<>     |                 |
+    o in_1<>    |                 |
+    o in_2<>    |                 |
+    |       out o-----------------+
+    +-----------+
+    """
 
-    # G 3 #############################
+    # G 3
     #
     G3 = Graph(name="G3")
-    N5 = N(name="N5")
-    N4 = N(name="N4")
-    G3.add_node(N5)
-    G3.add_node(N4)
-    N4.outputs["out_put"] >> N5.inputs["in_put_1"]
+    N5 = FunctionNodeForTesting(name="N5", graph=G3)
+    N4 = FunctionNodeForTesting(name="N4", graph=G3)
+    N4.inputs["in_1"].promote_to_graph()
+    N4.inputs["in_2"].promote_to_graph()
+    N5.outputs["out"].promote_to_graph()
+    N4.outputs["out"] >> N5.inputs["in_1"]
 
-    # G 2 #############################
+    # G 2
     #
     G2 = Graph(name="G2")
-    N3 = N(name="N3")
-    N2 = N(name="N2")
-    N6 = N(name="N6")
-    G2.add_node(N3)
-    G2.add_node(N2)
-    G2.add_node(N6)
-    G2.add_node(G3)
-    N3.outputs["out_put"] >> N4.inputs["in_put_1"]
-    N2.outputs["out_put"] >> N4.inputs["in_put_2"]
-    N5.outputs["out_put"] >> N6.inputs["in_put_1"]
+    N3 = FunctionNodeForTesting(name="N3", graph=G2)
+    N2 = FunctionNodeForTesting(name="N2", graph=G2)
+    N6 = FunctionNodeForTesting(name="N6", graph=G2)
+    N3.inputs["in_1"].promote_to_graph()
+    N6.outputs["out"].promote_to_graph()
+    N3.outputs["out"] >> G3.inputs["in_1"]
+    N2.outputs["out"] >> G3.inputs["in_2"]
+    G3.outputs["out"] >> N6.inputs["in_1"]
 
-    # G 1 #############################
+    # G 1
     #
     G1 = Graph(name="G1")
-    N1 = N(name="N1")
-    N7 = N(name="N7")
-    G1.add_node(N1)
-    G1.add_node(N7)
-    G1.add_node(G2)
-
-    N1.outputs["out_put"] >> N3.inputs["in_put_1"]
-    N6.outputs["out_put"] >> N7.inputs["in_put_1"]
-    N1.outputs["out_put"] >> N7.inputs["in_put_2"]
+    N1 = FunctionNodeForTesting(name="N1", graph=G1)
+    N7 = FunctionNodeForTesting(name="N7", graph=G1)
+    N1.outputs["out"] >> G2.inputs["in_1"]
+    G2.outputs["out"] >> N7.inputs["in_1"]
+    N1.outputs["out"] >> N7.inputs["in_2"]
 
     order = [['N1', 'N2'], ['N3'], ['N4'], ['N5'], ['N6'], ['N7']]
 
@@ -460,3 +513,103 @@ def test_valid_evaluation_mode():
 def test_invalid_evaluation_mode():
     with pytest.raises(ValueError):
         Graph().evaluate(mode="foo")
+
+
+def test_cycle_error_when_node_connects_to_itself():
+    """Cycle Error:
+
+        +----------+
+        |    N1    |
+        |----------|
+    +-->o in_<>    |
+    |   |      out o--+
+    |   +----------+  |
+    |                 |
+    +-----------------+
+    """
+    graph = Graph()
+    N1 = FunctionNodeForTesting(name="N1", graph=graph)
+    print(graph)
+    with pytest.raises(CycleError):
+        N1.outputs["out"] >> N1.inputs["in_"]
+
+
+def test_cycle_error_when_node_connects_out_to_own_upstream():
+    """Cycle Error:
+
+        +----------+          +----------+          +----------+
+        |    N1    |          |    N2    |          |    N3    |
+        |----------|          |----------|          |----------|
+    +-->o in_<>    |     +--->o in_<>    |     +--->o in_<>    |
+    |   |      out o-----+    |      out o-----+    |      out o--+
+    |   +----------+          +----------+          +----------+  |
+    |                                                             |
+    +-------------------------------------------------------------+
+    """
+    graph = Graph()
+    N1 = FunctionNodeForTesting(name="N1", graph=graph)
+    N2 = FunctionNodeForTesting(name="N2", graph=graph)
+    N3 = FunctionNodeForTesting(name="N3", graph=graph)
+
+    N1.outputs["out"] >> N2.inputs["in_"]
+    N2.outputs["out"] >> N3.inputs["in_"]
+
+    with pytest.raises(CycleError):
+        N3.outputs["out"] >> N1.inputs["in_"]
+
+    with pytest.raises(CycleError):
+        N1.inputs["in_"] >> N3.outputs["out"]
+
+    with pytest.raises(CycleError):
+        N3.outputs["out"]["a"] >> N1.inputs["in_"]
+
+    with pytest.raises(CycleError):
+        N1.inputs["in_"]["a"] >> N3.outputs["out"]
+
+    with pytest.raises(CycleError):
+        N3.outputs["out"]["a"] >> N1.inputs["in_"]["a"]
+
+    with pytest.raises(CycleError):
+        N1.inputs["in_"]["a"] >> N3.outputs["out"]["a"]
+
+
+def test_cycle_error_when_node_connects_out_to_own_upstream_across_subgraphs():
+    """Cycle Error:
+
+        +---graph1----+          +---graph2----+          +---graph3----+
+        |     N1      |          |     N2      |          |     N3      |
+        |-------------|          |-------------|          |-------------|
+    +-->o in_<>       |     +--->o in_<>       |     +--->o in_<>       |
+    |   |         out o-----+    |         out o-----+    |         out o--+
+    |   +-------------+          +-------------+          +-------------+  |
+    |                                                                      |
+    +----------------------------------------------------------------------+
+
+    """
+    graph1 = Graph(name="graph1")
+    graph2 = Graph(name="graph2")
+    graph3 = Graph(name="graph3")
+    N1 = FunctionNodeForTesting(name="N1", graph=graph1)
+    N2 = FunctionNodeForTesting(name="N2", graph=graph2)
+    N3 = FunctionNodeForTesting(name="N3", graph=graph3)
+
+    N1.outputs["out"] >> N2.inputs["in_"]
+    N2.outputs["out"] >> N3.inputs["in_"]
+
+    with pytest.raises(CycleError):
+        N3.outputs["out"] >> N1.inputs["in_"]
+
+    with pytest.raises(CycleError):
+        N1.inputs["in_"] >> N3.outputs["out"]
+
+    with pytest.raises(CycleError):
+        N3.outputs["out"]["a"] >> N1.inputs["in_"]
+
+    with pytest.raises(CycleError):
+        N1.inputs["in_"]["a"] >> N3.outputs["out"]
+
+    with pytest.raises(CycleError):
+        N3.outputs["out"]["a"] >> N1.inputs["in_"]["a"]
+
+    with pytest.raises(CycleError):
+        N1.inputs["in_"]["a"] >> N3.outputs["out"]["a"]

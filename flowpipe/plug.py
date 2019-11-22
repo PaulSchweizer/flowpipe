@@ -106,6 +106,14 @@ class IPlug(object):
             plug.connections.pop(plug.connections.index(self))
             plug.is_dirty = True
 
+    def promote_to_graph(self, name=None):
+        """Add this plug to the graph of this plug's node.
+
+        Args:
+            name (str): Optionally provide a different name for the Plug
+        """
+        self.node.graph.add_plug(self, name=name)
+
 
 class OutputPlug(IPlug):
     """Provides data to an InputPlug."""
@@ -163,21 +171,17 @@ class OutputPlug(IPlug):
 
         Set both participating Plugs dirty.
         """
-        if plug.node is self.node:
-            raise ValueError(
-                'Can\'t connect Plugs that are part of the same Node.')
-
-        for connection in plug.connections:
-            plug.disconnect(connection)
-
-        if plug not in self.connections:
-            self.connections.append(plug)
-            plug.value = self.value
-            self.is_dirty = True
-            plug.is_dirty = True
-        if self not in plug.connections:
-            plug.connections = [self]
-            plug.is_dirty = True
+        if self.node.graph.accepts_connection(self, plug):
+            for connection in plug.connections:
+                plug.disconnect(connection)
+            if plug not in self.connections:
+                self.connections.append(plug)
+                plug.value = self.value
+                self.is_dirty = True
+                plug.is_dirty = True
+            if self not in plug.connections:
+                plug.connections = [self]
+                plug.is_dirty = True
 
     def serialize(self):
         """Serialize the Plug containing all it's connections."""
@@ -255,19 +259,15 @@ class InputPlug(IPlug):
 
         Set both participating Plugs dirty.
         """
-        if plug.node is self.node:
-            raise ValueError(
-                'Can\'t connect Plugs that are part of the same Node.')
-
-        for connection in self.connections:
-            self.disconnect(connection)
-
-        self.connections = [plug]
-        self.is_dirty = True
-        plug.is_dirty = True
-        if self not in plug.connections:
-            plug.connections.append(self)
+        if self.node.graph.accepts_connection(plug, self):
+            for connection in self.connections:
+                self.disconnect(connection)
+            self.connections = [plug]
+            self.is_dirty = True
             plug.is_dirty = True
+            if self not in plug.connections:
+                plug.connections.append(self)
+                plug.is_dirty = True
 
     def serialize(self):
         """Serialize the Plug containing all it's connections."""
@@ -323,18 +323,14 @@ class SubInputPlug(IPlug):
 
         Set both participating Plugs dirty.
         """
-        if plug.node is self.node:
-            raise ValueError(
-                'Can\'t connect Plugs that are part of the same Node.')
-
-        for connection in self.connections:
-            self.disconnect(connection)
-
-        self.connections = [plug]
-        self.is_dirty = True
-        if self not in plug.connections:
-            plug.connections.append(self)
-            plug.is_dirty = True
+        if self.node.graph.accepts_connection(plug, self):
+            for connection in self.connections:
+                self.disconnect(connection)
+            self.connections = [plug]
+            self.is_dirty = True
+            if self not in plug.connections:
+                plug.connections.append(self)
+                plug.is_dirty = True
 
     def serialize(self):
         """Serialize the Plug containing all it's connections."""
@@ -401,21 +397,17 @@ class SubOutputPlug(IPlug):
 
         Set both participating Plugs dirty.
         """
-        if plug.node is self.node:
-            raise ValueError(
-                'Can\'t connect Plugs that are part of the same Node.')
-
-        for connection in plug.connections:
-            plug.disconnect(connection)
-
-        if plug not in self.connections:
-            self.connections.append(plug)
-            plug.value = self.value
-            self.is_dirty = True
-            plug.is_dirty = True
-        if self not in plug.connections:
-            plug.connections = [self]
-            plug.is_dirty = True
+        if self.node.graph.accepts_connection(self, plug):
+            for connection in plug.connections:
+                plug.disconnect(connection)
+            if plug not in self.connections:
+                self.connections.append(plug)
+                plug.value = self.value
+                self.is_dirty = True
+                plug.is_dirty = True
+            if self not in plug.connections:
+                plug.connections = [self]
+                plug.is_dirty = True
 
     def serialize(self):
         """Serialize the Plug containing all it's connections."""
