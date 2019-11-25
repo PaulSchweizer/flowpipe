@@ -148,7 +148,8 @@ class Graph(object):
             if plug not in self.inputs.values():
                 self.inputs[name or plug.name] = plug
             else:
-                key = self.inputs.keys()[self.inputs.values().index(plug)]
+                key = list(self.inputs.keys())[
+                    list(self.inputs.values()).index(plug)]
                 raise ValueError(
                     "The given plug '{0}' has already been promoted to this "
                     "Graph und the key '{1}'".format(plug.name, key))
@@ -156,7 +157,8 @@ class Graph(object):
             if plug not in self.outputs.values():
                 self.outputs[name or plug.name] = plug
             else:
-                key = self.outputs.keys()[self.outputs.values().index(plug)]
+                key = list(self.outputs.keys())[
+                    list(self.outputs.values()).index(plug)]
                 raise ValueError(
                     "The given plug {0} has already been promoted to this "
                     "Graph und the key '{1}'".format(plug.name, key))
@@ -384,7 +386,8 @@ class Graph(object):
         if with_subgraphs:
             data['subgraphs'] = [
                 graph._serialize(with_subgraphs=False)
-                for graph in self.subgraphs.values()]
+                for graph in sorted(
+                    self.subgraphs.values(), key=lambda g: g.name)]
         return data
 
     @staticmethod
