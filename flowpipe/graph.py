@@ -66,7 +66,7 @@ class Graph(object):
 
     @property
     def subgraphs(self):
-        """All other graphs that the ndoes of this graph are connected to.
+        """All other graphs that the nodes of this graph are connected to.
 
         Returns:
             A dict in the form of {graph.name: graph}
