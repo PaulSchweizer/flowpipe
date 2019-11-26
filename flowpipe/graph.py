@@ -51,7 +51,7 @@ class Graph(object):
 
     @property
     def all_nodes(self):
-        """Expand the graph with all it's subgraphs into a flat list of nodes.
+        """Expand the graph with all its subgraphs into a flat list of nodes.
 
         Please note that in this expanded list, the node names are no longer
         guaranteed to be unique!
@@ -362,7 +362,7 @@ class Graph(object):
         return self._serialize()
 
     def serialize(self):  # pragma: no cover
-        """Serialize the graph in it's grid form.
+        """Serialize the graph in its grid form.
 
         Deprecated.
         """
@@ -373,7 +373,7 @@ class Graph(object):
         return self._serialize()
 
     def _serialize(self, with_subgraphs=True):
-        """Serialize the graph in it's grid form.
+        """Serialize the graph in its grid form.
 
         Args:
             with_subgraphs (bool): Set to false to avoid infinite recursion
