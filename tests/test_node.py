@@ -8,6 +8,7 @@ from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.graph import reset_default_graph, get_default_graph
 from flowpipe.utilities import get_hash
+from flowpipe.errors import CycleError
 
 
 @pytest.fixture
@@ -143,13 +144,13 @@ def test_evaluate_sets_all_inputs_clean(clear_default_graph):
 def test_cannot_connect_node_to_itself(clear_default_graph):
     """A node can not create a cycle by connecting to itself."""
     node = SquareNode()
-    with pytest.raises(ValueError):
+    with pytest.raises(CycleError):
         node.outputs['out'] >> node.inputs['in1']
-    with pytest.raises(ValueError):
+    with pytest.raises(CycleError):
         node.inputs['in1']['0'] >> node.outputs['out']
-    with pytest.raises(ValueError):
+    with pytest.raises(CycleError):
         node.outputs['out']['0'] >> node.inputs['in1']['0']
-    with pytest.raises(ValueError):
+    with pytest.raises(CycleError):
         node.inputs['in1'] >> node.outputs['out']
 
 
@@ -414,14 +415,14 @@ def test_deserialize_from_json(mock_inspect, clear_default_graph):
                 'value': None,
                 'sub_plugs': {
                     'key': {
-                            'connections': {},
-                            'name': 'compound_out.key',
-                            'value': 'value_key'
+                        'connections': {},
+                        'name': 'compound_out.key',
+                        'value': 'value_key'
                     },
                     '1': {
-                            'connections': {},
-                            'name': 'compound_out.1',
-                            'value': 'value_1'
+                        'connections': {},
+                        'name': 'compound_out.1',
+                        'value': 'value_1'
                     }
                 }
             },

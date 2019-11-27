@@ -38,11 +38,31 @@ def deserialize_node(data):
 def deserialize_graph(data):
     """De-serialize from the given json data."""
     graph = import_class(data['module'], data['cls'])()
-    graph._nodes = []
+    graph.name = data['name']
+    graph.nodes = []
     for node in data['nodes']:
-        graph._nodes.append(deserialize_node(node))
+        deserialized_node = deserialize_node(node)
+        graph.nodes.append(deserialized_node)
+        deserialized_node.graph = graph
+
     nodes = {n.identifier: n for n in graph.nodes}
-    for node in data['nodes']:
+
+    all_nodes = [n for n in data['nodes']]
+
+    subgraphs = []
+    for sub_data in data.get('subgraphs', []):
+        subgraph = import_class(sub_data['module'], sub_data['cls'])()
+        subgraph.name = sub_data['name']
+        subgraph.nodes = []
+        for node in sub_data['nodes']:
+            deserialized_node = deserialize_node(node)
+            subgraph.nodes.append(deserialized_node)
+            deserialized_node.graph = subgraph
+        all_nodes += sub_data['nodes']
+        subgraphs.append(subgraph)
+        nodes.update({n.identifier: n for n in subgraph.nodes})
+
+    for node in all_nodes:  # data['nodes']:
         this = nodes[node['identifier']]
         for name, input_ in node['inputs'].items():
             for identifier, plug in input_['connections'].items():

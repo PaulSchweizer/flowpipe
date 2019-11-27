@@ -15,6 +15,8 @@ import warnings
 from ascii_canvas import canvas
 from ascii_canvas import item
 
+from .errors import CycleError
+from .plug import InputPlug, OutputPlug
 from .utilities import deserialize_graph
 
 
@@ -25,9 +27,11 @@ class Graph(object):
     """A graph of Nodes."""
 
     def __init__(self, name=None, nodes=None):
-        """Initialize the list of Nodes."""
+        """Initialize the list of Nodes, inputs and outpus."""
         self.name = name or self.__class__.__name__
-        self._nodes = nodes or []
+        self.nodes = nodes or []
+        self.inputs = {}
+        self.outputs = {}
 
     def __unicode__(self):
         """Display the Graph."""
@@ -46,15 +50,36 @@ class Graph(object):
             "Graph does not contain a Node named '{0}'".format(key))
 
     @property
-    def nodes(self):
-        """Aggregate the Nodes of this Graph and all it's sub graphs."""
-        nodes = []
-        for node in self._nodes:
-            if isinstance(node, Graph):
-                nodes += node.nodes
-            else:
-                nodes.append(node)
-        return nodes
+    def all_nodes(self):
+        """Expand the graph with all its subgraphs into a flat list of nodes.
+
+        Please note that in this expanded list, the node names are no longer
+        guaranteed to be unique!
+
+        Returns:
+            (list of INode): All nodes, including the nodes from subgraphs
+        """
+        nodes = [n for n in self.nodes]
+        for subgraph in self.subgraphs.values():
+            nodes += subgraph.nodes
+        return list(set(nodes))
+
+    @property
+    def subgraphs(self):
+        """All other graphs that the nodes of this graph are connected to.
+
+        Returns:
+            A dict in the form of {graph.name: graph}
+        """
+        subgraphs = {}
+        for node in self.nodes:
+            for downstream in node.downstream_nodes:
+                if downstream.graph is not self:
+                    subgraphs[downstream.graph.name] = downstream.graph
+            for upstream in node.upstream_nodes:
+                if upstream.graph is not self:
+                    subgraphs[upstream.graph.name] = upstream.graph
+        return subgraphs
 
     @property
     def evaluation_matrix(self):
@@ -70,7 +95,7 @@ class Graph(object):
         """
         levels = {}
 
-        for node in self.nodes:
+        for node in self.all_nodes:
             self._sort_node(node, levels, level=0)
 
         matrix = []
@@ -105,10 +130,79 @@ class Graph(object):
                         "Can not add Node of name '{0}', a Node with this "
                         "name already exists on this Graph. Node names on "
                         "a Graph have to be unique.".format(node.name))
-            self._nodes.append(node)
+            self.nodes.append(node)
+            node.graph = self
         else:
             log.warning(
                 'Node "{0}" is already part of this Graph'.format(node.name))
+
+    def add_plug(self, plug, name=None):
+        """Promote the given plug this graph.
+
+        Args:
+            plug (flowpipe.plug.IPlug): The plug to promote to this graph
+            name (str): Optionally use the given name instead of the name of
+                the given plug
+        """
+        if isinstance(plug, InputPlug):
+            if plug not in self.inputs.values():
+                self.inputs[name or plug.name] = plug
+            else:
+                key = list(self.inputs.keys())[
+                    list(self.inputs.values()).index(plug)]
+                raise ValueError(
+                    "The given plug '{0}' has already been promoted to this "
+                    "Graph und the key '{1}'".format(plug.name, key))
+        elif isinstance(plug, OutputPlug):
+            if plug not in self.outputs.values():
+                self.outputs[name or plug.name] = plug
+            else:
+                key = list(self.outputs.keys())[
+                    list(self.outputs.values()).index(plug)]
+                raise ValueError(
+                    "The given plug {0} has already been promoted to this "
+                    "Graph und the key '{1}'".format(plug.name, key))
+        else:
+            raise TypeError(
+                "Plugs of type '{0}' can not be promoted directly to a Graph. "
+                "Only plugs of type '{1}' or '{2}' can be promoted.".format(
+                    type(plug), InputPlug, OutputPlug))
+
+    def accepts_connection(self, output_plug, input_plug):
+        """Raise exception if new connection would violate integrity of graph.
+
+        Args:
+            output_plug (flowpipe.plug.OutputPlug): The output plug
+            input_plug (flowpipe.plug.InputPlug): The input plug
+        Raises:
+            CycleError and ValueError
+        Returns:
+            True if the connection is accepted
+        """
+        out_node = output_plug.node
+        in_node = input_plug.node
+
+        # Plugs can't be connected to other plugs on their own node
+        if in_node is out_node:
+            raise CycleError(
+                'Can\'t connect plugs that are part of the same node.')
+
+        # If that is downstream of this
+        if out_node in in_node.downstream_nodes:
+            raise CycleError(
+                'Can\'t connect OutputPlugs to plugs of an upstream node.')
+
+        # Names of subgraphs have to be unique
+        if (
+                in_node.graph.name in self.subgraphs and
+                in_node.graph not in self.subgraphs.values()):
+            raise ValueError(
+                "This node is part of graph '{0}', but a different "
+                "graph with the same name is already part of this "
+                "graph. Subgraph names on a Graph have to "
+                "be unique".format(in_node.graph.name))
+
+        return True
 
     def evaluate(self, mode="linear", skip_clean=False,
                  submission_delay=0.1, raise_after=None):
@@ -268,7 +362,7 @@ class Graph(object):
         return self._serialize()
 
     def serialize(self):  # pragma: no cover
-        """Serialize the graph in it's grid form.
+        """Serialize the graph in its grid form.
 
         Deprecated.
         """
@@ -278,13 +372,22 @@ class Graph(object):
 
         return self._serialize()
 
-    def _serialize(self):
-        """Serialize the graph in it's grid form."""
+    def _serialize(self, with_subgraphs=True):
+        """Serialize the graph in its grid form.
+
+        Args:
+            with_subgraphs (bool): Set to false to avoid infinite recursion
+        """
         data = OrderedDict(
             module=self.__module__,
             cls=self.__class__.__name__,
             name=self.name)
         data['nodes'] = [node.to_json() for node in self.nodes]
+        if with_subgraphs:
+            data['subgraphs'] = [
+                graph._serialize(with_subgraphs=False)
+                for graph in sorted(
+                    self.subgraphs.values(), key=lambda g: g.name)]
         return data
 
     @staticmethod
@@ -320,10 +423,13 @@ class Graph(object):
         """Format to visualize the Graph."""
         canvas_ = canvas.Canvas()
         x = 0
-        for row in self.evaluation_matrix:
+
+        evaluation_matrix = self.evaluation_matrix
+
+        for row in evaluation_matrix:
             y = 0
             x_diff = 0
-            for j, node in enumerate(row):
+            for node in row:
                 item_ = item.Item(str(node), [x, y])
                 node.item = item_
                 x_diff = (item_.bbox[2] - item_.bbox[0] + 4 if
@@ -332,13 +438,13 @@ class Graph(object):
                 canvas_.add_item(item_)
             x += x_diff
 
-        for node in self.nodes:
-            for j, plug in enumerate(node._sort_plugs(node.all_outputs())):
+        for node in self.all_nodes:
+            for i, plug in enumerate(node._sort_plugs(node.all_outputs())):
                 for connection in node._sort_plugs(
                         node.all_outputs())[plug].connections:
                     dnode = connection.node
                     start = [node.item.position[0] + node.item.bbox[2],
-                             node.item.position[1] + 3 + len(node.all_inputs()) + j]
+                             node.item.position[1] + 3 + len(node.all_inputs()) + i]
                     end = [dnode.item.position[0],
                            dnode.item.position[1] + 3 +
                            list(dnode._sort_plugs(

@@ -1,5 +1,4 @@
 from __future__ import print_function
-import json
 
 import pytest
 
@@ -16,7 +15,7 @@ def clear_default_graph():
 
 class NodeForTesting(INode):
     def __init__(self, **kwargs):
-        super(NodeForTesting, self).__init__(graph=None, **kwargs)
+        super(NodeForTesting, self).__init__(**kwargs)
 
     def compute(self):
         pass
@@ -76,10 +75,10 @@ def test_connecting_different_input_disconnects_existing_ones(clear_default_grap
     assert len(d.outputs['d_out_compound']['0'].connections) == 2
 
 
-def test_connect_and_dicsonnect_nodes(clear_default_graph):
+def test_connect_and_disconnect_nodes(clear_default_graph):
     """Connect and disconnect nodes."""
-    n1 = NodeForTesting()
-    n2 = NodeForTesting()
+    n1 = NodeForTesting(name='n1')
+    n2 = NodeForTesting(name='n2')
     out_plug_a = OutputPlug('out', n1)
     in_plug_a = InputPlug('in_a', n2)
     in_plug_b = InputPlug('in_b', n2)
@@ -135,8 +134,8 @@ def test_connect_and_dicsonnect_nodes(clear_default_graph):
 
 def test_change_connections_sets_plug_dirty(clear_default_graph):
     """Connecting and disconnecting sets the plug dirty."""
-    n1 = NodeForTesting()
-    n2 = NodeForTesting()
+    n1 = NodeForTesting(name='n1')
+    n2 = NodeForTesting(name='n2')
     out_plug = OutputPlug('out', n1)
     in_plug = InputPlug('in', n2)
     out_compound_plug = OutputPlug('out_compound', n1)
@@ -178,8 +177,8 @@ def test_set_value_sets_plug_dirty(clear_default_graph):
 
 def test_set_output_pushes_value_to_connected_input(clear_default_graph):
     """OutPlugs push their values to their connected input plugs."""
-    n1 = NodeForTesting()
-    n2 = NodeForTesting()
+    n1 = NodeForTesting(name='n1')
+    n2 = NodeForTesting(name='n2')
     out_plug = OutputPlug('out', n1)
     in_plug = InputPlug('in', n2)
 
@@ -223,8 +222,8 @@ def test_assign_initial_value_to_input_plug(clear_default_graph):
 
 def test_serialize(clear_default_graph):
     """Serialize the Plug to json."""
-    n1 = NodeForTesting()
-    n2 = NodeForTesting()
+    n1 = NodeForTesting(name='n1')
+    n2 = NodeForTesting(name='n2')
     out_plug = OutputPlug('out', n1)
     out_plug.value = 'out_value'
     in1_plug = InputPlug('in1', n2)
@@ -355,10 +354,10 @@ def test_compound_input_plugs_are_accessible_by_index(clear_default_graph):
     def B(compound_in):
         return {'sum': sum(compound_in.values())}
 
-    a1 = A(value=1, graph=None)
-    a2 = A(value=2, graph=None)
-    a3 = A(value=3, graph=None)
-    b = B(graph=None)
+    a1 = A(name='a1', value=1)
+    a2 = A(name='a2', value=2)
+    a3 = A(name='a3', value=3)
+    b = B()
 
     a1.outputs['value'].connect(b.inputs['compound_in']['0'])
     a2.outputs['value'].connect(b.inputs['compound_in']['1'])
@@ -387,8 +386,8 @@ def test_compound_output_plugs_are_accessible_by_index(clear_default_graph):
     def B(compound_in):
         return {'sum': sum(compound_in.values())}
 
-    a = A(values=[1, 2, 3], graph=None)
-    b = B(graph=None)
+    a = A(values=[1, 2, 3])
+    b = B()
 
     a.outputs['compound_out']['0'].connect(b.inputs['compound_in']['0'])
     a.outputs['compound_out']['1'].connect(b.inputs['compound_in']['1'])
@@ -406,8 +405,8 @@ def test_compound_plugs_can_be_connected_individually(clear_default_graph):
     def A(compound_in, in1):
         pass
 
-    a1 = A(graph=None)
-    a2 = A(graph=None)
+    a1 = A(name='a1')
+    a2 = A(name='a2')
 
     a2.inputs['compound_in']['0'].connect(a1.outputs['value'])
     a1.outputs['compound_out']['0'].connect(a2.inputs['in1'])
@@ -538,8 +537,8 @@ def test_compound_output_plugs_inform_parent_on_value_set(clear_default_graph):
 def test_plug_gets_dirty_only_on_change(clear_default_graph):
     """Test that plugs only change dirtyness if a real change happens."""
     in_test, out_test = "foo", "bar"
-    n1 = NodeForTesting()
-    n2 = NodeForTesting()
+    n1 = NodeForTesting(name="n1")
+    n2 = NodeForTesting(name="n2")
     out_plug = OutputPlug('out', n1)
     in_plug = InputPlug('in', n2)
 

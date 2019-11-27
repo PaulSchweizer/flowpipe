@@ -24,7 +24,8 @@ A graph implementation of a world clock for demonstrational purposes:
                               |      converted_time o-----+
                               +---------------------+
 """
-import datetime
+from datetime import datetime
+from time import time
 
 from flowpipe import Graph, INode, Node, InputPlug, OutputPlug
 
@@ -36,8 +37,7 @@ def CurrentTime():
     Any arguments to the function are used as input plugs to the Node.
     The outputs are defined in the decorator explicitely.
     """
-    utc_now = datetime.datetime.utcnow()
-    return {'time': utc_now}
+    return {'time': time()}
 
 
 class ConvertTime(INode):
@@ -55,7 +55,7 @@ class ConvertTime(INode):
 
     def compute(self, time, timezone):
         return {
-            'converted_time': time + datetime.timedelta(hours=timezone)
+            'converted_time': time + timezone * 60 * 60
         }
 
 
@@ -64,8 +64,8 @@ def ShowTimes(times):
     """Nodes do not necessarily have to define output and input plugs."""
     print('-- World Clock -------------------')
     for location, t in times.items():
-        print('It is now: {time} in {location}'.format(
-            time=t.strftime("%Y-%m-%d %H:%M:%S"), location=location))
+        print('It is now: {time:%H:%M} in {location}'.format(
+            time=datetime.fromtimestamp(t), location=location))
     print('----------------------------------')
 
 
