@@ -156,7 +156,7 @@ def test_complex_branching_evaluation_sequence(clear_default_graph):
     assert 'end' == seq[-1]
 
 
-def test_serialize_graph_to_json(clear_default_graph):
+def test_serialize_graph_to_json(clear_default_graph, branching_graph):
     """
     +------------+          +------------+          +--------------------+
     |   Start    |          |   Node2    |          |        End         |
@@ -175,20 +175,11 @@ def test_serialize_graph_to_json(clear_default_graph):
                             |       out2 o
                             +------------+
     """
-    graph = Graph(name="TestGraph")
-    start = NodeForTesting(name='Start', graph=graph)
-    n1 = NodeForTesting(name='Node1', graph=graph)
-    n2 = NodeForTesting(name='Node2', graph=graph)
-    end = NodeForTesting(name='End', graph=graph)
-    start.outputs['out'] >> n1.inputs['in1']
-    start.outputs['out'] >> n2.inputs['in1']
-    n1.outputs['out'] >> end.inputs['in1']['1']
-    n2.outputs['out'] >> end.inputs['in1']['2']
 
-    serialized = graph.to_json()
+    serialized = branching_graph.to_json()
     deserialized = Graph.from_json(serialized)
 
-    assert graph.name == deserialized.name
+    assert branching_graph.name == deserialized.name
     assert serialized == deserialized.to_json()
 
 
