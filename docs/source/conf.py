@@ -17,17 +17,16 @@ import sys
 sys.path.insert(0, os.path.abspath('../..'))
 sys.setrecursionlimit(1500)
 
-
 # -- Project information -----------------------------------------------------
 
 project = u'Flowpipe'
-copyright = u'2019, Paul Schweizer'
+copyright = u'2017, Paul Schweizer'
 author = u'Paul Schweizer'
 
 # The short X.Y version
-version = u'0.5.2'
+version = u'0.7.0'
 # The full version, including alpha/beta/rc tags
-release = u'0.5.2'
+release = u'0.7.0'
 
 
 # -- General configuration ---------------------------------------------------
@@ -42,10 +41,10 @@ release = u'0.5.2'
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.intersphinx',
-    'sphinx.ext.coverage',
-    'sphinx.ext.ifconfig',
-    'sphinx.ext.viewcode',
-    'sphinx.ext.githubpages',
+    'sphinx.ext.todo',
+    'sphinx.ext.napoleon',
+    'm2r',
+    'sphinx.ext.viewcode'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -55,7 +54,7 @@ templates_path = ['_templates']
 # You can specify multiple suffix as a list of string:
 #
 # source_suffix = ['.rst', '.md']
-source_suffix = '.rst'
+source_suffix = ['.rst']
 
 # The master toctree document.
 master_doc = 'index'
@@ -70,7 +69,7 @@ language = None
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = []
+exclude_patterns = ['setup.py']
 
 # The name of the Pygments (syntax highlighting) style to use.
 pygments_style = None
@@ -186,3 +185,19 @@ epub_exclude_files = ['search.html']
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {'https://docs.python.org/': None}
+
+# -- Options for todo extension ----------------------------------------------
+
+# If true, `todo` and `todoList` produce output, else they produce nothing.
+todo_include_todos = True
+
+m2r_parse_relative_links = True
+
+html_logo = "../../logo.png"
+
+napoleon_include_special_with_doc = True
+napoleon_include_private_with_doc = True
+napoleon_google_docstring = True
+napoleon_use_admonition_for_examples = True
+autodoc_member_order = "bysource"
+autodoc_undoc_members = True
