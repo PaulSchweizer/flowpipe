@@ -7,9 +7,7 @@ import logging
 import os
 from tempfile import gettempdir
 
-import flowpipe
-from flowpipe.graph import Graph
-from flowpipe.node import INode, Node
+from flowpipe import Graph, INode, Node
 
 
 # -----------------------------------------------------------------------------
@@ -140,7 +138,7 @@ def evaluate_on_farm(serialized_json, frames=None):
         not be the 'last' batch actually executed.
     """
     # Debug logs might be useful on the farm
-    flowpipe.logger.setLevel(logging.DEBUG)
+    logging.baseConfig.setLevel(logging.DEBUG)
 
     # Deserialize the node from the serialized json
     with open(serialized_json, 'r') as f:
@@ -196,7 +194,7 @@ def implicit_batching(frames, batch_size):
     graph = Graph(name='Rendering')
     render = MayaRender(
         graph=graph,
-        frames=range(frames),
+        frames=list(range(frames)),
         scene_file='/scene/for/rendering.ma',
         metadata={'batch_size': batch_size})
     update = UpdateDatabase(graph=graph, id_=123456)
@@ -214,7 +212,7 @@ def explicit_batching(frames, batch_size):
         maya_render = MayaRender(
             name='MayaRender{0}-{1}'.format(i, i + batch_size),
             graph=graph,
-            frames=range(i, i + batch_size),
+            frames=list(range(i, i + batch_size)),
             scene_file='/scene/for/rendering.ma')
         maya_render.outputs['renderings'].connect(update_database.inputs['images'][str(i)])
 

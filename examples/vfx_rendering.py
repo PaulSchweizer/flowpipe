@@ -29,8 +29,7 @@ o scene_file<"/scene/fo>    |     |                                       |     
 +---------------------------+                                                                                  +-----------------------+
 """
 
-from flowpipe.graph import Graph
-from flowpipe.node import Node
+from flowpipe import Graph, Node
 
 
 @Node(outputs=['renderings'], metadata={'interpreter': 'maya'})

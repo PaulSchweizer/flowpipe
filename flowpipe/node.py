@@ -6,25 +6,41 @@ try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
+import logging
 import copy
 import inspect
 import json
+import pickle
 import time
 import uuid
 import warnings
 
 from .plug import OutputPlug, InputPlug, SubInputPlug, SubOutputPlug
-from .log_observer import LogObserver
-from .stats_reporter import StatsReporter
+from .event import Event
 from .utilities import deserialize_node, NodeEncoder, import_class
 from .graph import get_default_graph
-__all__ = ['INode']
+
+
+log = logging.getLogger(__name__)
+
+
+# Use getfullargspec on py3.x to make type hints work
+try:
+    getargspec = inspect.getfullargspec
+except AttributeError:
+    getargspec = inspect.getargspec
 
 
 class INode(object):
     """Holds input and output Plugs and a method for computing."""
 
     __metaclass__ = ABCMeta
+
+    EVENTS = {
+        'evaluation-omitted': Event('evaluation-omitted'),
+        'evaluation-started': Event('evaluation-started'),
+        'evaluation-finished': Event('evaluation-finished')
+    }
 
     def __init__(self, name=None, identifier=None, metadata=None,
                  graph='default'):
@@ -35,7 +51,6 @@ class INode(object):
             graph (Graph): The graph to add the node to.
                 If set to 'default', the Node is added to the default graph.
                 If set to None, the Node is not added to any grpah.
-
         """
         self.name = name if name is not None else self.__class__.__name__
         self.identifier = (identifier if identifier is not None
@@ -54,11 +69,12 @@ class INode(object):
             else:
                 raise
         self.class_name = self.__class__.__name__
+        self.graph = graph
         if graph is not None:
             if graph == 'default':
-                get_default_graph().add_node(self)
-            else:
-                graph.add_node(self)
+                graph = get_default_graph()
+            graph.add_node(self)
+        self.stats = {}
 
     def __unicode__(self):
         """Show all input and output Plugs."""
@@ -78,22 +94,28 @@ class INode(object):
 
     @property
     def upstream_nodes(self):
-        """Upper level Nodes feed inputs into this Node."""
-        upstream_nodes = list()
+        """Nodes connected directly or indirectly to inputs of this Node."""
+        upstream_nodes = []
         for input_ in self.inputs.values():
-            upstream_nodes += [c.node for c in input_.connections]
+            upstream = [c.node for c in input_.connections]
             for sub_plug in input_._sub_plugs.values():
-                upstream_nodes += [c.node for c in sub_plug.connections]
+                upstream += [c.node for c in sub_plug.connections]
+            upstream_nodes += upstream
+            for d in upstream:
+                upstream_nodes += d.upstream_nodes
         return list(set(upstream_nodes))
 
     @property
     def downstream_nodes(self):
-        """Lower level nodes that this node feeds output to."""
-        downstream_nodes = list()
+        """Nodes connected directly or indirectly to outputs of this Node"""
+        downstream_nodes = []
         for output in self.outputs.values():
-            downstream_nodes += [c.node for c in output.connections]
+            downstream = [c.node for c in output.connections]
             for sub_plug in output._sub_plugs.values():
-                downstream_nodes += [c.node for c in sub_plug.connections]
+                downstream += [c.node for c in sub_plug.connections]
+            downstream_nodes += downstream
+            for d in downstream:
+                downstream_nodes += d.downstream_nodes
         return list(set(downstream_nodes))
 
     def evaluate(self):
@@ -103,32 +125,24 @@ class INode(object):
         evaluation time and timestamp the computation started.
         """
         if self.omit:
-            LogObserver.push_message('Omitting {0} -> {1}'.format(
-                self.file_location, self.class_name))
+            INode.EVENTS['evaluation-omitted'].emit(self)
             return {}
+
+        INode.EVENTS['evaluation-started'].emit(self)
 
         inputs = {}
         for name, plug in self.inputs.items():
             inputs[name] = plug.value
-
-        LogObserver.push_message(
-            'Evaluating {0} -> {1}.compute(**{2})'.format(
-                self.file_location, self.class_name,
-                json.dumps(self._sort_plugs(inputs), indent=2, cls=NodeEncoder)
-            ))
 
         # Compute and redirect the output to the output plugs
         start_time = time.time()
         outputs = self.compute(**inputs) or dict()
         eval_time = time.time() - start_time
 
-        stats = {
-            "node": self,
-            "eval_time": eval_time,
-            "timestamp": start_time
+        self.stats = {
+            'eval_time': eval_time,
+            'start_time': start_time
         }
-
-        StatsReporter.push_stats(stats)
 
         # all_outputs = self.all_outputs()
         for name, value in outputs.items():
@@ -142,11 +156,7 @@ class INode(object):
         for input_ in self.all_inputs().values():
             input_.is_dirty = False
 
-        LogObserver.push_message(
-            'Evaluation result for {0} -> {1}: {2}'.format(
-                self.file_location, self.class_name,
-                json.dumps(self._sort_plugs(outputs), indent=2, cls=NodeEncoder)
-            ))
+        INode.EVENTS['evaluation-finished'].emit(self)
 
         return outputs
 
@@ -163,8 +173,26 @@ class INode(object):
             for connected_plug in output_plug.connections:
                 connected_plug.is_dirty = True
 
-    def serialize(self):
+    def to_pickle(self):
+        """Serialize the node into a pickle."""
+        return pickle.dumps(self)
+
+    def to_json(self):
         """Serialize the node to json."""
+        return self._serialize()
+
+    def serialize(self):  # pragma: no cover
+        """Serialize the node to json.
+
+        Deprecated and kept for backwards compatibility.
+        """
+        warnings.warn('Node.serialize is deprecated. Instead, use one of '
+                      'Node.to_json or Node.to_pickle',
+                      DeprecationWarning)
+        return self._serialize()
+
+    def _serialize(self):
+        """Perform the serialization to json."""
         if self.file_location is None:  # pragma: no cover
             raise RuntimeError("Cannot serialize a node that was not defined "
                                "in a file")
@@ -185,8 +213,21 @@ class INode(object):
             metadata=self.metadata)
 
     @staticmethod
-    def deserialize(data):
+    def from_pickle(data):
+        """De-serialize from the given pickle data."""
+        return pickle.loads(data)
+
+    @staticmethod
+    def from_json(data):
         """De-serialize from the given json data."""
+        return deserialize_node(data)
+
+    @staticmethod
+    def deserialize(data):  # pragma: no cover
+        """De-serialize from the given json data."""
+        warnings.warn('Node.deserialize is deprecated. Instead, use one of '
+                      'Node.from_json or Node.from_pickle',
+                      DeprecationWarning)
         return deserialize_node(data)
 
     def post_deserialize(self, data):
@@ -207,18 +248,18 @@ class INode(object):
     def node_repr(self):
         """The node formated into a string looking like a node.
 
-        +------------------+
-        |     Node.Name    |
-        |------------------|
-        % compound_in      |
-        o  compound_in-1   |
-        o  compound_in-2   |
-        o in               |
-        |              out o
-        |     compound_out %
-        |  compound_out-1  o
-        |  compound_out-2  o
-        +------------------+
+        +--Node.graph.name--+
+        |     Node.Name     |
+        |-------------------|
+        % compound_in       |
+        o  compound_in-1    |
+        o  compound_in-2    |
+        o in                |
+        |               out o
+        |      compound_out %
+        |   compound_out-1  o
+        |   compound_out-2  o
+        +-------------------+
         """
         max_value_length = 10
 
@@ -244,7 +285,13 @@ class INode(object):
                             if plug.value is not None),
                         key=len)) + 7
 
-        pretty = offset + '+' + '-' * width + '+'
+        if self.graph.subgraphs:
+            width = max([width, len(self.graph.name) + 7])
+            pretty = '{offset}+{graph_name:-^{width}}+'.format(
+                offset=offset, graph_name=self.graph.name, width=width)
+        else:
+            pretty = offset + '+' + '-' * width + '+'
+
         pretty += '\n{offset}|{name:^{width}}|'.format(
             offset=offset, name=' ' + self.name + ' ', width=width)
         pretty += '\n' + offset + '|' + '-' * width + '|'
@@ -402,9 +449,9 @@ class FunctionNode(INode):
         else:
             return self.func(*args, **kwargs)
 
-    def serialize(self):
+    def _serialize(self):
         """Also serialize the location of the wrapped function."""
-        data = super(FunctionNode, self).serialize()
+        data = super(FunctionNode, self)._serialize()
         data['func'] = {
             'module': self.func.__module__,
             'name': self.func.__name__
@@ -431,7 +478,6 @@ class FunctionNode(INode):
             for sub_name, sub_plug in output['sub_plugs'].items():
                 self.outputs[name][sub_name].value = sub_plug['value']
 
-
     def _initialize(self, func, outputs, metadata):
         """Use the function and the list of outputs to setup the Node."""
         self.func = func
@@ -441,7 +487,7 @@ class FunctionNode(INode):
         if func is not None:
             self.file_location = inspect.getfile(func)
             self.class_name = self.func.__name__
-            arg_spec = inspect.getargspec(func)
+            arg_spec = getargspec(func)
             defaults = {}
             if arg_spec.defaults is not None:
                 defaults = dict(zip(arg_spec.args[-len(arg_spec.defaults):],
@@ -466,6 +512,12 @@ class FunctionNode(INode):
         if outputs is not None:
             for output in outputs:
                 OutputPlug(output, self)
+
+    def to_pickle(self):  # pragma: no cover
+        """Pickle the node. -- DOES NOT WORK FOR FunctionNode."""
+        raise NotImplementedError(
+            "Pickling is not implemented for FunctionNode. "
+            "Consider subclassing flowpipe.node.INode to pickle nodes.")
 
 
 def Node(*args, **kwargs):

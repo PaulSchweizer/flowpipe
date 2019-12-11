@@ -2,6 +2,7 @@
 from __future__ import print_function
 from abc import abstractmethod
 import sys
+from .utilities import get_hash
 __all__ = ['OutputPlug', 'InputPlug']
 
 try:
@@ -55,6 +56,15 @@ class IPlug(object):
         if isinstance(other, self.accepted_plugs):
             self.disconnect(other)
 
+    # Extra function to make re-use in subclasses easier
+    def _update_value(self, value):
+        """Update the internal value."""
+        old_hash = get_hash(self._value)
+        new_hash = get_hash(value)
+        self._value = value
+        if old_hash is None or new_hash is None or (old_hash != new_hash):
+            self.is_dirty = True
+
     @property
     def value(self):
         """Access to the value on this Plug."""
@@ -63,8 +73,7 @@ class IPlug(object):
     @value.setter
     def value(self, value):
         """Set the Plug dirty when the value is being changed."""
-        self._value = value
-        self.is_dirty = True
+        self._update_value(value)
 
     @property
     def is_dirty(self):
@@ -96,6 +105,14 @@ class IPlug(object):
         if self in plug.connections:
             plug.connections.pop(plug.connections.index(self))
             plug.is_dirty = True
+
+    def promote_to_graph(self, name=None):
+        """Add this plug to the graph of this plug's node.
+
+        Args:
+            name (str): Optionally provide a different name for the Plug
+        """
+        self.node.graph.add_plug(self, name=name)
 
 
 class OutputPlug(IPlug):
@@ -145,10 +162,7 @@ class OutputPlug(IPlug):
     @value.setter
     def value(self, value):
         """Propagate the dirty state to all connected Plugs as well."""
-        if self._sub_plugs:
-            return
-        self._value = value
-        self.is_dirty = True
+        self._update_value(value)
         for plug in self.connections:
             plug.value = value
 
@@ -157,19 +171,17 @@ class OutputPlug(IPlug):
 
         Set both participating Plugs dirty.
         """
-        if plug.node is self.node:
-            raise ValueError(
-                'Can\'t connect Plugs that are part of the same Node.')
-
-        for connection in plug.connections:
-            plug.disconnect(connection)
-
-        if plug not in self.connections:
-            self.connections.append(plug)
-            plug.value = self.value
-            self.is_dirty = True
-        if self not in plug.connections:
-            plug.connections = [self]
+        if self.node.graph.accepts_connection(self, plug):
+            for connection in plug.connections:
+                plug.disconnect(connection)
+            if plug not in self.connections:
+                self.connections.append(plug)
+                plug.value = self.value
+                self.is_dirty = True
+                plug.is_dirty = True
+            if self not in plug.connections:
+                plug.connections = [self]
+                plug.is_dirty = True
 
     def serialize(self):
         """Serialize the Plug containing all it's connections."""
@@ -240,26 +252,22 @@ class InputPlug(IPlug):
         """Set the Plug dirty when the value is being changed."""
         if self._sub_plugs:
             return
-        self._value = value
-        self.is_dirty = True
+        self._update_value(value)
 
     def connect(self, plug):
         """Connect this Plug to the given OutputPlug.
 
         Set both participating Plugs dirty.
         """
-        if plug.node is self.node:
-            raise ValueError(
-                'Can\'t connect Plugs that are part of the same Node.')
-
-        for connection in self.connections:
-            self.disconnect(connection)
-
-        self.connections = [plug]
-        self.is_dirty = True
-        if self not in plug.connections:
-            plug.connections.append(self)
+        if self.node.graph.accepts_connection(plug, self):
+            for connection in self.connections:
+                self.disconnect(connection)
+            self.connections = [plug]
+            self.is_dirty = True
             plug.is_dirty = True
+            if self not in plug.connections:
+                plug.connections.append(self)
+                plug.is_dirty = True
 
     def serialize(self):
         """Serialize the Plug containing all it's connections."""
@@ -293,6 +301,7 @@ class SubInputPlug(IPlug):
         super(SubInputPlug, self).__init__(
             '{0}.{1}'.format(parent_plug.name, key), node,
             (OutputPlug, SubOutputPlug))
+        self.key = key
         self.parent_plug = parent_plug
         self.value = value
         self.is_dirty = True
@@ -314,18 +323,14 @@ class SubInputPlug(IPlug):
 
         Set both participating Plugs dirty.
         """
-        if plug.node is self.node:
-            raise ValueError(
-                'Can\'t connect Plugs that are part of the same Node.')
-
-        for connection in self.connections:
-            self.disconnect(connection)
-
-        self.connections = [plug]
-        self.is_dirty = True
-        if self not in plug.connections:
-            plug.connections.append(self)
-            plug.is_dirty = True
+        if self.node.graph.accepts_connection(plug, self):
+            for connection in self.connections:
+                self.disconnect(connection)
+            self.connections = [plug]
+            self.is_dirty = True
+            if self not in plug.connections:
+                plug.connections.append(self)
+                plug.is_dirty = True
 
     def serialize(self):
         """Serialize the Plug containing all it's connections."""
@@ -355,6 +360,7 @@ class SubOutputPlug(IPlug):
         super(SubOutputPlug, self).__init__(
             '{0}.{1}'.format(parent_plug.name, key), node,
             (InputPlug, SubInputPlug))
+        self.key = key
         self.parent_plug = parent_plug
         self.value = value
         self.is_dirty = True
@@ -367,10 +373,12 @@ class SubOutputPlug(IPlug):
     @value.setter
     def value(self, value):
         """Propagate the dirty state to all connected Plugs as well."""
-        self._value = value
-        self.is_dirty = True
+        self._update_value(value)
         for plug in self.connections:
             plug.value = value
+        parent_value = self.parent_plug.value or {}
+        parent_value[self.key] = value
+        self.parent_plug.value = parent_value
 
     @property
     def is_dirty(self):
@@ -389,19 +397,17 @@ class SubOutputPlug(IPlug):
 
         Set both participating Plugs dirty.
         """
-        if plug.node is self.node:
-            raise ValueError(
-                'Can\'t connect Plugs that are part of the same Node.')
-
-        for connection in plug.connections:
-            plug.disconnect(connection)
-
-        if plug not in self.connections:
-            self.connections.append(plug)
-            plug.value = self.value
-            self.is_dirty = True
-        if self not in plug.connections:
-            plug.connections = [self]
+        if self.node.graph.accepts_connection(self, plug):
+            for connection in plug.connections:
+                plug.disconnect(connection)
+            if plug not in self.connections:
+                self.connections.append(plug)
+                plug.value = self.value
+                self.is_dirty = True
+                plug.is_dirty = True
+            if self not in plug.connections:
+                plug.connections = [self]
+                plug.is_dirty = True
 
     def serialize(self):
         """Serialize the Plug containing all it's connections."""

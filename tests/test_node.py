@@ -1,11 +1,14 @@
 from __future__ import print_function
 
+import hashlib
 import mock
 import pytest
 
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.graph import reset_default_graph, get_default_graph
+from flowpipe.utilities import get_hash
+from flowpipe.errors import CycleError
 
 
 @pytest.fixture
@@ -16,10 +19,10 @@ def clear_default_graph():
 class SquareNode(INode):
     """Square the given value."""
 
-    def __init__(self, name=None, *args, **kwargs):
+    def __init__(self, name=None, in1=None, *args, **kwargs):
         """Init the node."""
         super(SquareNode, self).__init__(name, *args, **kwargs)
-        InputPlug('in1', self)
+        InputPlug('in1', self, value=in1)
         InputPlug('compound_in', self)
         OutputPlug('out', self)
         OutputPlug('compound_out', self)
@@ -124,7 +127,7 @@ def test_dirty_depends_on_inputs(clear_default_graph):
     node.inputs['compound_in']['0'].is_dirty = False
     assert not node.is_dirty
 
-    node.inputs['in1'].value = 2
+    node.inputs['in1'].value = 42
     assert node.is_dirty
 
 
@@ -141,13 +144,13 @@ def test_evaluate_sets_all_inputs_clean(clear_default_graph):
 def test_cannot_connect_node_to_itself(clear_default_graph):
     """A node can not create a cycle by connecting to itself."""
     node = SquareNode()
-    with pytest.raises(ValueError):
+    with pytest.raises(CycleError):
         node.outputs['out'] >> node.inputs['in1']
-    with pytest.raises(ValueError):
+    with pytest.raises(CycleError):
         node.inputs['in1']['0'] >> node.outputs['out']
-    with pytest.raises(ValueError):
+    with pytest.raises(CycleError):
         node.outputs['out']['0'] >> node.inputs['in1']['0']
-    with pytest.raises(ValueError):
+    with pytest.raises(CycleError):
         node.inputs['in1'] >> node.outputs['out']
 
 
@@ -239,7 +242,7 @@ def test_serialize_node_serialize_to_json(mock_inspect, clear_default_graph):
     node2.outputs['compound_out']['key'].value = 'value_key'
     node2.outputs['compound_out']['1'].value = 'value_1'
 
-    data = node1.serialize()
+    data = node1.to_json()
     assert data == {
         'inputs': {
             'compound_in': {
@@ -299,7 +302,7 @@ def test_serialize_node_serialize_to_json(mock_inspect, clear_default_graph):
         'identifier': node1.identifier,
         'cls': 'SquareNode'
     }
-    data2 = node2.serialize()
+    data2 = node2.to_json()
     assert data2 == {
         'inputs': {
             'compound_in': {
@@ -388,7 +391,7 @@ def test_deserialize_from_json(mock_inspect, clear_default_graph):
     node2.outputs['compound_out']['key'].value = 'value_key'
     node2.outputs['compound_out']['1'].value = 'value_1'
 
-    deserialized_data = INode.deserialize(node1.serialize()).serialize()
+    deserialized_data = INode.from_json(node1.to_json()).to_json()
     assert deserialized_data == {
         'inputs': {
             'compound_in': {
@@ -412,14 +415,14 @@ def test_deserialize_from_json(mock_inspect, clear_default_graph):
                 'value': None,
                 'sub_plugs': {
                     'key': {
-                            'connections': {},
-                            'name': 'compound_out.key',
-                            'value': 'value_key'
+                        'connections': {},
+                        'name': 'compound_out.key',
+                        'value': 'value_key'
                     },
                     '1': {
-                            'connections': {},
-                            'name': 'compound_out.1',
-                            'value': 'value_1'
+                        'connections': {},
+                        'name': 'compound_out.1',
+                        'value': 'value_1'
                     }
                 }
             },
@@ -437,7 +440,7 @@ def test_deserialize_from_json(mock_inspect, clear_default_graph):
         'cls': 'SquareNode'
     }
 
-    deserialized_data2 = INode.deserialize(node2.serialize()).serialize()
+    deserialized_data2 = INode.from_json(node2.to_json()).to_json()
     assert deserialized_data2 == {
         'inputs': {
             'compound_in': {
@@ -502,15 +505,39 @@ def test_deserialize_from_json(mock_inspect, clear_default_graph):
     }
 
 
+def test_serialize_node_serialize_to_pickle(clear_default_graph):
+    node1 = SquareNode('Node1')
+    node2 = SquareNode(name='Node2')
+    node1.inputs['in1'].value = 1
+    node1.outputs['out'] >> node2.inputs['in1']
+    node1.outputs['compound_out']['key'] >> node2.inputs['compound_in']['key']
+    node1.outputs['compound_out']['1'] >> node2.inputs['compound_in']['1']
+
+    node1.outputs['out'].value = 'value'
+    node1.outputs['compound_out']['key'].value = 'value_key'
+    node1.outputs['compound_out']['1'].value = 'value_1'
+
+    node2.outputs['out'].value = 'value'
+    node2.outputs['compound_out']['key'].value = 'value_key'
+    node2.outputs['compound_out']['1'].value = 'value_1'
+
+    rec1 = INode.from_pickle(node1.to_pickle())
+    # Using the to_json serialization as a check here is suboptimal, but we
+    # don't have another INode.__eq__(self, other)
+    assert rec1.to_json() == node1.to_json()
+    rec2 = INode.from_pickle(node2.to_pickle())
+    assert rec2.to_json() == node2.to_json()
+
+
 def test_deserialize_node_does_not_add_to_default_graph(clear_default_graph):
     node1 = SquareNode('Node1')
     node2 = SquareFunctionNode(name='Node2')
 
-    node1.deserialize(node1.serialize())
-    node1.deserialize(node1.serialize())
+    node1.from_json(node1.to_json())
+    node1.from_json(node1.to_json())
 
-    node2.deserialize(node2.serialize())
-    node2.deserialize(node2.serialize())
+    node2.from_json(node2.to_json())
+    node2.from_json(node2.to_json())
 
     assert len(get_default_graph().nodes) == 2
 
@@ -552,3 +579,37 @@ def test_all_outputs_contains_all_sub_output_plugs(clear_default_graph):
         'compound_out.key-1',
         'compound_out.0',
         'compound_out.1'])
+
+
+def test_node_reports_stats(clear_default_graph):
+    node = SquareNode(in1=1)
+    node.evaluate()
+    assert 'eval_time' in node.stats.keys()
+    assert 'start_time' in node.stats.keys()
+
+
+def test_node_events(clear_default_graph):
+    def omitted_listener(node):
+        assert node.omit
+        node.omit_listener_called = True
+
+    def started_listener(node):
+        node.started_listener_called = True
+
+    def finished_listener(node):
+        node.finished_listener_called = True
+
+    INode.EVENTS['evaluation-omitted'].register(omitted_listener)
+    INode.EVENTS['evaluation-started'].register(started_listener)
+    INode.EVENTS['evaluation-finished'].register(finished_listener)
+
+    node = SquareNode(in1=1)
+
+    node.omit = True
+    node.evaluate()
+    assert node.omit_listener_called
+
+    node.omit = False
+    node.evaluate()
+    assert node.started_listener_called
+    assert node.finished_listener_called

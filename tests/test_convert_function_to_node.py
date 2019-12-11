@@ -1,5 +1,6 @@
 from __future__ import print_function
 import json
+import sys
 
 import pytest
 
@@ -81,8 +82,8 @@ def test_decorator_returns_node_instances(clear_default_graph):
 def test_serialize_function_node(clear_default_graph):
     """Serialization also stored the location of the function."""
     node = function_for_testing(graph=None)
-    data = json.dumps(node.serialize())
-    deserialized_node = INode.deserialize(json.loads(data))
+    data = json.dumps(node.to_json())
+    deserialized_node = INode.from_json(json.loads(data))
     assert node.__doc__ == deserialized_node.__doc__
     assert node.name == deserialized_node.name
     assert node.inputs.keys() == deserialized_node.inputs.keys()
@@ -168,8 +169,8 @@ def test_metadata_is_unique_for_each_node_created(clear_default_graph):
 def test_class_name_restored_after_deserialization(clear_default_graph):
     """Serialization also stored the location of the function."""
     node = function_for_testing(graph=None)
-    data = json.dumps(node.serialize())
-    deserialized_node = INode.deserialize(json.loads(data))
+    data = json.dumps(node.to_json())
+    deserialized_node = INode.from_json(json.loads(data))
 
     assert node.class_name == "function_for_testing"
     assert deserialized_node.class_name == "function_for_testing"

@@ -15,11 +15,9 @@ The Workflow builds a Graph and initializes it with user provided settings as
 well as data taken from other sources (database, filesystem).
 """
 import getpass
-import logging
 
-import flowpipe
-from flowpipe.graph import Graph
-from flowpipe.node import Node
+from flowpipe import Graph
+from flowpipe import Node
 
 
 class Workflow(object):
@@ -110,8 +108,6 @@ def UpdateDatabase(asset, images, status):
 
 
 if __name__ == '__main__':
-    flowpipe.logger.setLevel(logging.DEBUG)
-
     workflow = PublishWorkflow('model.ma')
     print(workflow.graph)
     workflow.evaluate_locally()

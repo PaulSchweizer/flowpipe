@@ -25,14 +25,9 @@ A graph implementation of a world clock for demonstrational purposes:
                               +---------------------+
 """
 from datetime import datetime
-import logging
 from time import time
 
-from flowpipe import logger
-from flowpipe.plug import InputPlug, OutputPlug
-from flowpipe.node import INode, Node
-
-from flowpipe.graph import Graph
+from flowpipe import Graph, INode, Node, InputPlug, OutputPlug
 
 
 @Node(outputs=['time'])
@@ -93,6 +88,4 @@ muc.outputs['converted_time'] >> world_clock.inputs['times']['Munich']
 # Display the graph
 print(graph)
 
-# Evaluate with debug logs
-logger.setLevel(logging.DEBUG)
 graph.evaluate()

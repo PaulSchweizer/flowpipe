@@ -36,9 +36,7 @@ Benefits:
 Consider this simple example on how to represent the construction of a house with Flowpipe:
 
 ```python
-from flowpipe.plug import InputPlug, OutputPlug
-from flowpipe.node import INode, Node
-from flowpipe.graph import Graph
+from flowpipe import Graph, INode, Node, InputPlug, OutputPlug
 
 
 class HireWorkers(INode):
@@ -166,7 +164,7 @@ Build a House
 Now build the house:
 
 ```python
-graph.evaluate(threaded=True)  # The default graph evaluation is not threaded
+graph.evaluate(mode='threading')  # Options are linear, threading and multiprocessing
 ```
 
 Output:
@@ -222,6 +220,9 @@ The code for these examples:
 
 Another simple example:
 [world_clock.py](examples/world_clock.py)!
+
+How to make use of nested subgraphs:
+[nested_graphs.py](examples/nested_graphs.py)!
 
 Using the command pattern with flowpipe successfully:
 [workflow_design_pattern.py](examples/workflow_design_pattern.py)!
