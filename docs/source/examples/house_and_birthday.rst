@@ -1,0 +1,1 @@
+.. literalinclude:: ../../../examples/house_and_birthday.py

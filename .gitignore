@@ -6,6 +6,7 @@ celery
 cover
 .coverage
 .pytest_cache*
+doc/source/
 
 # Sublime
 *.sublime-project

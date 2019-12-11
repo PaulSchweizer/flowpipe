@@ -1,0 +1,1 @@
+.. literalinclude:: ../../../examples/vfx_renderings.py

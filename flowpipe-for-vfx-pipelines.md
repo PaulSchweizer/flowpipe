@@ -1,4 +1,4 @@
-# Flowpipe for VFX and Animation Pipelines aka the Workflow Design Pattern
+# Flowpipe for VFX Pipelines
 
 Flowpipe was inspired by commonly experienced challenges in vfx/animation pipelines.
 
@@ -27,9 +27,10 @@ Please see the detailed explanation below and the code examples on [vfx_render_f
 As the name suggests, this pattern wants to represent workflows. It is basically an extension of the 'Command Pattern' meant for more complex, long-running commands consisting of multiple sub-commands. Workflows also provide multiple ways of evaluation, usually local and remote (farm).
 
 A workflow would be a common, pre-defined set of tasks frequently used in a pipeline, for example:
-    - prepare a delivery to the client
-    - publish geometry with a subsequent turntable rendering
-    - ingest data from vendors, including data cleanup and transformation
+
+    * prepare a delivery to the client
+    * publish geometry with a subsequent turntable rendering
+    * ingest data from vendors, including data cleanup and transformation
 
 The Workflow builds a Graph and initializes it with user provided settings as well as data taken from other sources (database, filesystem).
 
@@ -37,7 +38,7 @@ Refer to the [workflow_design_pattern.py](examples/workflow_design_pattern.py)! 
 
 This can be a powerful approach, especially when used with the Farm Conversion.
 
-```
+```c
 +--------------------------+          +--------------------------------+          +----------------------+
 |         Publish          |          |        CreateTurntable         |          |    UpdateDatabase    |
 |--------------------------|          |--------------------------------|          |----------------------|
