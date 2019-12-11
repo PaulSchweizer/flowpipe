@@ -22,4 +22,5 @@ jobs:
         
     - name: Sphinx Build Html
       run: |
-        ./docs/make html
+        cd docs
+        make html
