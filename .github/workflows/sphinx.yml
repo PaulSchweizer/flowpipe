@@ -1,0 +1,20 @@
+name: Sphinx
+
+on: [push]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Install Sphinx
+      run: |
+        pip install sphinx
+        pip install m2r
+    - name: Sphinx Autodoc
+      run: |
+        sphinx-apidoc -o doc/source ./flowpipe
+    - name: Sphinx Build Html
+      run: |
+        make html
