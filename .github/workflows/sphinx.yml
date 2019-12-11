@@ -19,6 +19,7 @@ jobs:
         pip install sphinx
         pip install m2r
         sphinx-apidoc -o docs/source ./flowpipe
+        
     - name: Sphinx Build Html
       run: |
-        make html
+        ./docs/make html
