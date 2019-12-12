@@ -5,6 +5,16 @@ from flowpipe.plug import InputPlug, OutputPlug
 from flowpipe.graph import Graph
 
 class NodeForTesting(INode):
+    """
+    +---------------------+
+    |   NodeForTesting    |
+    |---------------------|
+    o in1<>               |
+    o in2<>               |
+    |                 out o
+    |                out2 o
+    +---------------------+
+    """
 
     def __init__(self, name=None, in1=None, in2=None, **kwargs):
         super(NodeForTesting, self).__init__(name, **kwargs)
@@ -19,6 +29,24 @@ class NodeForTesting(INode):
 
 @pytest.fixture
 def branching_graph():
+    """
+    +------------+          +------------+          +--------------------+
+    |   Start    |          |   Node2    |          |        End         |
+    |------------|          |------------|          |--------------------|
+    o in1<0>     |     +--->o in1<>      |          % in1                |
+    o in2<0>     |     |    o in2<0>     |     +--->o  in1.1<>           |
+    |        out o-----+    |        out o-----|--->o  in1.2<>           |
+    |       out2 o     |    |       out2 o     |    o in2<0>             |
+    +------------+     |    +------------+     |    |                out o
+                       |    +------------+     |    |               out2 o
+                       |    |   Node1    |     |    +--------------------+
+                       |    |------------|     |
+                       +--->o in1<>      |     |
+                            o in2<0>     |     |
+                            |        out o-----+
+                            |       out2 o
+                            +------------+
+    """
     graph = Graph(name="TestGraph")
     start = NodeForTesting(name='Start', graph=graph)
     n1 = NodeForTesting(name='Node1', graph=graph)

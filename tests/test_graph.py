@@ -157,25 +157,6 @@ def test_complex_branching_evaluation_sequence(clear_default_graph):
 
 
 def test_serialize_graph_to_json(clear_default_graph, branching_graph):
-    """
-    +------------+          +------------+          +--------------------+
-    |   Start    |          |   Node2    |          |        End         |
-    |------------|          |------------|          |--------------------|
-    o in1<0>     |     +--->o in1<>      |          % in1                |
-    o in2<0>     |     |    o in2<0>     |     +--->o  in1.1<>           |
-    |        out o-----+    |        out o-----|--->o  in1.2<>           |
-    |       out2 o     |    |       out2 o     |    o in2<0>             |
-    +------------+     |    +------------+     |    |                out o
-                       |    +------------+     |    |               out2 o
-                       |    |   Node1    |     |    +--------------------+
-                       |    |------------|     |
-                       +--->o in1<>      |     |
-                            o in2<0>     |     |
-                            |        out o-----+
-                            |       out2 o
-                            +------------+
-    """
-
     serialized = branching_graph.to_json()
     deserialized = Graph.from_json(serialized)
 
