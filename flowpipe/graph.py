@@ -9,7 +9,6 @@ from concurrent import futures
 import logging
 from multiprocessing import Manager, Process
 import pickle
-import threading
 import time
 import warnings
 
@@ -206,7 +205,7 @@ class Graph(object):
         return True
 
     def evaluate(self, mode="linear", skip_clean=False,
-                 submission_delay=0.1, raise_after=None):
+                 submission_delay=0.1, max_workers=None):
         """Evaluate all Nodes in the graph.
 
         Sorts the nodes in the graph into a resolution order and evaluates the
@@ -229,8 +228,8 @@ class Graph(object):
                 inputs have not changed since their output was computed
             submission_delay (float): The delay in seconds between loops
                 issuing new threads/processes if nodes are ready to process.
-            raise_after (int): The number of loops without currently running
-                threads/processes after which to raise a RuntimeError.
+            max_workers (int): The maximum number of parallel threads to spawn.
+                None defaults to your pythons ThreadPoolExecutor default.
         """
         log.info('Evaluating Graph "{0}"'.format(self.name))
 
@@ -251,7 +250,7 @@ class Graph(object):
                 mode, mode_options))
 
         eval_func(skip_clean=skip_clean, submission_delay=submission_delay,
-                  raise_after=raise_after)
+                  max_workers=max_workers)
 
     def _evaluate_linear(self, skip_clean, **kwargs):
         """Iterate over all nodes in a single thread (the current one).
@@ -286,11 +285,16 @@ class Graph(object):
                         fut = executor.submit(node_runner, node)
                         running_futures.append(fut)
 
+                # Wait until a future finishes, then remove all finished nodes
+                # from the relevant lists
                 status = futures.wait(running_futures,
                                       return_when=futures.FIRST_COMPLETED)
                 for s in status.done:
                     running_futures.remove(s)
-                    nodes_to_evaluate.remove(s.result())
+                    try:
+                        nodes_to_evaluate.remove(s.result())
+                    except ValueError: #  The node is not in the list anyways
+                        pass
 
                 if not nodes_to_evaluate:
                     break
