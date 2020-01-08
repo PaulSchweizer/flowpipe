@@ -5,6 +5,7 @@ try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
+from concurrent import futures
 import logging
 from multiprocessing import Manager, Process
 import pickle
@@ -262,50 +263,37 @@ class Graph(object):
             if node.is_dirty or not skip_clean:
                 node.evaluate()
 
-    def _evaluate_threaded(self, skip_clean, submission_delay, raise_after,
-                           **kwargs):
+    def _evaluate_threaded(self, skip_clean, submission_delay,
+                           max_workers=None, **kwargs):
         """Evaluate each node in a new thread.
 
         Args:
             kwargs: included to allow for the factory pattern for eval modes
         """
-        threads = {}
         nodes_to_evaluate = [n for n in self.evaluation_sequence
                              if n.is_dirty or not skip_clean]
-        empty_loops = 0
-        while True:
-            for node in nodes_to_evaluate:
-                thread = threads.get(node.name)
-                if thread and not thread.is_alive():
-                    # If the node is done computing, drop it from the list
-                    nodes_to_evaluate.remove(node)
-                    continue
-                if not thread and all(not n.is_dirty for n in node.upstream_nodes):
-                    # If all deps are ready and no thread is active, create one
-                    threads[node.name] = threading.Thread(
-                        target=node.evaluate,
-                        name="flowpipe.{0}.{1}".format(self.name, node.name))
-                    threads[node.name].start()
 
-            graph_threads = [t for t in threading.enumerate()
-                             if t.name.startswith(
-                                 "flowpipe.{0}".format(self.name))]
-            all_clean = all(not n.is_dirty for n in nodes_to_evaluate)
-            if len(graph_threads) == 0 and not all_clean:  # pragma: no cover
-                # No more threads running after a round of submissions means
-                # we're either done or stuck
-                if raise_after is not None and empty_loops > raise_after:
-                    raise RuntimeError(
-                        "Could not sucessfully compute all nodes in the "
-                        "graph {0}".format(self.name))
-                else:
-                    empty_loops += 1
-            else:
-                empty_loops = 0
+        def node_runner(node):
+            node.evaluate()
+            return node
 
-            if not nodes_to_evaluate:
-                break
-            time.sleep(submission_delay)
+        running_futures = []
+        with futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            while True:
+                # Submit new nodes that are ready to be evaluated
+                for node in nodes_to_evaluate:
+                    if not any(n.is_dirty for n in node.upstream_nodes):
+                        fut = executor.submit(node_runner, node)
+                        running_futures.append(fut)
+
+                status = futures.wait(running_futures,
+                                      return_when=futures.FIRST_COMPLETED)
+                for s in status.done:
+                    running_futures.remove(s)
+                    nodes_to_evaluate.remove(s.result())
+
+                if not nodes_to_evaluate:
+                    break
 
     def _evaluate_multiprocessed(self, skip_clean, submission_delay, **kwargs):
         """Similar to the threaded evaluation but with multiprocessing.
