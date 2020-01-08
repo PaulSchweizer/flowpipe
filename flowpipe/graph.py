@@ -273,6 +273,7 @@ class Graph(object):
                              if n.is_dirty or not skip_clean]
 
         def node_runner(node):
+            """Run a node's evaluate method and return the node."""
             node.evaluate()
             return node
 
