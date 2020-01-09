@@ -279,7 +279,7 @@ class Graph(object):
 
         running_futures = []
         with futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            while True:
+            while nodes_to_evaluate:
                 # Submit new nodes that are ready to be evaluated
                 for node in nodes_to_evaluate:
                     if not any(n.is_dirty for n in node.upstream_nodes):
@@ -296,9 +296,6 @@ class Graph(object):
                         nodes_to_evaluate.remove(s.result())
                     except ValueError: #  The node is not in the list anyways
                         pass
-
-                if not nodes_to_evaluate:
-                    break
 
     def _evaluate_multiprocessed(self, skip_clean, submission_delay, **kwargs):
         """Similar to the threaded evaluation but with multiprocessing.
