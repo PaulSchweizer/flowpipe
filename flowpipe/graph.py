@@ -256,16 +256,14 @@ class Graph(object):
         eval_func(nodes_to_evaluate, **eval_func_args)
 
     def _evaluate_linear(self, nodes_to_evaluate):
-        """Iterate over all nodes in a single thread (the current one).
-
-        Args:
-            kwargs: included to allow for the factory pattern for eval modes
-        """
+        """Iterate over all nodes in a single thread (the current one)."""
+        log.debug("Evaluating {0} nodes in linear mode.".format(len(nodes_to_evaluate)))
         for node in nodes_to_evaluate:
             node.evaluate()
 
     def _evaluate_threaded(self, nodes_to_evaluate, max_workers=None):
         """Evaluate each node in a new thread."""
+        log.debug("Evaluating {0} nodes in threading mode.".format(len(nodes_to_evaluate)))
         def node_runner(node):
             """Run a node's evaluate method and return the node."""
             node.evaluate()
@@ -299,6 +297,7 @@ class Graph(object):
         The original node objects are updated with the results from the
         corresponding processes to reflect the evaluation.
         """
+        log.debug("Evaluating {0} nodes in multiprocessing mode.".format(len(nodes_to_evaluate)))
         manager = Manager()
         nodes_data = manager.dict()
         processes = {}
