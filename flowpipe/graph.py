@@ -237,7 +237,8 @@ class Graph(object):
         eval_modes = {
             "linear": (self._evaluate_linear, {}),
             "threading": (self._evaluate_threaded, {"max_workers": max_workers}),
-            "multiprocessing": (self._evaluate_multiprocessed, {"submission_delay": submission_delay})
+            "multiprocessing": (self._evaluate_multiprocessed,
+                                {"submission_delay": submission_delay})
         }
 
         try:
@@ -257,13 +258,15 @@ class Graph(object):
 
     def _evaluate_linear(self, nodes_to_evaluate):
         """Iterate over all nodes in a single thread (the current one)."""
-        log.debug("Evaluating {0} nodes in linear mode.".format(len(nodes_to_evaluate)))
+        log.debug("{0} evaluating {1} nodes in linear mode.".format(
+            self.name, len(nodes_to_evaluate)))
         for node in nodes_to_evaluate:
             node.evaluate()
 
     def _evaluate_threaded(self, nodes_to_evaluate, max_workers=None):
         """Evaluate each node in a new thread."""
-        log.debug("Evaluating {0} nodes in threading mode.".format(len(nodes_to_evaluate)))
+        log.debug("{0} evaluating {1} nodes in threading mode.".format(
+            self.name, len(nodes_to_evaluate)))
         def node_runner(node):
             """Run a node's evaluate method and return the node."""
             node.evaluate()
@@ -297,7 +300,8 @@ class Graph(object):
         The original node objects are updated with the results from the
         corresponding processes to reflect the evaluation.
         """
-        log.debug("Evaluating {0} nodes in multiprocessing mode.".format(len(nodes_to_evaluate)))
+        log.debug("{0} evaluating {1} nodes in multiprocessing mode.".format(
+            self.name, len(nodes_to_evaluate)))
         manager = Manager()
         nodes_data = manager.dict()
         processes = {}
