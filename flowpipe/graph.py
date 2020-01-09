@@ -233,14 +233,15 @@ class Graph(object):
         """
         log.info('Evaluating Graph "{0}"'.format(self.name))
 
+        # map mode keywords to evaluation functions and their arguments
         eval_modes = {
-            "linear": self._evaluate_linear,
-            "threading": self._evaluate_threaded,
-            "multiprocessing": self._evaluate_multiprocessed
+            "linear": (self._evaluate_linear, {}),
+            "threading": (self._evaluate_threaded, {"max_workers": max_workers}),
+            "multiprocessing": (self._evaluate_multiprocessed, {"submission_delay": submission_delay})
         }
 
         try:
-            eval_func = eval_modes[mode]
+            eval_func, eval_func_args = eval_modes[mode]
         except KeyError:
             mode_options = ""
             for m in eval_modes:
@@ -249,29 +250,22 @@ class Graph(object):
             raise ValueError("Invalid mode {0}, options are {1}".format(
                 mode, mode_options))
 
-        eval_func(skip_clean=skip_clean, submission_delay=submission_delay,
-                  max_workers=max_workers)
+        nodes_to_evaluate = [n for n in self.evaluation_sequence
+                             if n.is_dirty or not skip_clean]
 
-    def _evaluate_linear(self, skip_clean, **kwargs):
+        eval_func(nodes_to_evaluate, **eval_func_args)
+
+    def _evaluate_linear(self, nodes_to_evaluate):
         """Iterate over all nodes in a single thread (the current one).
 
         Args:
             kwargs: included to allow for the factory pattern for eval modes
         """
-        for node in self.evaluation_sequence:
-            if node.is_dirty or not skip_clean:
-                node.evaluate()
+        for node in nodes_to_evaluate:
+            node.evaluate()
 
-    def _evaluate_threaded(self, skip_clean, submission_delay,
-                           max_workers=None, **kwargs):
-        """Evaluate each node in a new thread.
-
-        Args:
-            kwargs: included to allow for the factory pattern for eval modes
-        """
-        nodes_to_evaluate = [n for n in self.evaluation_sequence
-                             if n.is_dirty or not skip_clean]
-
+    def _evaluate_threaded(self, nodes_to_evaluate, max_workers=None):
+        """Evaluate each node in a new thread."""
         def node_runner(node):
             """Run a node's evaluate method and return the node."""
             node.evaluate()
@@ -297,22 +291,17 @@ class Graph(object):
                     except ValueError: #  The node is not in the list anyways
                         pass
 
-    def _evaluate_multiprocessed(self, skip_clean, submission_delay, **kwargs):
+    def _evaluate_multiprocessed(self, nodes_to_evaluate, submission_delay):
         """Similar to the threaded evaluation but with multiprocessing.
 
         Nodes communicate via a manager and are evaluated in a dedicated
         function.
         The original node objects are updated with the results from the
         corresponding processes to reflect the evaluation.
-
-        Args:
-            kwargs: included to allow for the factory pattern for eval modes
         """
         manager = Manager()
         nodes_data = manager.dict()
         processes = {}
-        nodes_to_evaluate = [n for n in self.evaluation_sequence
-                             if n.is_dirty or not skip_clean]
 
         def upstream_ready(processes, node):
             for upstream in node.upstream_nodes:
@@ -320,7 +309,7 @@ class Graph(object):
                     return False
             return True
 
-        while True:
+        while nodes_to_evaluate:
             for node in nodes_to_evaluate:
                 process = processes.get(node.name)
                 if process and not process.is_alive():
@@ -339,8 +328,6 @@ class Graph(object):
                     processes[node.name].daemon = True
                     processes[node.name].start()
 
-            if not nodes_to_evaluate:
-                break
             time.sleep(submission_delay)
 
     def to_pickle(self):
