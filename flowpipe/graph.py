@@ -244,12 +244,9 @@ class Graph(object):
         try:
             eval_func, eval_func_args = eval_modes[mode]
         except KeyError:
-            mode_options = ""
-            for m in eval_modes:
-                mode_options += m + " "
-            mode_options = mode_options[:-1]  # get rid of trailing space
-            raise ValueError("Invalid mode {0}, options are {1}".format(
-                mode, mode_options))
+            mode_options = ", ".join(eval_modes.keys())
+            raise ValueError(
+                "Invalid mode {0}, options are {1}".format(mode, mode_options))
 
         nodes_to_evaluate = [n for n in self.evaluation_sequence
                              if n.is_dirty or not skip_clean]
