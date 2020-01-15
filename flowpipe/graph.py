@@ -5,10 +5,10 @@ try:
     from collections import OrderedDict
 except ImportError:
     from ordereddict import OrderedDict
+from concurrent import futures
 import logging
 from multiprocessing import Manager, Process
 import pickle
-import threading
 import time
 import warnings
 
@@ -205,7 +205,7 @@ class Graph(object):
         return True
 
     def evaluate(self, mode="linear", skip_clean=False,
-                 submission_delay=0.1, raise_after=None):
+                 submission_delay=0.1, max_workers=None):
         """Evaluate all Nodes in the graph.
 
         Sorts the nodes in the graph into a resolution order and evaluates the
@@ -228,101 +228,80 @@ class Graph(object):
                 inputs have not changed since their output was computed
             submission_delay (float): The delay in seconds between loops
                 issuing new threads/processes if nodes are ready to process.
-            raise_after (int): The number of loops without currently running
-                threads/processes after which to raise a RuntimeError.
+            max_workers (int): The maximum number of parallel threads to spawn.
+                None defaults to your pythons ThreadPoolExecutor default.
         """
         log.info('Evaluating Graph "{0}"'.format(self.name))
 
+        # map mode keywords to evaluation functions and their arguments
         eval_modes = {
-            "linear": self._evaluate_linear,
-            "threading": self._evaluate_threaded,
-            "multiprocessing": self._evaluate_multiprocessed
+            "linear": (self._evaluate_linear, {}),
+            "threading": (self._evaluate_threaded, {"max_workers": max_workers}),
+            "multiprocessing": (self._evaluate_multiprocessed,
+                                {"submission_delay": submission_delay})
         }
 
         try:
-            eval_func = eval_modes[mode]
+            eval_func, eval_func_args = eval_modes[mode]
         except KeyError:
-            mode_options = ""
-            for m in eval_modes:
-                mode_options += m + " "
-            mode_options = mode_options[:-1]  # get rid of trailing space
-            raise ValueError("Invalid mode {0}, options are {1}".format(
-                mode, mode_options))
+            mode_options = ", ".join(eval_modes.keys())
+            raise ValueError(
+                "Invalid mode {0}, options are {1}".format(mode, mode_options))
 
-        eval_func(skip_clean=skip_clean, submission_delay=submission_delay,
-                  raise_after=raise_after)
-
-    def _evaluate_linear(self, skip_clean, **kwargs):
-        """Iterate over all nodes in a single thread (the current one).
-
-        Args:
-            kwargs: included to allow for the factory pattern for eval modes
-        """
-        for node in self.evaluation_sequence:
-            if node.is_dirty or not skip_clean:
-                node.evaluate()
-
-    def _evaluate_threaded(self, skip_clean, submission_delay, raise_after,
-                           **kwargs):
-        """Evaluate each node in a new thread.
-
-        Args:
-            kwargs: included to allow for the factory pattern for eval modes
-        """
-        threads = {}
         nodes_to_evaluate = [n for n in self.evaluation_sequence
                              if n.is_dirty or not skip_clean]
-        empty_loops = 0
-        while True:
-            for node in nodes_to_evaluate:
-                thread = threads.get(node.name)
-                if thread and not thread.is_alive():
-                    # If the node is done computing, drop it from the list
-                    nodes_to_evaluate.remove(node)
-                    continue
-                if not thread and all(not n.is_dirty for n in node.upstream_nodes):
-                    # If all deps are ready and no thread is active, create one
-                    threads[node.name] = threading.Thread(
-                        target=node.evaluate,
-                        name="flowpipe.{0}.{1}".format(self.name, node.name))
-                    threads[node.name].start()
 
-            graph_threads = [t for t in threading.enumerate()
-                             if t.name.startswith(
-                                 "flowpipe.{0}".format(self.name))]
-            all_clean = all(not n.is_dirty for n in nodes_to_evaluate)
-            if len(graph_threads) == 0 and not all_clean:  # pragma: no cover
-                # No more threads running after a round of submissions means
-                # we're either done or stuck
-                if raise_after is not None and empty_loops > raise_after:
-                    raise RuntimeError(
-                        "Could not sucessfully compute all nodes in the "
-                        "graph {0}".format(self.name))
-                else:
-                    empty_loops += 1
-            else:
-                empty_loops = 0
+        eval_func(nodes_to_evaluate, **eval_func_args)
 
-            if not nodes_to_evaluate:
-                break
-            time.sleep(submission_delay)
+    def _evaluate_linear(self, nodes_to_evaluate):
+        """Iterate over all nodes in a single thread (the current one)."""
+        log.debug("{0} evaluating {1} nodes in linear mode.".format(
+            self.name, len(nodes_to_evaluate)))
+        for node in nodes_to_evaluate:
+            node.evaluate()
 
-    def _evaluate_multiprocessed(self, skip_clean, submission_delay, **kwargs):
+    def _evaluate_threaded(self, nodes_to_evaluate, max_workers=None):
+        """Evaluate each node in a new thread."""
+        log.debug("{0} evaluating {1} nodes in threading mode.".format(
+            self.name, len(nodes_to_evaluate)))
+        def node_runner(node):
+            """Run a node's evaluate method and return the node."""
+            node.evaluate()
+            return node
+
+        running_futures = []
+        with futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            while nodes_to_evaluate:
+                # Submit new nodes that are ready to be evaluated
+                for node in nodes_to_evaluate:
+                    if not any(n.is_dirty for n in node.upstream_nodes):
+                        fut = executor.submit(node_runner, node)
+                        running_futures.append(fut)
+
+                # Wait until a future finishes, then remove all finished nodes
+                # from the relevant lists
+                status = futures.wait(running_futures,
+                                      return_when=futures.FIRST_COMPLETED)
+                for s in status.done:
+                    running_futures.remove(s)
+                    try:
+                        nodes_to_evaluate.remove(s.result())
+                    except ValueError: #  The node is not in the list anyways
+                        pass
+
+    def _evaluate_multiprocessed(self, nodes_to_evaluate, submission_delay):
         """Similar to the threaded evaluation but with multiprocessing.
 
         Nodes communicate via a manager and are evaluated in a dedicated
         function.
         The original node objects are updated with the results from the
         corresponding processes to reflect the evaluation.
-
-        Args:
-            kwargs: included to allow for the factory pattern for eval modes
         """
+        log.debug("{0} evaluating {1} nodes in multiprocessing mode.".format(
+            self.name, len(nodes_to_evaluate)))
         manager = Manager()
         nodes_data = manager.dict()
         processes = {}
-        nodes_to_evaluate = [n for n in self.evaluation_sequence
-                             if n.is_dirty or not skip_clean]
 
         def upstream_ready(processes, node):
             for upstream in node.upstream_nodes:
@@ -330,7 +309,7 @@ class Graph(object):
                     return False
             return True
 
-        while True:
+        while nodes_to_evaluate:
             for node in nodes_to_evaluate:
                 process = processes.get(node.name)
                 if process and not process.is_alive():
@@ -349,8 +328,6 @@ class Graph(object):
                     processes[node.name].daemon = True
                     processes[node.name].start()
 
-            if not nodes_to_evaluate:
-                break
             time.sleep(submission_delay)
 
     def to_pickle(self):
