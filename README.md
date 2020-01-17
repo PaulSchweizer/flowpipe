@@ -5,6 +5,7 @@
 [![Codacy_Badge_Coverage](https://api.codacy.com/project/badge/Coverage/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&utm_medium=referral&utm_content=PaulSchweizer/flowpipe&utm_campaign=Badge_Coverage) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![python 2.7](https://img.shields.io/badge/python-2.7%2B-blue.svg)](https://www.python.org/downloads/) [![python 3.6+](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/downloads/)
 
 
+![LOGO](logo.png?raw=true)
 # Flow-based Programming
 A lightweight framework for flow-based programming in python.
 
