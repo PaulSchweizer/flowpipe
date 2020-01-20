@@ -271,12 +271,13 @@ class Graph(object):
 
         running_futures = []
         with futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            while nodes_to_evaluate:
+            while nodes_to_evaluate or running_futures:
                 # Submit new nodes that are ready to be evaluated
                 for node in nodes_to_evaluate:
                     if not any(n.is_dirty for n in node.upstream_nodes):
                         fut = executor.submit(node_runner, node)
                         running_futures.append(fut)
+                        nodes_to_evaluate.remove(node)
 
                 # Wait until a future finishes, then remove all finished nodes
                 # from the relevant lists
@@ -284,10 +285,6 @@ class Graph(object):
                                       return_when=futures.FIRST_COMPLETED)
                 for s in status.done:
                     running_futures.remove(s)
-                    try:
-                        nodes_to_evaluate.remove(s.result())
-                    except ValueError: #  The node is not in the list anyways
-                        pass
 
     def _evaluate_multiprocessed(self, nodes_to_evaluate, submission_delay):
         """Similar to the threaded evaluation but with multiprocessing.
