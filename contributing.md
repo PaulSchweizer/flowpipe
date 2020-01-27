@@ -49,7 +49,11 @@ We generally follow [pep8](https://www.python.org/dev/peps/pep-0008/) with these
 
 Currently there is no specific release policy enacted, so please state in your Pull Request whether you'd need a new PyPi release after the merge and we will release it.
 
-Generally we release to PyPi by drafting a new release in github, updating the `__version__` in [flowpipe/__init__.py](flowpipe/__init__.py) and then triggering (or waiting for) the travis build.
+To perform a release as a collaborator, follow this recipe:
+1. On the master branch, update the version number in `setup.py`. Commit and push that change.
+2. On the github page, navigate to "relases" and draft a new release.
+3. Enter the required info for a new release. _Make sure the version number you give here is the same as in setup.py!_
+4. Click "Publish release", and the CI pipeline will automatically build a new release and push it to PYPI.
 
 # Next Steps: Become a Collaborator on github
 
