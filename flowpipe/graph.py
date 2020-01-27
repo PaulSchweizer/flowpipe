@@ -273,11 +273,14 @@ class Graph(object):
         with futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             while nodes_to_evaluate or running_futures:
                 # Submit new nodes that are ready to be evaluated
+                not_submitted = []
                 for node in nodes_to_evaluate:
                     if not any(n.is_dirty for n in node.upstream_nodes):
                         fut = executor.submit(node_runner, node)
                         running_futures.append(fut)
-                        nodes_to_evaluate.remove(node)
+                    else:
+                        not_submitted.append(node)
+                nodes_to_evaluate = not_submitted
 
                 # Wait until a future finishes, then remove all finished nodes
                 # from the relevant lists
