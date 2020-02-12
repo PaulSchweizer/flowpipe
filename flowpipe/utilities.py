@@ -2,7 +2,6 @@ try:
     import importlib
 except ImportError:
     pass
-import imp
 import json
 from hashlib import sha256
 import sys
@@ -22,7 +21,10 @@ def import_class(module, cls_name, file_location=None):
     try:
         cls = getattr(module, cls_name)
     except AttributeError:  # pragma: no cover
-        module = imp.load_source('module', file_location)
+        loader = importlib.machinery.SourceFileLoder('module', file_location)
+        spec = importlib.machinery.ModuleSpec('module', loader,
+                                              origin=file_location)
+        module = importlib.util.module_from_spec(spec)
         cls = getattr(module, cls_name)
     return cls
 
