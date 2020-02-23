@@ -139,10 +139,10 @@ class Graph(object):
     def delete_node(self, node):
         """Disconnect all plugs and then delete the node object."""
         if node in self.nodes:
-            for name, plug in node.all_inputs().items():
+            for plug in node.all_inputs().values():
                 for connection in plug.connections:
                     plug.disconnect(connection)
-            for name, plug in node.all_outputs().items():
+            for plug in node.all_outputs().values():
                 for connection in plug.connections:
                     plug.disconnect(connection)
             del self.nodes[self.nodes.index(node)]
@@ -517,14 +517,14 @@ def update_node(node, data):
     for name, input_plug in data['inputs'].items():
         node.inputs[name].value = input_plug['value']
         for sub_name, sub_plug in input_plug['sub_plugs'].items():
-            for sub_output in sub_plug['connections'].values():
+            for _ in sub_plug['connections'].values():
                 node.inputs[name][sub_name].value = sub_plug['value']
                 node.inputs[name][sub_name].is_dirty = False
         node.inputs[name].is_dirty = False
     for name, output_plug in data['outputs'].items():
         node.outputs[name].value = output_plug['value']
         for sub_name, sub_plug in output_plug['sub_plugs'].items():
-            for sub_output in sub_plug['connections'].values():
+            for _ in sub_plug['connections'].values():
                 node.outputs[name][sub_name].value = sub_plug['value']
                 node.outputs[name][sub_name].is_dirty = False
         node.outputs[name].is_dirty = False
