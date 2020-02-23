@@ -201,7 +201,6 @@ napoleon_include_private_with_doc = True
 napoleon_google_docstring = True
 napoleon_use_admonition_for_examples = True
 autodoc_default_options = {
-    'members': 'var1, var2',
     'member-order': 'bysource',
     'special-members': '__init__',
     'undoc-members': True,
