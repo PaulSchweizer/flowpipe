@@ -5,3 +5,7 @@ flowpipe
    :maxdepth: 4
 
    flowpipe
+
+
+.. automodule:: flowpipe
+    :members:
