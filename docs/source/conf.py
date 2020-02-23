@@ -24,9 +24,9 @@ copyright = u'2017, Paul Schweizer'
 author = u'Paul Schweizer'
 
 # The short X.Y version
-version = u'0.7.0'
+version = u'0.8.1'
 # The full version, including alpha/beta/rc tags
-release = u'0.7.0'
+release = u'0.8.1'
 
 
 # -- General configuration ---------------------------------------------------
@@ -199,5 +199,10 @@ napoleon_include_special_with_doc = True
 napoleon_include_private_with_doc = True
 napoleon_google_docstring = True
 napoleon_use_admonition_for_examples = True
-autodoc_member_order = "bysource"
-autodoc_undoc_members = True
+autodoc_default_options = {
+    'members': 'var1, var2',
+    'member-order': 'bysource',
+    'special-members': '__init__',
+    'undoc-members': True,
+    'exclude-members': '__weakref__'
+}
