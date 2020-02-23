@@ -303,6 +303,7 @@ class SubInputPlug(IPlug):
             (OutputPlug, SubOutputPlug))
         self.key = key
         self.parent_plug = parent_plug
+        self.parent_plug._sub_plugs[key] = self
         self.value = value
         self.is_dirty = True
 
@@ -362,6 +363,7 @@ class SubOutputPlug(IPlug):
             (InputPlug, SubInputPlug))
         self.key = key
         self.parent_plug = parent_plug
+        self.parent_plug._sub_plugs[key] = self
         self.value = value
         self.is_dirty = True
 
