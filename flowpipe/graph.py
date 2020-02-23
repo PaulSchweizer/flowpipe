@@ -136,6 +136,17 @@ class Graph(object):
             log.warning(
                 'Node "{0}" is already part of this Graph'.format(node.name))
 
+    def delete_node(self, node):
+        """Disconnect all plugs and then delete the node object."""
+        if node in self.nodes:
+            for name, plug in node.all_inputs().items():
+                for connection in plug.connections:
+                    plug.disconnect(connection)
+            for name, plug in node.all_outputs().items():
+                for connection in plug.connections:
+                    plug.disconnect(connection)
+            del self.nodes[self.nodes.index(node)]
+
     def add_plug(self, plug, name=None):
         """Promote the given plug this graph.
 
