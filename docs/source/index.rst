@@ -11,7 +11,6 @@ Table of Contents
    :maxdepth: 3
 
    flowpipe.rst
-   modules.rst
    workflow-pattern.rst
 
 Indices and tables
