@@ -5,7 +5,9 @@
 
 ![Flowpipe Logo](doc/source/_static/logo.png)
 
-# Flowpipe
+
+![LOGO](logo.png?raw=true)
+# Flow-based Programming
 A lightweight framework for flow-based programming in python.
 
 ```c

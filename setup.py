@@ -8,11 +8,12 @@ with open('README.md') as stream:
 REQUIREMENTS = [
     'ascii-canvas>=1.2.2',
     'ordereddict>=1.1',
-    'strip-hints>=0.1.7'
+    'strip-hints>=0.1.7',
+    'futures; python_version == "2.7"'
 ]
 
 setup(name='flowpipe',
-      version='0.7.0',
+      version='0.8.1',
       author='Paul Schweizer',
       author_email='paulschweizer@gmx.net',
       description='Lightweight flow-based programming framework.',

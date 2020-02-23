@@ -156,116 +156,46 @@ def test_complex_branching_evaluation_sequence(clear_default_graph):
     assert 'end' == seq[-1]
 
 
-def test_serialize_graph_to_json(clear_default_graph):
-    """
-    +------------+          +------------+          +--------------------+
-    |   Start    |          |   Node2    |          |        End         |
-    |------------|          |------------|          |--------------------|
-    o in1<0>     |     +--->o in1<>      |          % in1                |
-    o in2<0>     |     |    o in2<0>     |     +--->o  in1.1<>           |
-    |        out o-----+    |        out o-----|--->o  in1.2<>           |
-    |       out2 o     |    |       out2 o     |    o in2<0>             |
-    +------------+     |    +------------+     |    |                out o
-                       |    +------------+     |    |               out2 o
-                       |    |   Node1    |     |    +--------------------+
-                       |    |------------|     |
-                       +--->o in1<>      |     |
-                            o in2<0>     |     |
-                            |        out o-----+
-                            |       out2 o
-                            +------------+
-    """
-    graph = Graph(name="TestGraph")
-    start = NodeForTesting(name='Start', graph=graph)
-    n1 = NodeForTesting(name='Node1', graph=graph)
-    n2 = NodeForTesting(name='Node2', graph=graph)
-    end = NodeForTesting(name='End', graph=graph)
-    start.outputs['out'] >> n1.inputs['in1']
-    start.outputs['out'] >> n2.inputs['in1']
-    n1.outputs['out'] >> end.inputs['in1']['1']
-    n2.outputs['out'] >> end.inputs['in1']['2']
-
-    serialized = graph.to_json()
+def test_serialize_graph_to_json(clear_default_graph, branching_graph):
+    serialized = branching_graph.to_json()
     deserialized = Graph.from_json(serialized)
 
-    assert graph.name == deserialized.name
+    assert branching_graph.name == deserialized.name
     assert serialized == deserialized.to_json()
 
 
-def test_serialize_graph_to_pickle(clear_default_graph):
-    """
-    +------------+          +------------+          +--------------------+
-    |   Start    |          |   Node2    |          |        End         |
-    |------------|          |------------|          |--------------------|
-    o in1<0>     |     +--->o in1<>      |          % in1                |
-    o in2<0>     |     |    o in2<0>     |     +--->o  in1.1<>           |
-    |        out o-----+    |        out o-----|--->o  in1.2<>           |
-    |       out2 o     |    |       out2 o     |    o in2<0>             |
-    +------------+     |    +------------+     |    |                out o
-                       |    +------------+     |    |               out2 o
-                       |    |   Node1    |     |    +--------------------+
-                       |    |------------|     |
-                       +--->o in1<>      |     |
-                            o in2<0>     |     |
-                            |        out o-----+
-                            |       out2 o
-                            +------------+
-    """
-    graph = Graph()
-    start = NodeForTesting(name='Start', graph=graph)
-    n1 = NodeForTesting(name='Node1', graph=graph)
-    n2 = NodeForTesting(name='Node2', graph=graph)
-    end = NodeForTesting(name='End', graph=graph)
-    start.outputs['out'] >> n1.inputs['in1']
-    start.outputs['out'] >> n2.inputs['in1']
-    n1.outputs['out'] >> end.inputs['in1']['1']
-    n2.outputs['out'] >> end.inputs['in1']['2']
-
-    serialized = graph.to_pickle()
+def test_serialize_graph_to_pickle(clear_default_graph, branching_graph):
+    serialized = branching_graph.to_pickle()
     deserialized = Graph.from_pickle(serialized).to_pickle()
 
     assert serialized == deserialized
 
 
-def test_string_representations(clear_default_graph):
+def test_string_representations(clear_default_graph, branching_graph):
     """Print the Graph."""
-    graph = Graph()
-    start = NodeForTesting(name='Start', graph=graph)
-    n1 = NodeForTesting(name='Node1', graph=graph)
-    n2 = NodeForTesting(name='Node2', graph=graph)
-    end = NodeForTesting(name='End', graph=graph)
-    start.outputs['out'] >> n1.inputs['in1']
-    start.outputs['out'] >> n2.inputs['in1']['0']
-    n1.outputs['out'] >> end.inputs['in1']['1']
-    n2.outputs['out']['0'] >> end.inputs['in1']['2']
-    n2.outputs['out']['0'] >> end.inputs['in2']
 
-    assert str(graph) == '\
-+------------+          +------------+                  +--------------------+\n\
-|   Start    |          |   Node1    |                  |        End         |\n\
-|------------|          |------------|                  |--------------------|\n\
-o in1<>      |     +--->o in1<>      |                  % in1                |\n\
-o in2<>      |     |    o in2<>      |         +------->o  in1.1<>           |\n\
-|        out o-----+    |        out o---------+   +--->o  in1.2<>           |\n\
-|       out2 o     |    |       out2 o             |--->o in2<>              |\n\
-+------------+     |    +------------+             |    |                out o\n\
-                   |    +--------------------+     |    |               out2 o\n\
-                   |    |       Node2        |     |    +--------------------+\n\
-                   |    |--------------------|     |                          \n\
-                   |    % in1                |     |                          \n\
-                   +--->o  in1.0<>           |     |                          \n\
-                        o in2<>              |     |                          \n\
-                        |                out %     |                          \n\
-                        |             out.0  o-----+                          \n\
-                        |               out2 o                                \n\
-                        +--------------------+                                '
+    assert str(branching_graph) == """+------------+          +------------+          +--------------------+
+|   Start    |          |   Node1    |          |        End         |
+|------------|          |------------|          |--------------------|
+o in1<>      |     +--->o in1<>      |          % in1                |
+o in2<>      |     |    o in2<>      |     +--->o  in1.1<>           |
+|        out o-----+    |        out o-----+--->o  in1.2<>           |
+|       out2 o     |    |       out2 o     |    o in2<>              |
++------------+     |    +------------+     |    |                out o
+                   |    +------------+     |    |               out2 o
+                   |    |   Node2    |     |    +--------------------+
+                   |    |------------|     |                          
+                   +--->o in1<>      |     |                          
+                        o in2<>      |     |                          
+                        |        out o-----+                          
+                        |       out2 o                                
+                        +------------+                                """
 
-    assert graph.list_repr() == '''\
-Graph
+    assert branching_graph.list_repr() == """TestGraph
  Start
   [i] in1: null
   [i] in2: null
-  [o] out >> Node1.in1, Node2.in1.0
+  [o] out >> Node1.in1, Node2.in1
   [o] out2: null
  Node1
   [i] in1 << Start.out
@@ -273,19 +203,17 @@ Graph
   [o] out >> End.in1.1
   [o] out2: null
  Node2
-  [i] in1
-   [i] in1.0 << Start.out
+  [i] in1 << Start.out
   [i] in2: null
-  [o] out
-   [o] out.0 >> End.in1.2, End.in2
+  [o] out >> End.in1.2
   [o] out2: null
  End
   [i] in1
    [i] in1.1 << Node1.out
-   [i] in1.2 << Node2.out.0
-  [i] in2 << Node2.out.0
+   [i] in1.2 << Node2.out
+  [i] in2: null
   [o] out: null
-  [o] out2: null'''
+  [o] out2: null"""
 
 
 def test_string_representations_with_subgraphs(clear_default_graph):

@@ -28,6 +28,16 @@ We have an extensive, reliable test suite and we want to keep it that way, so pl
 We also want to keep the coverage at 100%. If there are good reasons for not covering parts of the code, please explicitely exclude them either via `# pragma: no cover` directly in the code or by specifying it in the [.coveragerc](.coveragerc) file.
 The tests have to pass on travis (py2.7 and py3.6).
 
+Execute the following steps to run the tests locally:
+```
+python3.6 -m venv ./venv
+source venv/bin/activate
+pip install -r requirements.txt
+pip install -r test-requirements.txt
+python setup.py develop
+pytest ./tests
+```
+
 ## Coding styleguide
 
 We generally follow [pep8](https://www.python.org/dev/peps/pep-0008/) with these additional requirements:
@@ -39,7 +49,11 @@ We generally follow [pep8](https://www.python.org/dev/peps/pep-0008/) with these
 
 Currently there is no specific release policy enacted, so please state in your Pull Request whether you'd need a new PyPi release after the merge and we will release it.
 
-Generally we release to PyPi by drafting a new release in github, updating the `__version__` in [flowpipe/__init__.py](flowpipe/__init__.py) and then triggering (or waiting for) the travis build.
+To perform a release as a collaborator, follow this recipe:
+1. On the master branch, update the version number in `setup.py`. Commit and push that change.
+2. On the github page, navigate to "relases" and draft a new release.
+3. Enter the required info for a new release. _Make sure the version number you give here is the same as in setup.py!_
+4. Click "Publish release", and the CI pipeline will automatically build a new release and push it to PYPI.
 
 # Next Steps: Become a Collaborator on github
 
