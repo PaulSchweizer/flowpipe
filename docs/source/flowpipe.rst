@@ -7,16 +7,10 @@ flowpipe.errors module
 .. automodule:: flowpipe.errors
     :members:
 
-.. autoclass:: flowpipe.errors.CycleError
-    :members:
-
 flowpipe.event module
 ---------------------
 
 .. automodule:: flowpipe.event
-    :members:
-
-.. autoclass:: flowpipe.event.Event
     :members:
 
 flowpipe.graph module
