@@ -436,8 +436,13 @@ class FunctionNode(INode):
         metadata = copy.deepcopy(self.metadata)
         metadata.update(kwargs.pop("metadata", {}))
         graph = kwargs.pop('graph', 'default')
+        outputs = []
+        for o in self.outputs.values():
+            outputs.append(o.name)
+            for key in o._sub_plugs.keys():
+                outputs.append("{0}.{1}".format(o.name, key))
         return self.__class__(func=self.func,
-                              outputs=[o for o in self.outputs],
+                              outputs=outputs,
                               metadata=metadata,
                               graph=graph,
                               **kwargs)
@@ -511,7 +516,15 @@ class FunctionNode(INode):
 
         if outputs is not None:
             for output in outputs:
-                OutputPlug(output, self)
+                if "." in output:
+                    parent, subplug = output.split(".")
+                    parent_plug = self.outputs.get(parent)
+                    if parent_plug is None:
+                        parent_plug = OutputPlug(parent, self)
+                    SubOutputPlug(subplug, self, parent_plug)
+                else:
+                    if self.outputs.get(output) is None:
+                        OutputPlug(output, self)
 
     def to_pickle(self):  # pragma: no cover
         """Pickle the node. -- DOES NOT WORK FOR FunctionNode."""
