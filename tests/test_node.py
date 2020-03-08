@@ -599,11 +599,11 @@ def test_node_events(clear_default_graph):
     def finished_listener(node):
         node.finished_listener_called = True
 
-    INode.EVENTS['evaluation-omitted'].register(omitted_listener)
-    INode.EVENTS['evaluation-started'].register(started_listener)
-    INode.EVENTS['evaluation-finished'].register(finished_listener)
-
     node = SquareNode(in1=1)
+
+    node.EVENTS['evaluation-omitted'].register(omitted_listener)
+    node.EVENTS['evaluation-started'].register(started_listener)
+    node.EVENTS['evaluation-finished'].register(finished_listener)
 
     node.omit = True
     node.evaluate()
@@ -613,3 +613,27 @@ def test_node_events(clear_default_graph):
     node.evaluate()
     assert node.started_listener_called
     assert node.finished_listener_called
+
+
+def test_node_event_emission_separation(clear_default_graph):
+    """Assert that events are emitted only on the triggering node."""
+    def inc_execution_counter(node):
+        node.execution_count += 1
+
+    node1 = SquareNode(in1=1, name="node1")
+    node1.execution_count = 0
+    node1.EVENTS['evaluation-started'].register(inc_execution_counter)
+
+    node2 = SquareNode(in1=1, name="node2")
+    node2.execution_count = 0
+    node2.EVENTS['evaluation-started'].register(inc_execution_counter)
+
+    node1.evaluate()
+
+    assert node1.execution_count == 1
+    assert node2.execution_count == 0
+
+    node2.evaluate()
+
+    assert node1.execution_count == 1
+    assert node2.execution_count == 1
