@@ -136,6 +136,17 @@ class Graph(object):
             log.warning(
                 'Node "{0}" is already part of this Graph'.format(node.name))
 
+    def delete_node(self, node):
+        """Disconnect all plugs and then delete the node object."""
+        if node in self.nodes:
+            for plug in node.all_inputs().values():
+                for connection in plug.connections:
+                    plug.disconnect(connection)
+            for plug in node.all_outputs().values():
+                for connection in plug.connections:
+                    plug.disconnect(connection)
+            del self.nodes[self.nodes.index(node)]
+
     def add_plug(self, plug, name=None):
         """Promote the given plug this graph.
 
@@ -506,14 +517,12 @@ def update_node(node, data):
     for name, input_plug in data['inputs'].items():
         node.inputs[name].value = input_plug['value']
         for sub_name, sub_plug in input_plug['sub_plugs'].items():
-            for sub_output in sub_plug['connections'].values():
-                node.inputs[name][sub_name].value = sub_plug['value']
-                node.inputs[name][sub_name].is_dirty = False
+            node.inputs[name][sub_name].value = sub_plug['value']
+            node.inputs[name][sub_name].is_dirty = False
         node.inputs[name].is_dirty = False
     for name, output_plug in data['outputs'].items():
         node.outputs[name].value = output_plug['value']
         for sub_name, sub_plug in output_plug['sub_plugs'].items():
-            for sub_output in sub_plug['connections'].values():
-                node.outputs[name][sub_name].value = sub_plug['value']
-                node.outputs[name][sub_name].is_dirty = False
+            node.outputs[name][sub_name].value = sub_plug['value']
+            node.outputs[name][sub_name].is_dirty = False
         node.outputs[name].is_dirty = False

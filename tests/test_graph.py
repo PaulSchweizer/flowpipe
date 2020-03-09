@@ -174,22 +174,23 @@ def test_serialize_graph_to_pickle(clear_default_graph, branching_graph):
 def test_string_representations(clear_default_graph, branching_graph):
     """Print the Graph."""
 
-    assert str(branching_graph) == """+------------+          +------------+          +--------------------+
-|   Start    |          |   Node1    |          |        End         |
-|------------|          |------------|          |--------------------|
-o in1<>      |     +--->o in1<>      |          % in1                |
-o in2<>      |     |    o in2<>      |     +--->o  in1.1<>           |
-|        out o-----+    |        out o-----+--->o  in1.2<>           |
-|       out2 o     |    |       out2 o     |    o in2<>              |
-+------------+     |    +------------+     |    |                out o
-                   |    +------------+     |    |               out2 o
-                   |    |   Node2    |     |    +--------------------+
-                   |    |------------|     |                          
-                   +--->o in1<>      |     |                          
-                        o in2<>      |     |                          
-                        |        out o-----+                          
-                        |       out2 o                                
-                        +------------+                                """
+    assert str(branching_graph) == (
+"+------------+          +------------+          +--------------------+\n"
+"|   Start    |          |   Node1    |          |        End         |\n"
+"|------------|          |------------|          |--------------------|\n"
+"o in1<>      |     +--->o in1<>      |          % in1                |\n"
+"o in2<>      |     |    o in2<>      |     +--->o  in1.1<>           |\n"
+"|        out o-----+    |        out o-----+--->o  in1.2<>           |\n"
+"|       out2 o     |    |       out2 o     |    o in2<>              |\n"
+"+------------+     |    +------------+     |    |                out o\n"
+"                   |    +------------+     |    |               out2 o\n"
+"                   |    |   Node2    |     |    +--------------------+\n"
+"                   |    |------------|     |                          \n"
+"                   +--->o in1<>      |     |                          \n"
+"                        o in2<>      |     |                          \n"
+"                        |        out o-----+                          \n"
+"                        |       out2 o                                \n"
+"                        +------------+                                ")
 
     assert branching_graph.list_repr() == """TestGraph
  Start
@@ -258,6 +259,28 @@ def test_nodes_can_be_added_to_graph(clear_default_graph):
     graph = Graph()
     graph.add_node(NodeForTesting())
     assert 1 == len(graph.nodes)
+
+
+def test_nodes_can_be_deleted(clear_default_graph, branching_graph):
+    """All connections are cleared before the node object is deleted."""
+    branching_graph["Start"].outputs["out"]["0"].connect(
+        branching_graph["Node2"].inputs["in1"]["0"])
+    branching_graph["Start"].outputs["out"]["1"].connect(
+        branching_graph["Node2"].inputs["in1"])
+    branching_graph["Start"].outputs["out"].connect(
+        branching_graph["Node2"].inputs["in1"]["1"])
+
+    branching_graph.delete_node(branching_graph["Node2"])
+    assert 3 == len(branching_graph.nodes)
+
+    branching_graph.delete_node(branching_graph["Node1"])
+    assert 2 == len(branching_graph.nodes)
+
+    branching_graph.delete_node(branching_graph["Start"])
+    assert 1 == len(branching_graph.nodes)
+
+    branching_graph.delete_node(branching_graph["End"])
+    assert 0 == len(branching_graph.nodes)
 
 
 def test_nested_graphs_expand_sub_graphs(clear_default_graph):
