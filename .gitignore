@@ -5,6 +5,7 @@ cover
 .coverage
 .pytest_cache*
 logos/
+venv*
 
 # Sublime
 *.sublime-project
