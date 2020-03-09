@@ -406,12 +406,12 @@ def test_threaded_evaluation():
                                |        result o
                                +---------------+
     """
-    sleep_time = 1
-    delay = .05
+    sleep_time = .2
     graph = Graph(name='threaded')
 
     @Node(outputs=['result'])
     def AddNode(number1, number2):
+        time.sleep(sleep_time)
         return {'result': number1 + number2}
 
     n1 = AddNode(name='AddNode1', graph=graph, number1=1, number2=1)
@@ -422,12 +422,12 @@ def test_threaded_evaluation():
     n1.outputs['result'] >> n3.inputs['number1']
 
     start = time.time()
-    graph.evaluate(mode="threading", submission_delay=delay)
+    graph.evaluate(mode="threading", max_workers=2)
     end = time.time()
 
     runtime = end - start
 
-    assert runtime < len(graph.nodes) * sleep_time + len(graph.nodes) * delay
+    assert runtime < len(graph.nodes) * sleep_time
     assert n2.outputs['result'].value == 3
     assert n3.outputs['result'].value == 3
 
