@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 # Use getfullargspec on py3.x to make type hints work
 try:
     getargspec = inspect.getfullargspec
-except AttributeError:
+except AttributeError:  # pragma: no cover
     getargspec = inspect.getargspec
 
 
@@ -36,11 +36,9 @@ class INode(object):
 
     __metaclass__ = ABCMeta
 
-    EVENTS = {
-        'evaluation-omitted': Event('evaluation-omitted'),
-        'evaluation-started': Event('evaluation-started'),
-        'evaluation-finished': Event('evaluation-finished')
-    }
+    EVENT_TYPES = ['evaluation-omitted',
+                   'evaluation-started',
+                   'evaluation-finished']
 
     def __init__(self, name=None, identifier=None, metadata=None,
                  graph='default'):
@@ -52,6 +50,8 @@ class INode(object):
                 If set to 'default', the Node is added to the default graph.
                 If set to None, the Node is not added to any grpah.
         """
+        self.EVENTS = {ev_type: Event(ev_type) for ev_type in self.EVENT_TYPES}
+
         self.name = name if name is not None else self.__class__.__name__
         self.identifier = (identifier if identifier is not None
                            else '{0}-{1}'.format(self.name, uuid.uuid4()))
@@ -125,10 +125,10 @@ class INode(object):
         evaluation time and timestamp the computation started.
         """
         if self.omit:
-            INode.EVENTS['evaluation-omitted'].emit(self)
+            self.EVENTS['evaluation-omitted'].emit(self)
             return {}
 
-        INode.EVENTS['evaluation-started'].emit(self)
+        self.EVENTS['evaluation-started'].emit(self)
 
         inputs = {}
         for name, plug in self.inputs.items():
@@ -156,7 +156,7 @@ class INode(object):
         for input_ in self.all_inputs().values():
             input_.is_dirty = False
 
-        INode.EVENTS['evaluation-finished'].emit(self)
+        self.EVENTS['evaluation-finished'].emit(self)
 
         return outputs
 
@@ -436,8 +436,13 @@ class FunctionNode(INode):
         metadata = copy.deepcopy(self.metadata)
         metadata.update(kwargs.pop("metadata", {}))
         graph = kwargs.pop('graph', 'default')
+        outputs = []
+        for o in self.outputs.values():
+            outputs.append(o.name)
+            for key in o._sub_plugs.keys():
+                outputs.append("{0}.{1}".format(o.name, key))
         return self.__class__(func=self.func,
-                              outputs=[o for o in self.outputs],
+                              outputs=outputs,
                               metadata=metadata,
                               graph=graph,
                               **kwargs)
@@ -511,7 +516,15 @@ class FunctionNode(INode):
 
         if outputs is not None:
             for output in outputs:
-                OutputPlug(output, self)
+                if "." in output:
+                    parent, subplug = output.split(".")
+                    parent_plug = self.outputs.get(parent)
+                    if parent_plug is None:
+                        parent_plug = OutputPlug(parent, self)
+                    SubOutputPlug(subplug, self, parent_plug)
+                else:
+                    if self.outputs.get(output) is None:
+                        OutputPlug(output, self)
 
     def to_pickle(self):  # pragma: no cover
         """Pickle the node. -- DOES NOT WORK FOR FunctionNode."""

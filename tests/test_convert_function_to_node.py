@@ -182,3 +182,20 @@ def test_node_reserved_names():
         def function(func, name, identifier, inputs,
                      outputs, metadata, omit, graph):
             pass
+
+
+def test_create_node_with_sub_output_plugs():
+
+    @Node(outputs=["out.a", "out", "out.b"])
+    def function1(in_):
+        pass
+
+    node = function1(name="contains_all_plugs")
+    assert len(node.outputs["out"]._sub_plugs) == 2
+
+    @Node(outputs=["out.a", "out.b"])
+    def function2(in_):
+        pass
+
+    node = function2(name="contains_only_subplugs")
+    assert len(node.outputs["out"]._sub_plugs) == 2
