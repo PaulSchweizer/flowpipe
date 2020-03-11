@@ -275,30 +275,49 @@ class Graph(object):
         """Evaluate each node in a new thread."""
         log.debug("{0} evaluating {1} nodes in threading mode.".format(
             self.name, len(nodes_to_evaluate)))
+
         def node_runner(node):
             """Run a node's evaluate method and return the node."""
             node.evaluate()
             return node
 
-        running_futures = []
+        running_futures = {}
         with futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             while nodes_to_evaluate or running_futures:
+                log.debug("Iterating thread submission with {0} nodes to "
+                          "evaluate and {1} running futures".format(
+                              len(nodes_to_evaluate), len(running_futures)))
                 # Submit new nodes that are ready to be evaluated
                 not_submitted = []
                 for node in nodes_to_evaluate:
                     if not any(n.is_dirty for n in node.upstream_nodes):
                         fut = executor.submit(node_runner, node)
-                        running_futures.append(fut)
+                        running_futures[node.name] = fut
                     else:
                         not_submitted.append(node)
                 nodes_to_evaluate = not_submitted
 
+                # A deadlock situation:
+                # No nodes running means no nodes can turn clean but nodes on
+                # nodes_to_evaluate not submitted means dirty upstream nodes
+                # and while loop will never terminate
+                if nodes_to_evaluate and not running_futures:
+                    for node in nodes_to_evaluate:
+                        dirty_upstream = [nn.name for nn in node.upstream_nodes
+                                          if nn.is_dirty]
+                        log.debug("Node to evaluate: {0} ".format(node.name) +
+                                  "- Dirty upstream nodes:\n" +
+                                  "\n".join(dirty_upstream))
+                    raise RuntimeError(
+                        "Execution hit deadlock: {0} nodes left to evaluate, "
+                        "but no nodes running.".format(len(nodes_to_evaluate)))
+
                 # Wait until a future finishes, then remove all finished nodes
                 # from the relevant lists
-                status = futures.wait(running_futures,
+                status = futures.wait(list(running_futures.values()),
                                       return_when=futures.FIRST_COMPLETED)
                 for s in status.done:
-                    running_futures.remove(s)
+                    del running_futures[s.result().name]
 
     def _evaluate_multiprocessed(self, nodes_to_evaluate, submission_delay):
         """Similar to the threaded evaluation but with multiprocessing.
@@ -436,8 +455,8 @@ class Graph(object):
                     end = [dnode.item.position[0],
                            dnode.item.position[1] + 3 +
                            list(dnode._sort_plugs(
-                                dnode.all_inputs()).values()).index(
-                                    connection)]
+                               dnode.all_inputs()).values()).index(
+                        connection)]
                     canvas_.add_item(item.Line(start, end), 0)
         return canvas_.render()
 
