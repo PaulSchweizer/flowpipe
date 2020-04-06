@@ -593,7 +593,7 @@ def test_clear_plugs_after_use_if_not_data_persistent():
 
     N1.inputs["in_"].value = data
 
-    graph.evaluate(data_persistant=False)
+    graph.evaluate(data_persistence=False)
 
     assert N1.inputs["in_"].value == data
     assert N1.outputs["out"].value == None

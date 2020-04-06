@@ -216,7 +216,7 @@ class Graph(object):
         return True
 
     def evaluate(self, mode="linear", skip_clean=False,
-                 submission_delay=0.1, max_workers=None, data_persistant=True):
+                 submission_delay=0.1, max_workers=None, data_persistence=True):
         """Evaluate all Nodes in the graph.
 
         Sorts the nodes in the graph into a resolution order and evaluates the
@@ -241,7 +241,7 @@ class Graph(object):
                 issuing new threads/processes if nodes are ready to process.
             max_workers (int): The maximum number of parallel threads to spawn.
                 None defaults to your pythons ThreadPoolExecutor default.
-            data_persistant (bool): If false, the data on plugs that have
+            data_persistence (bool): If false, the data on plugs that have
                 connections gets cleared (set to None). This reduces the
                 reference count of objects.
         """
@@ -267,7 +267,7 @@ class Graph(object):
 
         eval_func(nodes_to_evaluate, **eval_func_args)
 
-        if not data_persistant:
+        if not data_persistence:
             for node in nodes_to_evaluate:
                 for input_plug in node.all_inputs().values():
                     if input_plug.connections:
