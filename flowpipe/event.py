@@ -45,3 +45,8 @@ class Event(object):
     def is_registered(self, listener):
         """Whether the given function object is already registered."""
         return listener in self._listeners
+
+    def clear(self):
+        """Remove all listeners from this event."""
+        for l in self._listeners:
+            self.deregister(l)
