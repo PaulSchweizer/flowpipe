@@ -1,2 +1,2 @@
 m2r
-ascii-canvas
+ascii-canvas>=1.3.5
