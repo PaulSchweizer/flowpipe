@@ -188,13 +188,13 @@ m2r_parse_relative_links = True
 
 html_logo = "../logo.png"
 
-napoleon_include_special_with_doc = True
-napoleon_include_private_with_doc = True
+# napoleon_include_special_with_doc = True
+# napoleon_include_private_with_doc = True
 napoleon_google_docstring = True
-napoleon_use_admonition_for_examples = True
-autodoc_default_options = {
-    'member-order': 'bysource',
-    'special-members': '__init__',
-    'undoc-members': True,
-    'exclude-members': '__weakref__'
-}
+# napoleon_use_admonition_for_examples = True
+# autodoc_default_options = {
+#     'member-order': 'bysource',
+#     'special-members': '__init__',
+#     'undoc-members': True,
+#     'exclude-members': '__weakref__'
+# }

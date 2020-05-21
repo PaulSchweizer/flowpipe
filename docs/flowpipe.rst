@@ -1,4 +1,4 @@
-flowpipe package
+Flowpipe Package
 ================
 
 .. automodule:: flowpipe
