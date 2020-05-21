@@ -1,1 +1,6 @@
-.. module:: flowpipe
+.. _api:
+
+API Documentation
+=================
+
+.. module:: pkg
