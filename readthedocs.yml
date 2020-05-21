@@ -1,5 +1,5 @@
 sphinx:
-  configuration: docs/source/conf.py
+  configuration: docs/conf.py
   builder: html
   fail_on_warning: False
 

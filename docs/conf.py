@@ -40,11 +40,11 @@ release = u'0.8.1'
 # ones.
 extensions = [
     'sphinx.ext.autodoc',
-    'sphinx.ext.intersphinx',
-    'sphinx.ext.todo',
-    'sphinx.ext.napoleon',
-    'm2r',
-    'sphinx.ext.viewcode'
+    # 'sphinx.ext.intersphinx',
+    # 'sphinx.ext.todo',
+    # 'sphinx.ext.napoleon',
+    # 'm2r',
+    # 'sphinx.ext.viewcode'
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -186,13 +186,13 @@ m2r_parse_relative_links = True
 
 html_logo = "../../logo.png"
 
-napoleon_include_special_with_doc = True
-napoleon_include_private_with_doc = True
-napoleon_google_docstring = True
-napoleon_use_admonition_for_examples = True
-autodoc_default_options = {
-    'member-order': 'bysource',
-    'special-members': '__init__',
-    'undoc-members': True,
-    'exclude-members': '__weakref__'
-}
+# napoleon_include_special_with_doc = True
+# napoleon_include_private_with_doc = True
+# napoleon_google_docstring = True
+# napoleon_use_admonition_for_examples = True
+# autodoc_default_options = {
+#     'member-order': 'bysource',
+#     'special-members': '__init__',
+#     'undoc-members': True,
+#     'exclude-members': '__weakref__'
+# }
