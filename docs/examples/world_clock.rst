@@ -1,1 +1,1 @@
-.. literalinclude:: ../../../examples/world_clock.py
+.. literalinclude:: ../../examples/world_clock.py

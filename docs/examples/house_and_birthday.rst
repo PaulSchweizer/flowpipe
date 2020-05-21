@@ -1,1 +1,1 @@
-.. literalinclude:: ../../../examples/house_and_birthday.py
+.. literalinclude:: ../../examples/house_and_birthday.py
