@@ -296,6 +296,15 @@ class INode(object):
             offset=offset, name=' ' + self.name + ' ', width=width)
         pretty += '\n' + offset + '|' + '-' * width + '|'
 
+        def _short_value(plug):
+            if plug.value is not None and not plug._sub_plugs:
+                v = str(plug.value)
+                if len(v) > max_value_length:
+                    return '<{0}...>'.format(v[:max_value_length-3])
+                else:
+                    return '<{0}>'.format(v)
+            return '<>'
+
         # Inputs
         for input_ in sorted(all_inputs.keys()):
             pretty += '\n'
@@ -304,18 +313,11 @@ class INode(object):
                 pretty += '-->'
             else:
                 pretty += offset
-
-            value = ""
-            if in_plug.value is not None:
-                value = json.dumps(in_plug.value, cls=NodeEncoder)
             plug = '{symbol} {dist}{input_}{value}'.format(
                 symbol='%' if in_plug._sub_plugs else 'o',
                 dist=' ' if isinstance(in_plug, SubInputPlug)else '',
                 input_=input_,
-                value=('<{value}>'.format(value=''.join(
-                    [s for i, s in enumerate(str(value))
-                     if i < max_value_length]))
-                    if not in_plug._sub_plugs else ''))
+                value=_short_value(in_plug))
             pretty += '{plug:{width}}|'.format(plug=plug, width=width + 1)
 
         # Outputs
@@ -323,10 +325,13 @@ class INode(object):
         for output in sorted(all_outputs.keys()):
             out_plug = all_outputs[output]
             dist = 2 if isinstance(out_plug, SubOutputPlug) else 1
-            pretty += '\n{offset}|{output:>{width}}{dist}{symbol}'.format(
-                offset=offset, output=output, width=width - dist,
+            value = _short_value(out_plug)
+            pretty += '\n{offset}|{output:>{width}}{value}{dist}{symbol}'.format(
+                offset=offset, output=output, width=width - dist - len(value),
                 dist=dist * ' ',
-                symbol='%' if out_plug._sub_plugs else 'o')
+                symbol='%' if out_plug._sub_plugs else 'o',
+                value=value
+            )
             if all_outputs[output].connections:
                 pretty += '---'
 
