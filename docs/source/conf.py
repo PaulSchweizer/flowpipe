@@ -156,7 +156,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'Flowpipe', u'Flowpipe Documentation',
-     author, 'Flowpipe', 'One line description of project.',
+     author, 'Flowpipe', 'Lightweight Flow-Based Programming Framework',
      'Miscellaneous'),
 ]
 
@@ -165,15 +165,6 @@ texinfo_documents = [
 
 # Bibliographic Dublin Core info.
 epub_title = project
-
-# The unique identifier of the text. This can be a ISBN number
-# or the project homepage.
-#
-# epub_identifier = ''
-
-# A unique identification for the text.
-#
-# epub_uid = ''
 
 # A list of files that should not be packed into the epub file.
 epub_exclude_files = ['search.html']
