@@ -16,5 +16,7 @@ Flowpipe Package
     :members:
 
 
+INode
+-----
+
 .. autoclass:: flowpipe.node.INode
-    :members:
