@@ -1,1 +1,1 @@
-.. mdinclude:: ../../flowpipe-for-vfx-pipelines.md
+.. mdinclude:: ../flowpipe-for-vfx-pipelines.md

@@ -1,7 +1,7 @@
-.. mdinclude:: ../../README.md
+.. mdinclude:: ../README.md
    :end-line: 5
 
-.. mdinclude:: ../../README.md
+.. mdinclude:: ../README.md
     :start-line: 7
 
 Table of Contents
