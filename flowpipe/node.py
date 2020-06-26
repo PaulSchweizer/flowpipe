@@ -321,7 +321,6 @@ class INode(object):
             pretty += '{plug:{width}}|'.format(plug=plug, width=width + 1)
 
         # Outputs
-        all_outputs = self.all_outputs()
         for output in sorted(all_outputs.keys()):
             out_plug = all_outputs[output]
             dist = 2 if isinstance(out_plug, SubOutputPlug) else 1
