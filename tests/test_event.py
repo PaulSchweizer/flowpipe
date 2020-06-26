@@ -34,3 +34,15 @@ def test_event_emitt():
     event = Event("test")
     event.register(listener)
     event.emit(123, kwarg="test")
+
+
+def test_event_clear():
+    def listener(arg, kwarg):
+        pass
+
+    event = Event("test")
+    event.register(listener)
+    event.clear()
+
+    assert not event.is_registered(listener)
+    assert len(event._listeners) == 0
