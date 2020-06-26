@@ -158,13 +158,13 @@ def test_string_representations(clear_default_graph):
     """Print the node."""
     node = SquareNode(name='Node1')
     node1 = SquareNode(name='Node2')
-    node2 = SquareNode(name='Node3')
     node1.inputs['in1'].value = 'Test'
-    node1.inputs['compound_in']['key-1'].value = 'value'
+    node1.inputs['compound_in']['key-1'].value = 'value longer than max'
     node1.inputs['compound_in']['0'].value = 0
     node.outputs['out'] >> node1.inputs['in1']
     node.outputs['compound_out']['1'] >> node1.inputs['compound_in']['1']
-    node1.outputs['compound_out']['1'] >> node2.inputs['in1']
+    node1.outputs['compound_out']['1'].value = 0
+    node1.outputs['out'].value = 'value longer than max'
 
     assert str(node) == '''\
 +-----------------------------+
@@ -172,24 +172,24 @@ def test_string_representations(clear_default_graph):
 |-----------------------------|
 o compound_in<>               |
 o in1<>                       |
-|                compound_out %
-|             compound_out.1  o---
-|                         out o---
+|              compound_out<> %
+|           compound_out.1<>  o---
+|                       out<> o---
 +-----------------------------+'''
 
     assert str(node1) == '''\
-   +-----------------------------+
-   |            Node2            |
-   |-----------------------------|
-   % compound_in                 |
-   o  compound_in.0<0>           |
--->o  compound_in.1<>            |
-   o  compound_in.key-1<"value"> |
--->o in1<>                       |
-   |                compound_out %
-   |             compound_out.1  o---
-   |                         out o
-   +-----------------------------+'''
+   +----------------------------------+
+   |              Node2               |
+   |----------------------------------|
+   % compound_in<>                    |
+   o  compound_in.0<0>                |
+-->o  compound_in.1<>                 |
+   o  compound_in.key-1<value l...>   |
+-->o in1<>                            |
+   |                   compound_out<> %
+   |               compound_out.1<0>  o
+   |                  out<value l...> o
+   +----------------------------------+'''
 
     assert node.list_repr() == '''\
 Node1
@@ -204,11 +204,11 @@ Node2
   [i] compound_in
    [i] compound_in.0: 0
    [i] compound_in.1 << Node1.compound_out.1
-   [i] compound_in.key-1: "value"
+   [i] compound_in.key-1: "value longer than max"
   [i] in1 << Node1.out
   [o] compound_out
-   [o] compound_out.1 >> Node3.in1
-  [o] out: null'''
+   [o] compound_out.1: 0
+  [o] out: "value longer than max"'''
 
 
 def test_node_has_unique_identifier(clear_default_graph):

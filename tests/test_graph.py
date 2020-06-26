@@ -173,24 +173,23 @@ def test_serialize_graph_to_pickle(clear_default_graph, branching_graph):
 
 def test_string_representations(clear_default_graph, branching_graph):
     """Print the Graph."""
-
-    assert str(branching_graph) == (
-"+------------+          +------------+          +--------------------+\n"
-"|   Start    |          |   Node1    |          |        End         |\n"
-"|------------|          |------------|          |--------------------|\n"
-"o in1<>      |     +--->o in1<>      |          % in1                |\n"
-"o in2<>      |     |    o in2<>      |     +--->o  in1.1<>           |\n"
-"|        out o-----+    |        out o-----+--->o  in1.2<>           |\n"
-"|       out2 o     |    |       out2 o     |    o in2<>              |\n"
-"+------------+     |    +------------+     |    |                out o\n"
-"                   |    +------------+     |    |               out2 o\n"
-"                   |    |   Node2    |     |    +--------------------+\n"
-"                   |    |------------|     |                          \n"
-"                   +--->o in1<>      |     |                          \n"
-"                        o in2<>      |     |                          \n"
-"                        |        out o-----+                          \n"
-"                        |       out2 o                                \n"
-"                        +------------+                                ")
+    assert str(branching_graph) == '\
++------------+          +------------+          +--------------------+\n\
+|   Start    |          |   Node1    |          |        End         |\n\
+|------------|          |------------|          |--------------------|\n\
+o in1<>      |     +--->o in1<>      |          % in1<>              |\n\
+o in2<>      |     |    o in2<>      |     +--->o  in1.1<>           |\n\
+|      out<> o-----+    |      out<> o-----+--->o  in1.2<>           |\n\
+|     out2<> o     |    |     out2<> o     |    o in2<>              |\n\
++------------+     |    +------------+     |    |              out<> o\n\
+                   |    +------------+     |    |             out2<> o\n\
+                   |    |   Node2    |     |    +--------------------+\n\
+                   |    |------------|     |                          \n\
+                   +--->o in1<>      |     |                          \n\
+                        o in2<>      |     |                          \n\
+                        |      out<> o-----+                          \n\
+                        |     out2<> o                                \n\
+                        +------------+                                '
 
     assert branching_graph.list_repr() == """TestGraph
  Start
@@ -237,20 +236,20 @@ def test_string_representations_with_subgraphs(clear_default_graph):
 +----main----+          +----sub1----+                  +--------sub2--------+\n\
 |   Start    |          |   Node1    |                  |        End         |\n\
 |------------|          |------------|                  |--------------------|\n\
-o in1<>      |     +--->o in1<>      |                  % in1                |\n\
+o in1<>      |     +--->o in1<>      |                  % in1<>              |\n\
 o in2<>      |     |    o in2<>      |         +------->o  in1.1<>           |\n\
-|        out o-----+    |        out o---------+   +--->o  in1.2<>           |\n\
-|       out2 o     |    |       out2 o             |--->o in2<>              |\n\
-+------------+     |    +------------+             |    |                out o\n\
-                   |    +--------sub1--------+     |    |               out2 o\n\
+|      out<> o-----+    |      out<> o---------+   +--->o  in1.2<>           |\n\
+|     out2<> o     |    |     out2<> o             |--->o in2<>              |\n\
++------------+     |    +------------+             |    |              out<> o\n\
+                   |    +--------sub1--------+     |    |             out2<> o\n\
                    |    |       Node2        |     |    +--------------------+\n\
                    |    |--------------------|     |                          \n\
-                   |    % in1                |     |                          \n\
+                   |    % in1<>              |     |                          \n\
                    +--->o  in1.0<>           |     |                          \n\
                         o in2<>              |     |                          \n\
-                        |                out %     |                          \n\
-                        |             out.0  o-----+                          \n\
-                        |               out2 o                                \n\
+                        |              out<> %     |                          \n\
+                        |           out.0<>  o-----+                          \n\
+                        |             out2<> o                                \n\
                         +--------------------+                                '
 
 
