@@ -563,3 +563,42 @@ def test_cycle_error_when_node_connects_out_to_own_upstream_across_subgraphs():
 
     with pytest.raises(CycleError):
         N1.inputs["in_"]["a"] >> N3.outputs["out"]["a"]
+
+
+def test_clear_plugs_after_use_if_not_data_persistent():
+    """
+    +--------------------+          +----------+          +-----------------+
+    |         N1         |          |    N2    |          |         N3      |
+    |--------------------|          |----------|          |-----------------|
+    o in2<>              |          o in2<>    |          o in2<>           |
+    o in_<{"data": ">    |     +--->o in_<>    |     +--->o in_<>           |
+    |                out o-----+    |      out o-----+    |             out o
+    +--------------------+          +----------+          +-----------------+
+    """
+
+    @Node(outputs=["out"])
+    def NodeForTesting(in_, in2):
+        return {"out": in_}
+
+    graph = Graph()
+    N1 = NodeForTesting(name="N1", graph=graph)
+    N2 = NodeForTesting(name="N2", graph=graph)
+    N3 = NodeForTesting(name="N3", graph=graph)
+
+    N1.outputs["out"] >> N2.inputs["in_"]
+    N2.outputs["out"] >> N3.inputs["in_"]
+
+    data = {"data": "data"}
+
+    N1.inputs["in_"].value = data
+
+    graph.evaluate(data_persistence=False)
+
+    assert N1.inputs["in_"].value == data
+    assert N1.outputs["out"].value == None
+
+    assert N2.inputs["in_"].value == None
+    assert N2.outputs["out"].value == None
+
+    assert N3.inputs["in_"].value == None
+    assert N3.outputs["out"].value == data
