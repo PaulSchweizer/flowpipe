@@ -6,7 +6,7 @@ To do so, we use an `EmbeddingNode` to compute features from both, an input
 and a reference image, and then a `MatchNode` to compute whether the faces are
 the same from these embeddings.
 
-If the graph is to remain both, clean and explicit, it is advantageous to name 
+If the graph is to remain both, clean and explicit, it is advantageous to name
 the plugs differently for the different `EmbeddingNode`.
 
 To do so, accept the plug names as parameters to the nodes `__init__()` method.
@@ -21,6 +21,7 @@ from flowpipe import Graph, INode, InputPlug, OutputPlug
 
 def compute_embeddings(image):
     """A mock function for a call to a deep learning model or a web service."""
+    del image  # this is just a mock and doesn't do anything with the input
     return 42
 
 
@@ -54,7 +55,7 @@ class EmbeddingNode(INode):
 
 class MatchNode(INode):
     """The match node compares two embeddings."""
-    
+
     def __init__(self, threshold=2, **kwargs):
         super().__init__(**kwargs)
         self.threshold = threshold
@@ -75,12 +76,12 @@ def get_facematch_graph(threshold):
     facematch_graph = Graph()
 
     #It is useful to define
-    image_node = EmbeddingNode(input_name="image", 
+    image_node = EmbeddingNode(input_name="image",
                                output_name="image_emb",
                                graph=facematch_graph,
                                name="ImageEmbeddings")
 
-    reference_node = EmbeddingNode(input_name="reference", 
+    reference_node = EmbeddingNode(input_name="reference",
                                    output_name="reference_emb",
                                    graph=facematch_graph,
                                    name="ReferenceEmbeddings")
