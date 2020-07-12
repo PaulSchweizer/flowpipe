@@ -45,7 +45,8 @@ class IPlug(object):
         Args:
             other (IPlug): The IPlug to connect to.
         """
-        warnings.warn("Use the connect method instead", DeprecationWarning, stacklevel=2)
+        warnings.warn("Use the connect method instead", 
+                      DeprecationWarning, stacklevel=2)
         if isinstance(other, self.accepted_plugs):
             self.connect(other)
 
@@ -55,7 +56,8 @@ class IPlug(object):
         Args:
             other (IPlug): The IPlug to disconnect.
         """
-        warnings.warn("Use the disconnect method instead", DeprecationWarning, stacklevel=2)
+        warnings.warn("Use the disconnect method instead", 
+                      DeprecationWarning, stacklevel=2)
         if isinstance(other, self.accepted_plugs):
             self.disconnect(other)
 
