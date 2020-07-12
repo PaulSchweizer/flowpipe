@@ -586,3 +586,15 @@ def test_forbidden_connect(clear_default_graph):
 
     with pytest.raises(TypeError):
         out_plug1.connect("a string")
+
+
+def test_rshift_into_node(clear_default_graph):
+    """Test the syntactic sugar for rshift operator between plug and node."""
+    n1 = NodeForTesting(name="n1")
+    n2 = NodeForTesting(name="n2")
+    out_plug = OutputPlug('foo', n1)
+    in_plug = InputPlug('foo', n2)
+
+    out_plug >> n2
+
+    assert in_plug in out_plug.connections

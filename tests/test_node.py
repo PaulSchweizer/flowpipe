@@ -637,3 +637,58 @@ def test_node_event_emission_separation(clear_default_graph):
 
     assert node1.execution_count == 1
     assert node2.execution_count == 1
+
+
+def test_rshift_into_plug(clear_default_graph):
+    """Test the node rshift operator with a plug as target.
+    Note that OutputPlug >> INode is tested in the plug tests."""
+    @Node(outputs=["marker"])
+    def Node1():
+        return {"marker": None}
+
+    @Node(outputs=[])
+    def Node2(marker):
+        return {}
+
+    @Node(outputs=[])
+    def Node3(no_such_input):
+        return {}
+
+    n1 = Node1()
+    n2 = Node2()
+    n3 = Node3()
+
+    n1 >> n2.inputs["marker"]
+    assert n2.inputs["marker"] in n1.outputs["marker"].connections
+
+    with pytest.raises(KeyError):
+        n1 >> n3.inputs["no_such_input"]
+
+    with pytest.raises(TypeError):
+        n1 >> "a string"
+
+
+def test_rshift_into_node(clear_default_graph):
+    """Test the node rshift operator with an INode as target.
+    Note that OutputPlug >> INode is tested in the plug tests."""
+    @Node(outputs=["marker"])
+    def Node1():
+        return {"marker": None}
+
+    @Node(outputs=[])
+    def Node2(marker):
+        return {}
+
+    @Node(outputs=[])
+    def Node3(no_such_input):
+        return {}
+
+    n1 = Node1()
+    n2 = Node2()
+    n3 = Node3()
+
+    n1 >> n2
+    assert n2.inputs["marker"] in n1.outputs["marker"].connections
+
+    with pytest.raises(ValueError):
+        n1 >> n3

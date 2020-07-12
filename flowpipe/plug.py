@@ -126,8 +126,18 @@ class _OutPlug(IPlug):
         super().__init__(name, node)
 
     def __rshift__(self, other):
-        """Syntactic sugar for the connect() method."""
-        self.connect(other)
+        """Syntactic sugar for the connect() method.
+
+        If `other` is a INode with an input matching this plug's name, connect.
+        """
+        # softly check if the "other" is a Node with inputs
+        if hasattr(other, "inputs"):
+            for iname, iplug in other.inputs.items():
+                if iname == self.name:
+                    target = iplug
+        else:
+            target = other
+        self.connect(target)
 
     def connect(self, plug):
         """Connect this Plug to the given InputPlug.
