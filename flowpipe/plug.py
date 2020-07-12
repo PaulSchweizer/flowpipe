@@ -269,6 +269,9 @@ class InputPlug(IPlug):
 
         Set both participating Plugs dirty.
         """
+        if not isinstance(plug, self.accepted_plugs):
+            raise ValueError("Cannot connect {0} to {1}".format(
+                type(self), type(plug)))
         if self.node.graph.accepts_connection(plug, self):
             for connection in self.connections:
                 self.disconnect(connection)
@@ -334,6 +337,9 @@ class SubInputPlug(IPlug):
 
         Set both participating Plugs dirty.
         """
+        if not isinstance(plug, self.accepted_plugs):
+            raise ValueError("Cannot connect {0} to {1}".format(
+                type(self), type(plug)))
         if self.node.graph.accepts_connection(plug, self):
             for connection in self.connections:
                 self.disconnect(connection)
@@ -413,6 +419,9 @@ class SubOutputPlug(IPlug):
 
         Set both participating Plugs dirty.
         """
+        if not isinstance(plug, self.accepted_plugs):
+            raise ValueError("Cannot connect {0} to {1}".format(
+                type(self), type(plug)))
         if self.node.graph.accepts_connection(self, plug):
             for connection in plug.connections:
                 plug.disconnect(connection)
