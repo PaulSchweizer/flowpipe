@@ -22,7 +22,7 @@ class IPlug(object):
     and hold a value, that can be accesses by the associated Node.
     """
 
-    def __init__(self, name, node, accepted_plugs):
+    def __init__(self, name, node):
         """Initialize the Interface.
 
         Args:
@@ -34,7 +34,6 @@ class IPlug(object):
         self.name = name
         self.node = node
         self.connections = []
-        self.accepted_plugs = accepted_plugs
         self._sub_plugs = OrderedDict()
         self._value = None
         self._is_dirty = True
@@ -47,8 +46,7 @@ class IPlug(object):
         """
         warnings.warn("Use the connect method instead", 
                       DeprecationWarning, stacklevel=2)
-        if isinstance(other, self.accepted_plugs):
-            self.connect(other)
+        self.connect(other)
 
     def __lshift__(self, other):
         """Break a connection to the given IPlug.
@@ -58,8 +56,7 @@ class IPlug(object):
         """
         warnings.warn("Use the disconnect method instead", 
                       DeprecationWarning, stacklevel=2)
-        if isinstance(other, self.accepted_plugs):
-            self.disconnect(other)
+        self.disconnect(other)
 
     # Extra function to make re-use in subclasses easier
     def _update_value(self, value):
@@ -99,8 +96,9 @@ class IPlug(object):
             self.node.on_input_plug_set_dirty()
 
     @abstractmethod
-    def connect(self, plug):
+    def connect(self, plug):  # pragma: no cover
         """Has to be implemented in the subclass."""
+        raise NotImplementedError("The subclass has to define connect()")
 
     def disconnect(self, plug):
         """Break the connection to the given Plug."""
@@ -120,7 +118,57 @@ class IPlug(object):
         self.node.graph.add_plug(self, name=name)
 
 
-class OutputPlug(IPlug):
+class _OutPlug(IPlug):
+    """IPlug with output connection properties."""
+
+    def __init__(self, name, node, accepted_plugs=[]):
+        self.accepted_plugs = (_InPlug, *accepted_plugs)
+        super().__init__(name, node)
+
+    def __rshift__(self, other):
+        """Syntactic sugar for the connect() method."""
+        self.connect(other)
+
+    def connect(self, plug):
+        """Connect this Plug to the given InputPlug.
+
+        Set both participating Plugs dirty.
+        """
+        if not isinstance(plug, self.accepted_plugs):
+            raise TypeError("Cannot connect {0} to {1}".format(
+                type(self), type(plug)))
+        if self.node.graph.accepts_connection(self, plug):
+            for connection in plug.connections:
+                plug.disconnect(connection)
+            if plug not in self.connections:
+                self.connections.append(plug)
+                plug.value = self.value
+                self.is_dirty = True
+                plug.is_dirty = True
+            if self not in plug.connections:
+                plug.connections = [self]
+                plug.is_dirty = True
+
+
+class _InPlug(IPlug):
+    """Give an IPlug input connection properties."""
+
+    def __init__(self, name, node, accepted_plugs=[]):
+        self.accepted_plugs = (_OutPlug, *accepted_plugs)
+        super().__init__(name, node)
+
+    def connect(self, plug):
+        """Connect this Plug to the given OutputPlug.
+
+        Set both participating Plugs dirty.
+        """
+        if not isinstance(plug, self.accepted_plugs):
+            raise TypeError("Cannot connect {0} to {1}".format(
+                type(self), type(plug)))
+        plug.connect(self)
+
+
+class OutputPlug(_OutPlug):
     """Provides data to an InputPlug."""
 
     def __init__(self, name, node):
@@ -135,7 +183,7 @@ class OutputPlug(IPlug):
             raise ValueError(
                 'Names for plugs can not contain dots "." as these are '
                 'reserved to identify sub plugs.')
-        super(OutputPlug, self).__init__(name, node, (InputPlug, SubInputPlug))
+        super(OutputPlug, self).__init__(name, node)
         self.node.outputs[self.name] = self
 
     def __getitem__(self, key):
@@ -171,30 +219,6 @@ class OutputPlug(IPlug):
         for plug in self.connections:
             plug.value = value
 
-    def __rshift__(self, other):
-        """Syntactic sugar for the connect() method."""
-        self.connect(other)
-
-    def connect(self, plug):
-        """Connect this Plug to the given InputPlug.
-
-        Set both participating Plugs dirty.
-        """
-        if not isinstance(plug, self.accepted_plugs):
-            raise TypeError("Cannot connect {0} to {1}".format(
-                type(self), type(plug)))
-        if self.node.graph.accepts_connection(self, plug):
-            for connection in plug.connections:
-                plug.disconnect(connection)
-            if plug not in self.connections:
-                self.connections.append(plug)
-                plug.value = self.value
-                self.is_dirty = True
-                plug.is_dirty = True
-            if self not in plug.connections:
-                plug.connections = [self]
-                plug.is_dirty = True
-
     def serialize(self):
         """Serialize the Plug containing all it's connections."""
         connections = {}
@@ -212,7 +236,7 @@ class OutputPlug(IPlug):
         }
 
 
-class InputPlug(IPlug):
+class InputPlug(_InPlug):
     """Receives data from an OutputPlug."""
 
     def __init__(self, name, node, value=None):
@@ -228,7 +252,7 @@ class InputPlug(IPlug):
                 'Names for plugs can not contain dots "." as these are '
                 'reserved to identify sub plugs.')
 
-        super(InputPlug, self).__init__(name, node, (OutputPlug, SubOutputPlug))
+        super(InputPlug, self).__init__(name, node)
         self.value = value
         self.is_dirty = True
         self.node.inputs[self.name] = self
@@ -266,24 +290,6 @@ class InputPlug(IPlug):
             return
         self._update_value(value)
 
-    def connect(self, plug):
-        """Connect this Plug to the given OutputPlug.
-
-        Set both participating Plugs dirty.
-        """
-        if not isinstance(plug, self.accepted_plugs):
-            raise TypeError("Cannot connect {0} to {1}".format(
-                type(self), type(plug)))
-        if self.node.graph.accepts_connection(plug, self):
-            for connection in self.connections:
-                self.disconnect(connection)
-            self.connections = [plug]
-            self.is_dirty = True
-            plug.is_dirty = True
-            if self not in plug.connections:
-                plug.connections.append(self)
-                plug.is_dirty = True
-
     def serialize(self):
         """Serialize the Plug containing all it's connections."""
         connections = {}
@@ -300,7 +306,7 @@ class InputPlug(IPlug):
         }
 
 
-class SubInputPlug(IPlug):
+class SubInputPlug(_InPlug):
     """Held by a parent input plug to form a compound plug."""
 
     def __init__(self, key, node, parent_plug, value=None):
@@ -314,8 +320,7 @@ class SubInputPlug(IPlug):
             parent_plug (InputPlug): The parent plug holding this Plug.
         """
         super(SubInputPlug, self).__init__(
-            '{0}.{1}'.format(parent_plug.name, key), node,
-            (OutputPlug, SubOutputPlug))
+            '{0}.{1}'.format(parent_plug.name, key), node)
         self.key = key
         self.parent_plug = parent_plug
         self.parent_plug._sub_plugs[key] = self
@@ -334,23 +339,6 @@ class SubInputPlug(IPlug):
         if status:
             self.parent_plug.is_dirty = status
 
-    def connect(self, plug):
-        """Connect this Plug to the given OutputPlug.
-
-        Set both participating Plugs dirty.
-        """
-        if not isinstance(plug, self.accepted_plugs):
-            raise TypeError("Cannot connect {0} to {1}".format(
-                type(self), type(plug)))
-        if self.node.graph.accepts_connection(plug, self):
-            for connection in self.connections:
-                self.disconnect(connection)
-            self.connections = [plug]
-            self.is_dirty = True
-            if self not in plug.connections:
-                plug.connections.append(self)
-                plug.is_dirty = True
-
     def serialize(self):
         """Serialize the Plug containing all it's connections."""
         connections = {}
@@ -363,7 +351,7 @@ class SubInputPlug(IPlug):
         }
 
 
-class SubOutputPlug(IPlug):
+class SubOutputPlug(_OutPlug):
     """Held by a parent output plug to form a compound plug."""
 
     def __init__(self, key, node, parent_plug, value=None):
@@ -377,8 +365,8 @@ class SubOutputPlug(IPlug):
             parent_plug (InputPlug): The parent plug holding this Plug.
         """
         super(SubOutputPlug, self).__init__(
-            '{0}.{1}'.format(parent_plug.name, key), node,
-            (InputPlug, SubInputPlug))
+            '{0}.{1}'.format(parent_plug.name, key), node)
+            
         self.key = key
         self.parent_plug = parent_plug
         self.parent_plug._sub_plugs[key] = self
@@ -411,30 +399,6 @@ class SubOutputPlug(IPlug):
         self._is_dirty = status
         if status:
             self.parent_plug.is_dirty = status
-
-    def __rshift__(self, other):
-        """Syntactic sugar for the connect() method."""
-        self.connect(other)
-
-    def connect(self, plug):
-        """Connect this Plug to the given OutputPlug.
-
-        Set both participating Plugs dirty.
-        """
-        if not isinstance(plug, self.accepted_plugs):
-            raise TypeError("Cannot connect {0} to {1}".format(
-                type(self), type(plug)))
-        if self.node.graph.accepts_connection(self, plug):
-            for connection in plug.connections:
-                plug.disconnect(connection)
-            if plug not in self.connections:
-                self.connections.append(plug)
-                plug.value = self.value
-                self.is_dirty = True
-                plug.is_dirty = True
-            if self not in plug.connections:
-                plug.connections = [self]
-                plug.is_dirty = True
 
     def serialize(self):
         """Serialize the Plug containing all it's connections."""

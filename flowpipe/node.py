@@ -63,7 +63,7 @@ class INode(object):
             self.file_location = inspect.getfile(self.__class__)
         except TypeError as e:  # pragma: no cover
             # Excluded from tests, as this is a hard-to test fringe case
-            if str(e) == "<module '__main__'> is a built-in class":
+            if all(s in str(e) for s in ('__main__', 'built-in class')):
                 warnings.warn("Cannot serialize nodes defined in '__main__'")
                 self.file_location = None
             else:

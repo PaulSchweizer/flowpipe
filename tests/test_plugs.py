@@ -566,3 +566,23 @@ def test_plug_gets_dirty_only_on_change(clear_default_graph):
     out_plug.value = "baz"
     assert in_plug.is_dirty
     assert out_plug.is_dirty
+
+
+def test_forbidden_connect(clear_default_graph):
+    """Test connections between plugs that are forbidden."""
+    n1 = NodeForTesting(name="n1")
+    in_plug1 = InputPlug('in', n1)
+    out_plug1 = OutputPlug('out', n1)
+
+    n2 = NodeForTesting(name="n2")
+    in_plug2 = InputPlug('in', n2)
+    out_plug2 = OutputPlug('out', n2)
+
+    with pytest.raises(TypeError):
+        out_plug1.connect(out_plug2)
+
+    with pytest.raises(TypeError):
+        in_plug1.connect(in_plug1)
+
+    with pytest.raises(TypeError):
+        out_plug1.connect("a string")
