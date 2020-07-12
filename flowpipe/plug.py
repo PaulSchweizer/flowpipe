@@ -2,6 +2,7 @@
 from __future__ import print_function
 from abc import abstractmethod
 import sys
+import warnings
 from .utilities import get_hash
 __all__ = ['OutputPlug', 'InputPlug']
 
@@ -44,6 +45,7 @@ class IPlug(object):
         Args:
             other (IPlug): The IPlug to connect to.
         """
+        warnings.warn("Use the connect method instead", DeprecationWarning, stacklevel=2)
         if isinstance(other, self.accepted_plugs):
             self.connect(other)
 
@@ -53,6 +55,7 @@ class IPlug(object):
         Args:
             other (IPlug): The IPlug to disconnect.
         """
+        warnings.warn("Use the disconnect method instead", DeprecationWarning, stacklevel=2)
         if isinstance(other, self.accepted_plugs):
             self.disconnect(other)
 
@@ -166,11 +169,18 @@ class OutputPlug(IPlug):
         for plug in self.connections:
             plug.value = value
 
+    def __rshift__(self, other):
+        """Syntactic sugar for the connect() method."""
+        self.connect(other)
+
     def connect(self, plug):
         """Connect this Plug to the given InputPlug.
 
         Set both participating Plugs dirty.
         """
+        if not isinstance(plug, self.accepted_plugs):
+            raise ValueError("Cannot connect {0} to {1}".format(
+                type(self), type(plug)))
         if self.node.graph.accepts_connection(self, plug):
             for connection in plug.connections:
                 plug.disconnect(connection)
@@ -393,6 +403,10 @@ class SubOutputPlug(IPlug):
         self._is_dirty = status
         if status:
             self.parent_plug.is_dirty = status
+
+    def __rshift__(self, other):
+        """Syntactic sugar for the connect() method."""
+        self.connect(other)
 
     def connect(self, plug):
         """Connect this Plug to the given OutputPlug.
