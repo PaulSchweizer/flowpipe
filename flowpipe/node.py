@@ -169,27 +169,46 @@ class INode(object):
         raise NotImplementedError("Compute must be overwritten")
 
     def __rshift__(self, other):
-        """Syntactic sugar for connecting outputs of this node based on names.
+        """Syntactic sugar for connecting this node by output names."""
+        self.connect(other)
+
+    def connect(self, other):
+        """Connect this node's outputs to another plug's input by name.
 
         If other is an _InPlug, connect the output with matching name.
         If other is an INode, connect all outputs with matching names.
         """
+        connections = []  # keep track of the connections established
         if isinstance(other, _InPlug):
             try:
+                if isinstance(other, SubInputPlug):
+                    plug, subplug = other.name.split('.')
+                    self.outputs[plug]._sub_plugs[subplug].connect(other)
                 self.outputs[other.name].connect(other)
+                connections.append("Plug: {0}".format(other.name))
             except KeyError:
                 raise KeyError("No output named {0}".format(other.name))
+            except AttributeError:
+                raise KeyError("Output {0} has no subplugs".format(plug))
         elif isinstance(other, INode):
-            no_connection = True
             for key in self.outputs.keys():
                 if key in other.inputs:
                     self.outputs[key].connect(other.inputs[key])
-                    no_connection = False
-            if no_connection:
+                    connections.append("Node: {0}, Plug: {1}".format(
+                        other.name, key))
+                for sub in getattr(self.outputs[key], "_sub_plugs", {}):
+                    if sub in getattr(other.inputs[key], "_sub_plugs", {}):
+                        self.outputs[key][sub].connect(other.inputs[key][sub])
+                        connections.append(
+                            "Node: {0}, Plug: {1}, SubPlug: {2}".format(
+                            other.name, key, sub))
+            if not connections:
                 raise ValueError("{0} has no matching inputs".format(
                     other.name))
         else:
             raise TypeError("Cannot connect outputs to {}".format(type(other)))
+        log.debug("Connected node {0} with ".format(self.name) \
+                  + "\n".join(connections))
 
     def on_input_plug_set_dirty(self):
         """Propagate the dirty state to the connected downstream nodes."""

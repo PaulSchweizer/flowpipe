@@ -28,8 +28,6 @@ class IPlug(object):
         Args:
             name (str): The name of the Plug.
             node (INode): The Node holding the Plug.
-            accepted_plugs (list of IPlug): Plugs types that are
-                                            possible for connections.
         """
         self.name = name
         self.node = node
@@ -121,8 +119,8 @@ class IPlug(object):
 class _OutPlug(IPlug):
     """IPlug with output connection properties."""
 
-    def __init__(self, name, node, accepted_plugs=[]):
-        self.accepted_plugs = (_InPlug, *accepted_plugs)
+    def __init__(self, name, node):
+        self.accepted_plugs = (_InPlug,) 
         super().__init__(name, node)
 
     def __rshift__(self, other):
@@ -144,6 +142,7 @@ class _OutPlug(IPlug):
 
         Set both participating Plugs dirty.
         """
+        print(self.accepted_plugs)
         if not isinstance(plug, self.accepted_plugs):
             raise TypeError("Cannot connect {0} to {1}".format(
                 type(self), type(plug)))
@@ -163,8 +162,8 @@ class _OutPlug(IPlug):
 class _InPlug(IPlug):
     """Give an IPlug input connection properties."""
 
-    def __init__(self, name, node, accepted_plugs=[]):
-        self.accepted_plugs = (_OutPlug, *accepted_plugs)
+    def __init__(self, name, node):
+        self.accepted_plugs = (_OutPlug,) 
         super().__init__(name, node)
 
     def connect(self, plug):
@@ -181,7 +180,7 @@ class _InPlug(IPlug):
 class OutputPlug(_OutPlug):
     """Provides data to an InputPlug."""
 
-    def __init__(self, name, node):
+    def __init__(self, name, node, accepted_plugs=None):
         """Initialize the OutputPlug.
 
         Can be connected to an InputPlug.
