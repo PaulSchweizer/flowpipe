@@ -155,7 +155,6 @@ class OutputPlug(IPlug):
 
         Set both participating Plugs dirty.
         """
-        print(self.accepted_plugs)
         if not isinstance(plug, self.accepted_plugs):
             raise TypeError("Cannot connect {0} to {1}".format(
                 type(self), type(plug)))
