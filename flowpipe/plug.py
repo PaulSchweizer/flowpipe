@@ -29,6 +29,10 @@ class IPlug(object):
             name (str): The name of the Plug.
             node (INode): The Node holding the Plug.
         """
+        if '.' in name and not isinstance(self, SubPlug):
+            raise ValueError(
+                'Names for plugs can not contain dots "." as these are '
+                'reserved to identify sub plugs.')
         self.name = name
         self.node = node
         self.connections = []
@@ -116,12 +120,21 @@ class IPlug(object):
         self.node.graph.add_plug(self, name=name)
 
 
-class _OutPlug(IPlug):
-    """IPlug with output connection properties."""
+class OutputPlug(IPlug):
+    """Provides data to an InputPlug."""
 
-    def __init__(self, name, node):
-        self.accepted_plugs = (_InPlug,) 
-        super().__init__(name, node)
+    def __init__(self, name, node, accepted_plugs=None):
+        """Initialize the OutputPlug.
+
+        Can be connected to an InputPlug.
+        Args:
+            name (str): The name of the Plug.
+            node (INode): The Node holding the Plug.
+        """
+        self.accepted_plugs = (InputPlug,) 
+        super(OutputPlug, self).__init__(name, node)
+        if not isinstance(self, SubPlug):
+            self.node.outputs[self.name] = self
 
     def __rshift__(self, other):
         """Syntactic sugar for the connect() method.
@@ -157,43 +170,6 @@ class _OutPlug(IPlug):
             if self not in plug.connections:
                 plug.connections = [self]
                 plug.is_dirty = True
-
-
-class _InPlug(IPlug):
-    """Give an IPlug input connection properties."""
-
-    def __init__(self, name, node):
-        self.accepted_plugs = (_OutPlug,) 
-        super().__init__(name, node)
-
-    def connect(self, plug):
-        """Connect this Plug to the given OutputPlug.
-
-        Set both participating Plugs dirty.
-        """
-        if not isinstance(plug, self.accepted_plugs):
-            raise TypeError("Cannot connect {0} to {1}".format(
-                type(self), type(plug)))
-        plug.connect(self)
-
-
-class OutputPlug(_OutPlug):
-    """Provides data to an InputPlug."""
-
-    def __init__(self, name, node, accepted_plugs=None):
-        """Initialize the OutputPlug.
-
-        Can be connected to an InputPlug.
-        Args:
-            name (str): The name of the Plug.
-            node (INode): The Node holding the Plug.
-        """
-        if '.' in name:
-            raise ValueError(
-                'Names for plugs can not contain dots "." as these are '
-                'reserved to identify sub plugs.')
-        super(OutputPlug, self).__init__(name, node)
-        self.node.outputs[self.name] = self
 
     def __getitem__(self, key):
         """Retrieve a sub plug by key.
@@ -245,7 +221,7 @@ class OutputPlug(_OutPlug):
         }
 
 
-class InputPlug(_InPlug):
+class InputPlug(IPlug):
     """Receives data from an OutputPlug."""
 
     def __init__(self, name, node, value=None):
@@ -256,15 +232,23 @@ class InputPlug(_InPlug):
             name (str): The name of the Plug.
             node (INode): The Node holding the Plug.
         """
-        if '.' in name:
-            raise ValueError(
-                'Names for plugs can not contain dots "." as these are '
-                'reserved to identify sub plugs.')
+        self.accepted_plugs = (OutputPlug,) 
 
         super(InputPlug, self).__init__(name, node)
         self.value = value
         self.is_dirty = True
-        self.node.inputs[self.name] = self
+        if not isinstance(self, SubPlug):
+            self.node.inputs[self.name] = self
+
+    def connect(self, plug):
+        """Connect this Plug to the given OutputPlug.
+
+        Set both participating Plugs dirty.
+        """
+        if not isinstance(plug, self.accepted_plugs):
+            raise TypeError("Cannot connect {0} to {1}".format(
+                type(self), type(plug)))
+        plug.connect(self)
 
     def __getitem__(self, key):
         """Retrieve a sub plug by key.
@@ -315,26 +299,8 @@ class InputPlug(_InPlug):
         }
 
 
-class SubInputPlug(_InPlug):
-    """Held by a parent input plug to form a compound plug."""
-
-    def __init__(self, key, node, parent_plug, value=None):
-        """Initialize the plug.
-
-        Can be connected to an OutputPlug.
-        Args:
-            key (str): The key will be used to form the name of the Plug:
-                {parent_plug.name}.{key}.
-            node (INode): The Node holding the Plug.
-            parent_plug (InputPlug): The parent plug holding this Plug.
-        """
-        super(SubInputPlug, self).__init__(
-            '{0}.{1}'.format(parent_plug.name, key), node)
-        self.key = key
-        self.parent_plug = parent_plug
-        self.parent_plug._sub_plugs[key] = self
-        self.value = value
-        self.is_dirty = True
+class SubPlug(object):
+    """Mixin that unifies common properties of subplugs."""
 
     @property
     def is_dirty(self):
@@ -348,6 +314,45 @@ class SubInputPlug(_InPlug):
         if status:
             self.parent_plug.is_dirty = status
 
+    def __getitem__(self, key):
+        raise TypeError('SubPlugs cannot be nested!')
+
+    def promote_to_graph(self, name=None):
+        """Add this plug to the graph of this plug's node.
+
+        NOTE: Subplugs can only be added to a graphp via their parent plug.
+
+        Args:
+            name (str): Optionally provide a different name for the Plug
+        """
+        # prevent adding SubPlug to the graph witout their parents
+        raise TypeError(
+            "Cannot add SubPlug to graph! Add the parent plug instead.")
+
+
+class SubInputPlug(SubPlug, InputPlug):
+    """Held by a parent input plug to form a compound plug."""
+
+    def __init__(self, key, node, parent_plug, value=None):
+        """Initialize the plug.
+
+        Can be connected to an OutputPlug.
+        Args:
+            key (str): The key will be used to form the name of the Plug:
+                {parent_plug.name}.{key}.
+            node (INode): The Node holding the Plug.
+            parent_plug (InputPlug): The parent plug holding this Plug.
+        """
+        # super().__init__() refers to self.parent_plug, so need to set it here
+        self.key = key
+        self.parent_plug = parent_plug
+        self.parent_plug._sub_plugs[key] = self
+
+        super(SubInputPlug, self).__init__(
+            '{0}.{1}'.format(parent_plug.name, key), node)
+        self.value = value
+        self.is_dirty = True
+
     def serialize(self):
         """Serialize the Plug containing all it's connections."""
         connections = {}
@@ -360,7 +365,7 @@ class SubInputPlug(_InPlug):
         }
 
 
-class SubOutputPlug(_OutPlug):
+class SubOutputPlug(SubPlug, OutputPlug):
     """Held by a parent output plug to form a compound plug."""
 
     def __init__(self, key, node, parent_plug, value=None):
@@ -373,12 +378,13 @@ class SubOutputPlug(_OutPlug):
             node (INode): The Node holding the Plug.
             parent_plug (InputPlug): The parent plug holding this Plug.
         """
-        super(SubOutputPlug, self).__init__(
-            '{0}.{1}'.format(parent_plug.name, key), node)
-            
+        # super().__init__() refers to self.parent_plug, so need to set it here
         self.key = key
         self.parent_plug = parent_plug
         self.parent_plug._sub_plugs[key] = self
+        
+        super(SubOutputPlug, self).__init__(
+            '{0}.{1}'.format(parent_plug.name, key), node)
         self.value = value
         self.is_dirty = True
 
@@ -396,18 +402,6 @@ class SubOutputPlug(_OutPlug):
         parent_value = self.parent_plug.value or {}
         parent_value[self.key] = value
         self.parent_plug.value = parent_value
-
-    @property
-    def is_dirty(self):
-        """Access to the dirty status on this Plug."""
-        return self._is_dirty
-
-    @is_dirty.setter
-    def is_dirty(self, status):
-        """Setting the Plug dirty informs its parent plug."""
-        self._is_dirty = status
-        if status:
-            self.parent_plug.is_dirty = status
 
     def serialize(self):
         """Serialize the Plug containing all it's connections."""

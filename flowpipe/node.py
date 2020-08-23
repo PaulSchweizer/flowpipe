@@ -15,7 +15,7 @@ import time
 import uuid
 import warnings
 
-from .plug import _InPlug, OutputPlug, InputPlug, SubInputPlug, SubOutputPlug
+from .plug import OutputPlug, InputPlug, SubInputPlug, SubOutputPlug
 from .event import Event
 from .utilities import deserialize_node, NodeEncoder, import_class
 from .graph import get_default_graph
@@ -175,29 +175,30 @@ class INode(object):
     def connect(self, other):
         """Connect this node's outputs to another plug's input by name.
 
-        If other is an _InPlug, connect the output with matching name.
+        If other is an InputPlug, connect the output with matching name.
         If other is an INode, connect all outputs with matching names.
         """
         connections = []  # keep track of the connections established
-        if isinstance(other, _InPlug):
+        if isinstance(other, InputPlug):
             try:
-                if isinstance(other, SubInputPlug):
-                    plug, subplug = other.name.split('.')
-                    self.outputs[plug]._sub_plugs[subplug].connect(other)
-                self.outputs[other.name].connect(other)
-                connections.append("Plug: {0}".format(other.name))
+                out = self.outputs[other.name]
             except KeyError:
                 raise KeyError("No output named {0}".format(other.name))
-            except AttributeError:
-                raise KeyError("Output {0} has no subplugs".format(plug))
+            else:
+                out.connect(other)
+                connections.append("Plug: {0}".format(other.name))
+
+                for sub in getattr(out, "_sub_plugs", {}):
+                    out._sub_plugs[sub].connect(other[sub])
+                    connections.append("Plug: {0}, Subplug: {1}".format(
+                        other.name, sub))
         elif isinstance(other, INode):
             for key in self.outputs.keys():
                 if key in other.inputs:
                     self.outputs[key].connect(other.inputs[key])
                     connections.append("Node: {0}, Plug: {1}".format(
                         other.name, key))
-                for sub in getattr(self.outputs[key], "_sub_plugs", {}):
-                    if sub in getattr(other.inputs[key], "_sub_plugs", {}):
+                    for sub in getattr(self.outputs[key], "_sub_plugs", {}):
                         self.outputs[key][sub].connect(other.inputs[key][sub])
                         connections.append(
                             "Node: {0}, Plug: {1}, SubPlug: {2}".format(

@@ -692,3 +692,8 @@ def test_rshift_into_node(clear_default_graph):
 
     with pytest.raises(ValueError):
         n1 >> n3
+
+
+def connection_with_subpluts(clear_default_graph):
+    """Test the INode.connect() method with subplugs."""
+
