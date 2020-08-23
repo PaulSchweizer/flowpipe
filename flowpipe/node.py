@@ -15,7 +15,7 @@ import time
 import uuid
 import warnings
 
-from .plug import OutputPlug, InputPlug, SubInputPlug, SubOutputPlug
+from .plug import OutputPlug, InputPlug, SubOutputPlug, SubPlug
 from .event import Event
 from .utilities import deserialize_node, NodeEncoder, import_class
 from .graph import get_default_graph
@@ -179,20 +179,7 @@ class INode(object):
         If other is an INode, connect all outputs with matching names.
         """
         connections = []  # keep track of the connections established
-        if isinstance(other, InputPlug):
-            try:
-                out = self.outputs[other.name]
-            except KeyError:
-                raise KeyError("No output named {0}".format(other.name))
-            else:
-                out.connect(other)
-                connections.append("Plug: {0}".format(other.name))
-
-                for sub in out._sub_plugs:
-                    out._sub_plugs[sub].connect(other[sub])
-                    connections.append("Plug: {0}, Subplug: {1}".format(
-                        other.name, sub))
-        elif isinstance(other, INode):
+        if isinstance(other, INode):
             for key in self.outputs.keys():
                 if key in other.inputs:
                     self.outputs[key].connect(other.inputs[key])
@@ -206,6 +193,23 @@ class INode(object):
             if not connections:
                 raise ValueError("{0} has no matching inputs".format(
                     other.name))
+        elif isinstance(other, InputPlug):
+            try:
+                if isinstance(other, SubPlug):
+                    out_name, sub_name = other.name.split(".")
+                    out = self.outputs[out_name][sub_name]
+                else:
+                    out = self.outputs[other.name]
+            except KeyError:
+                raise KeyError("No output named {0}".format(other.name))
+            else:
+                out.connect(other)
+                connections.append("Plug: {0}".format(other.name))
+
+                for sub in out._sub_plugs:
+                    out._sub_plugs[sub].connect(other[sub])
+                    connections.append("Plug: {0}, Subplug: {1}".format(
+                        other.name, sub))
         else:
             raise TypeError("Cannot connect outputs to {}".format(type(other)))
         log.debug("Connected node {0} with ".format(self.name) \
@@ -359,7 +363,7 @@ class INode(object):
                 pretty += offset
             plug = '{symbol} {dist}{input_}{value}'.format(
                 symbol='%' if in_plug._sub_plugs else 'o',
-                dist=' ' if isinstance(in_plug, SubInputPlug)else '',
+                dist=' ' if isinstance(in_plug, SubPlug)else '',
                 input_=input_,
                 value=_short_value(in_plug))
             pretty += '{plug:{width}}|'.format(plug=plug, width=width + 1)
@@ -367,7 +371,7 @@ class INode(object):
         # Outputs
         for output in sorted(all_outputs.keys()):
             out_plug = all_outputs[output]
-            dist = 2 if isinstance(out_plug, SubOutputPlug) else 1
+            dist = 2 if isinstance(out_plug, SubPlug) else 1
             value = _short_value(out_plug)
             pretty += '\n{offset}|{output:>{width}}{value}{dist}{symbol}'.format(
                 offset=offset, output=output, width=width - dist - len(value),
@@ -402,13 +406,13 @@ class INode(object):
                 continue
             if plug.connections:
                 pretty.append('{indent}[i] {name} << {node}.{plug}'.format(
-                    indent='   ' if isinstance(plug, SubInputPlug) else '  ',
+                    indent='   ' if isinstance(plug, SubPlug) else '  ',
                     name=name,
                     node=plug.connections[0].node.name,
                     plug=plug.connections[0].name))
             else:
                 pretty.append('{indent}[i] {name}: {value}'.format(
-                    indent='   ' if isinstance(plug, SubInputPlug) else '  ',
+                    indent='   ' if isinstance(plug, SubPlug) else '  ',
                     name=name,
                     value=json.dumps(plug.value, cls=NodeEncoder)))
         for name, plug in sorted(self.all_outputs().items()):
@@ -417,14 +421,14 @@ class INode(object):
                 continue
             if plug.connections:
                 pretty.append('{indent}[o] {name} >> {connections}'.format(
-                    indent='   ' if isinstance(plug, SubOutputPlug) else '  ',
+                    indent='   ' if isinstance(plug, SubPlug) else '  ',
                     name=name,
                     connections=', '.join(
                         ['{node}.{plug}'.format(node=c.node.name, plug=c.name)
                          for c in plug.connections])))
             else:
                 pretty.append('{indent}[o] {name}: {value}'.format(
-                    indent='   ' if isinstance(plug, SubOutputPlug) else '  ',
+                    indent='   ' if isinstance(plug, SubPlug) else '  ',
                     name=name,
                     value=json.dumps(plug.value, cls=NodeEncoder)))
 
