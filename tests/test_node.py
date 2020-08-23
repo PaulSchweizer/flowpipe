@@ -5,7 +5,7 @@ import mock
 import pytest
 
 from flowpipe.node import INode, Node
-from flowpipe.plug import InputPlug, OutputPlug
+from flowpipe.plug import InputPlug, OutputPlug, SubInputPlug
 from flowpipe.graph import reset_default_graph, get_default_graph
 from flowpipe.utilities import get_hash
 from flowpipe.errors import CycleError
@@ -694,6 +694,72 @@ def test_rshift_into_node(clear_default_graph):
         n1 >> n3
 
 
-def connection_with_subpluts(clear_default_graph):
+def test_connection_to_node_with_subplugs(clear_default_graph):
+    """Test the INode.connect() method with subplugs."""
+    @Node(outputs=["compound"])
+    def Node1():
+        return {"compound": {"sub1": 1, "sub2": 2}}
+
+    @Node(outputs=[])
+    def Node2(compound):
+        return {}
+
+    @Node(outputs=[])
+    def Node3(compound):
+        return {}
+
+    n1 = Node1()
+    n2 = Node2()
+    n3 = Node3()
+
+    n1.outputs["compound"]["sub1"].connect(n2.inputs["compound"]["sub1"])
+    n1.outputs["compound"]["sub2"].connect(n2.inputs["compound"]["sub2"])
+
+    n1.connect(n3)
+
+    print(get_default_graph())
+    assert isinstance(n2.inputs["compound"]["sub1"], SubInputPlug)
+    assert isinstance(n2.inputs["compound"]["sub2"], SubInputPlug)
+    assert n2.inputs["compound"]["sub1"] in n1.outputs["compound"]["sub1"].connections
+    assert n2.inputs["compound"]["sub2"] in n1.outputs["compound"]["sub2"].connections
+
+    assert isinstance(n3.inputs["compound"]["sub1"], SubInputPlug)
+    assert isinstance(n3.inputs["compound"]["sub2"], SubInputPlug)
+    assert n3.inputs["compound"]["sub1"] in n1.outputs["compound"]["sub1"].connections
+    assert n3.inputs["compound"]["sub2"] in n1.outputs["compound"]["sub2"].connections
+
+
+def test_connection_to_plug_with_subplugs(clear_default_graph):
     """Test the INode.connect() method with subplugs."""
 
+    @Node(outputs=["compound"])
+    def Node1():
+        return {"compound": {"sub1": 1, "sub2": 2}}
+
+    @Node(outputs=[])
+    def Node2(compound):
+        return {}
+
+    @Node(outputs=[])
+    def Node3(compound):
+        return {}
+
+    n1 = Node1()
+    n2 = Node2()
+    n3 = Node3()
+
+    n1.outputs["compound"]["sub1"].connect(n2.inputs["compound"]["sub1"])
+    n1.outputs["compound"]["sub2"].connect(n2.inputs["compound"]["sub2"])
+
+    n1.connect(n3.inputs["compound"])
+
+    print(get_default_graph())
+    assert isinstance(n2.inputs["compound"]["sub1"], SubInputPlug)
+    assert isinstance(n2.inputs["compound"]["sub2"], SubInputPlug)
+    assert n2.inputs["compound"]["sub1"] in n1.outputs["compound"]["sub1"].connections
+    assert n2.inputs["compound"]["sub2"] in n1.outputs["compound"]["sub2"].connections
+
+    assert isinstance(n3.inputs["compound"]["sub1"], SubInputPlug)
+    assert isinstance(n3.inputs["compound"]["sub2"], SubInputPlug)
+    assert n3.inputs["compound"]["sub1"] in n1.outputs["compound"]["sub1"].connections
+    assert n3.inputs["compound"]["sub2"] in n1.outputs["compound"]["sub2"].connections

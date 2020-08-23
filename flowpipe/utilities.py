@@ -124,7 +124,7 @@ def get_hash(obj, hash_func=lambda x: sha256(x).hexdigest()):
             obj = js
         if isinstance(obj, str):
             return hash_func(obj.encode('utf-8'))
-        if sys.version_info.major > 2:
+        if sys.version_info.major > 2:  # pragma: no cover
             try:
                 return hash_func(bytes(obj))
             except TypeError:

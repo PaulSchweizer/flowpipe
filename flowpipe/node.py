@@ -188,7 +188,7 @@ class INode(object):
                 out.connect(other)
                 connections.append("Plug: {0}".format(other.name))
 
-                for sub in getattr(out, "_sub_plugs", {}):
+                for sub in out._sub_plugs:
                     out._sub_plugs[sub].connect(other[sub])
                     connections.append("Plug: {0}, Subplug: {1}".format(
                         other.name, sub))
@@ -198,7 +198,7 @@ class INode(object):
                     self.outputs[key].connect(other.inputs[key])
                     connections.append("Node: {0}, Plug: {1}".format(
                         other.name, key))
-                    for sub in getattr(self.outputs[key], "_sub_plugs", {}):
+                    for sub in self.outputs[key]._sub_plugs:
                         self.outputs[key][sub].connect(other.inputs[key][sub])
                         connections.append(
                             "Node: {0}, Plug: {1}, SubPlug: {2}".format(

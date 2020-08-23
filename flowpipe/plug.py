@@ -46,7 +46,7 @@ class IPlug(object):
         Args:
             other (IPlug): The IPlug to connect to.
         """
-        warnings.warn("Use the connect method instead", 
+        warnings.warn("Use the connect method instead",
                       DeprecationWarning, stacklevel=2)
         self.connect(other)
 
@@ -56,7 +56,7 @@ class IPlug(object):
         Args:
             other (IPlug): The IPlug to disconnect.
         """
-        warnings.warn("Use the disconnect method instead", 
+        warnings.warn("Use the disconnect method instead",
                       DeprecationWarning, stacklevel=2)
         self.disconnect(other)
 
@@ -72,6 +72,8 @@ class IPlug(object):
     @property
     def value(self):
         """Access to the value on this Plug."""
+        if self._sub_plugs:
+            return {name: plug.value for name, plug in self._sub_plugs.items()}
         return self._value
 
     @value.setter
@@ -131,7 +133,7 @@ class OutputPlug(IPlug):
             name (str): The name of the Plug.
             node (INode): The Node holding the Plug.
         """
-        self.accepted_plugs = (InputPlug,) 
+        self.accepted_plugs = (InputPlug,)
         super(OutputPlug, self).__init__(name, node)
         if not isinstance(self, SubPlug):
             self.node.outputs[self.name] = self
@@ -189,17 +191,9 @@ class OutputPlug(IPlug):
                 parent_plug=self)
         return self._sub_plugs[key]
 
-    @property
-    def value(self):
-        """Access to the value on this Plug."""
-        if self._sub_plugs:
-            return {name: plug.value for name, plug in self._sub_plugs.items()}
-        return self._value
-
-    @value.setter
-    def value(self, value):
+    def _update_value(self, value):
         """Propagate the dirty state to all connected Plugs as well."""
-        self._update_value(value)
+        super(OutputPlug, self)._update_value(value)
         for plug in self.connections:
             plug.value = value
 
@@ -231,7 +225,7 @@ class InputPlug(IPlug):
             name (str): The name of the Plug.
             node (INode): The Node holding the Plug.
         """
-        self.accepted_plugs = (OutputPlug,) 
+        self.accepted_plugs = (OutputPlug,)
 
         super(InputPlug, self).__init__(name, node)
         self.value = value
@@ -268,19 +262,10 @@ class InputPlug(IPlug):
                 parent_plug=self)
         return self._sub_plugs[key]
 
-    @property
-    def value(self):
-        """Access to the value on this Plug."""
-        if self._sub_plugs:
-            return {name: plug.value for name, plug in self._sub_plugs.items()}
-        return self._value
-
-    @value.setter
-    def value(self, value):
-        """Set the Plug dirty when the value is being changed."""
+    def _update_value(self, value):
         if self._sub_plugs:
             return
-        self._update_value(value)
+        super(InputPlug, self)._update_value(value)
 
     def serialize(self):
         """Serialize the Plug containing all it's connections."""
@@ -313,13 +298,10 @@ class SubPlug(object):
         if status:
             self.parent_plug.is_dirty = status
 
-    def __getitem__(self, key):
-        raise TypeError('SubPlugs cannot be nested!')
-
     def promote_to_graph(self, name=None):
         """Add this plug to the graph of this plug's node.
 
-        NOTE: Subplugs can only be added to a graphp via their parent plug.
+        NOTE: Subplugs can only be added to a graph via their parent plug.
 
         Args:
             name (str): Optionally provide a different name for the Plug
@@ -356,7 +338,8 @@ class SubInputPlug(SubPlug, InputPlug):
         """Serialize the Plug containing all it's connections."""
         connections = {}
         if self.connections:
-            connections[self.connections[0].node.identifier] = self.connections[0].name
+            connections[self.connections[0].node.identifier] = \
+                self.connections[0].name
         return {
             'name': self.name,
             'value': self.value,
@@ -381,21 +364,15 @@ class SubOutputPlug(SubPlug, OutputPlug):
         self.key = key
         self.parent_plug = parent_plug
         self.parent_plug._sub_plugs[key] = self
-        
+
         super(SubOutputPlug, self).__init__(
             '{0}.{1}'.format(parent_plug.name, key), node)
         self.value = value
         self.is_dirty = True
 
-    @property
-    def value(self):
-        """Access to the value on this Plug."""
-        return self._value
-
-    @value.setter
-    def value(self, value):
+    def _update_value(self, value):
         """Propagate the dirty state to all connected Plugs as well."""
-        self._update_value(value)
+        super(SubOutputPlug, self)._update_value(value)
         for plug in self.connections:
             plug.value = value
         parent_value = self.parent_plug.value or {}
