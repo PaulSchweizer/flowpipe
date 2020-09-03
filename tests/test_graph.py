@@ -166,9 +166,8 @@ def test_serialize_graph_to_json(clear_default_graph, branching_graph):
 
 def test_serialize_graph_to_pickle(clear_default_graph, branching_graph):
     serialized = branching_graph.to_pickle()
-    deserialized = Graph.from_pickle(serialized).to_pickle()
-
-    assert serialized == deserialized
+    deserialized = Graph.from_pickle(serialized)
+    assert deserialized.to_json() == branching_graph.to_json()
 
 
 def test_string_representations(clear_default_graph, branching_graph):

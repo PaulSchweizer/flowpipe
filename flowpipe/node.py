@@ -15,7 +15,7 @@ import time
 import uuid
 import warnings
 
-from .plug import OutputPlug, InputPlug, SubInputPlug, SubOutputPlug
+from .plug import OutputPlug, InputPlug, SubOutputPlug, SubPlug
 from .event import Event
 from .utilities import deserialize_node, NodeEncoder, import_class
 from .graph import get_default_graph
@@ -63,7 +63,7 @@ class INode(object):
             self.file_location = inspect.getfile(self.__class__)
         except TypeError as e:  # pragma: no cover
             # Excluded from tests, as this is a hard-to test fringe case
-            if str(e) == "<module '__main__'> is a built-in class":
+            if all(s in str(e) for s in ('__main__', 'built-in class')):
                 warnings.warn("Cannot serialize nodes defined in '__main__'")
                 self.file_location = None
             else:
@@ -161,11 +161,64 @@ class INode(object):
         return outputs
 
     @abstractmethod
-    def compute(self, *args, **kwargs):
+    def compute(self, *args, **kwargs):  # pragma: no cover
         """Implement the data manipulation in the subclass.
 
         Return a dictionary with the outputs from this function.
         """
+        raise NotImplementedError("Compute must be overwritten")
+
+    def __rshift__(self, other):
+        """Syntactic sugar for connecting this node by output names."""
+        self.connect(other)
+
+    def connect(self, other):
+        """Connect this node's outputs to another plug's input by name.
+
+        If other is an InputPlug, connect the output with matching name.
+        If other is an INode, connect all outputs with matching names.
+
+        Note: This will also connect up sub-plugs if, and only if, they already
+        exist. As they are dynamically created, they will come into existence
+        only after being referenced explicity at least once. Before, the
+        connect() method will not pick them up.
+        """
+        connections = []  # keep track of the connections established
+        if isinstance(other, INode):
+            for key in self.outputs.keys():
+                if key in other.inputs:
+                    self.outputs[key].connect(other.inputs[key])
+                    connections.append("Node: {0}, Plug: {1}".format(
+                        other.name, key))
+                    for sub in self.outputs[key]._sub_plugs:
+                        self.outputs[key][sub].connect(other.inputs[key][sub])
+                        connections.append(
+                            "Node: {0}, Plug: {1}, SubPlug: {2}".format(
+                            other.name, key, sub))
+            if not connections:
+                raise ValueError("{0} has no matching inputs".format(
+                    other.name))
+        elif isinstance(other, InputPlug):
+            try:
+                if isinstance(other, SubPlug):
+                    out_name, sub_name = other.name.split(".")
+                    out = self.outputs[out_name][sub_name]
+                else:
+                    out = self.outputs[other.name]
+            except KeyError:
+                raise KeyError("No output named {0}".format(other.name))
+            else:
+                out.connect(other)
+                connections.append("Plug: {0}".format(other.name))
+
+                for sub in out._sub_plugs:
+                    out._sub_plugs[sub].connect(other[sub])
+                    connections.append("Plug: {0}, Subplug: {1}".format(
+                        other.name, sub))
+        else:
+            raise TypeError("Cannot connect outputs to {}".format(type(other)))
+        log.debug("Connected node {0} with ".format(self.name)
+                  + "\n".join(connections))
 
     def on_input_plug_set_dirty(self):
         """Propagate the dirty state to the connected downstream nodes."""
@@ -315,7 +368,7 @@ class INode(object):
                 pretty += offset
             plug = '{symbol} {dist}{input_}{value}'.format(
                 symbol='%' if in_plug._sub_plugs else 'o',
-                dist=' ' if isinstance(in_plug, SubInputPlug)else '',
+                dist=' ' if isinstance(in_plug, SubPlug)else '',
                 input_=input_,
                 value=_short_value(in_plug))
             pretty += '{plug:{width}}|'.format(plug=plug, width=width + 1)
@@ -323,7 +376,7 @@ class INode(object):
         # Outputs
         for output in sorted(all_outputs.keys()):
             out_plug = all_outputs[output]
-            dist = 2 if isinstance(out_plug, SubOutputPlug) else 1
+            dist = 2 if isinstance(out_plug, SubPlug) else 1
             value = _short_value(out_plug)
             pretty += '\n{offset}|{output:>{width}}{value}{dist}{symbol}'.format(
                 offset=offset, output=output, width=width - dist - len(value),
@@ -358,13 +411,13 @@ class INode(object):
                 continue
             if plug.connections:
                 pretty.append('{indent}[i] {name} << {node}.{plug}'.format(
-                    indent='   ' if isinstance(plug, SubInputPlug) else '  ',
+                    indent='   ' if isinstance(plug, SubPlug) else '  ',
                     name=name,
                     node=plug.connections[0].node.name,
                     plug=plug.connections[0].name))
             else:
                 pretty.append('{indent}[i] {name}: {value}'.format(
-                    indent='   ' if isinstance(plug, SubInputPlug) else '  ',
+                    indent='   ' if isinstance(plug, SubPlug) else '  ',
                     name=name,
                     value=json.dumps(plug.value, cls=NodeEncoder)))
         for name, plug in sorted(self.all_outputs().items()):
@@ -373,14 +426,14 @@ class INode(object):
                 continue
             if plug.connections:
                 pretty.append('{indent}[o] {name} >> {connections}'.format(
-                    indent='   ' if isinstance(plug, SubOutputPlug) else '  ',
+                    indent='   ' if isinstance(plug, SubPlug) else '  ',
                     name=name,
                     connections=', '.join(
                         ['{node}.{plug}'.format(node=c.node.name, plug=c.name)
                          for c in plug.connections])))
             else:
                 pretty.append('{indent}[o] {name}: {value}'.format(
-                    indent='   ' if isinstance(plug, SubOutputPlug) else '  ',
+                    indent='   ' if isinstance(plug, SubPlug) else '  ',
                     name=name,
                     value=json.dumps(plug.value, cls=NodeEncoder)))
 

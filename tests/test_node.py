@@ -5,7 +5,7 @@ import mock
 import pytest
 
 from flowpipe.node import INode, Node
-from flowpipe.plug import InputPlug, OutputPlug
+from flowpipe.plug import InputPlug, OutputPlug, SubInputPlug
 from flowpipe.graph import reset_default_graph, get_default_graph
 from flowpipe.utilities import get_hash
 from flowpipe.errors import CycleError
@@ -637,3 +637,140 @@ def test_node_event_emission_separation(clear_default_graph):
 
     assert node1.execution_count == 1
     assert node2.execution_count == 1
+
+
+def test_rshift_into_plug(clear_default_graph):
+    """Test the node rshift operator with a plug as target.
+    Note that OutputPlug >> INode is tested in the plug tests."""
+    @Node(outputs=["marker"])
+    def Node1():
+        return {"marker": None}
+
+    @Node(outputs=[])
+    def Node2(marker):
+        return {}
+
+    @Node(outputs=[])
+    def Node3(no_such_input):
+        return {}
+
+    n1 = Node1()
+    n2 = Node2()
+    n3 = Node3()
+
+    n1 >> n2.inputs["marker"]
+    assert n2.inputs["marker"] in n1.outputs["marker"].connections
+
+    with pytest.raises(KeyError):
+        n1 >> n3.inputs["no_such_input"]
+
+    with pytest.raises(TypeError):
+        n1 >> "a string"
+
+
+def test_rshift_into_node(clear_default_graph):
+    """Test the node rshift operator with an INode as target.
+    Note that OutputPlug >> INode is tested in the plug tests."""
+    @Node(outputs=["marker"])
+    def Node1():
+        return {"marker": None}
+
+    @Node(outputs=[])
+    def Node2(marker):
+        return {}
+
+    @Node(outputs=[])
+    def Node3(no_such_input):
+        return {}
+
+    n1 = Node1()
+    n2 = Node2()
+    n3 = Node3()
+
+    n1 >> n2
+    assert n2.inputs["marker"] in n1.outputs["marker"].connections
+
+    with pytest.raises(ValueError):
+        n1 >> n3
+
+
+def test_connection_to_node_with_subplugs(clear_default_graph):
+    """Test the INode.connect() method with subplugs."""
+    @Node(outputs=["compound"])
+    def Node1():
+        return {"compound": {"sub1": 1, "sub2": 2}}
+
+    @Node(outputs=[])
+    def Node2(compound):
+        return {}
+
+    n1 = Node1()
+    n2 = Node2()
+    n3 = Node2(name='Node3')
+
+    n1.outputs["compound"]["sub1"].connect(n2.inputs["compound"]["sub1"])
+    n1.outputs["compound"]["sub2"].connect(n2.inputs["compound"]["sub2"])
+
+    n1.connect(n3)
+
+    print(get_default_graph())
+    assert isinstance(n2.inputs["compound"]["sub1"], SubInputPlug)
+    assert isinstance(n2.inputs["compound"]["sub2"], SubInputPlug)
+    assert n2.inputs["compound"]["sub1"] in n1.outputs["compound"]["sub1"].connections
+    assert n2.inputs["compound"]["sub2"] in n1.outputs["compound"]["sub2"].connections
+
+    assert isinstance(n3.inputs["compound"]["sub1"], SubInputPlug)
+    assert isinstance(n3.inputs["compound"]["sub2"], SubInputPlug)
+    assert n3.inputs["compound"]["sub1"] in n1.outputs["compound"]["sub1"].connections
+    assert n3.inputs["compound"]["sub2"] in n1.outputs["compound"]["sub2"].connections
+
+
+def test_connection_to_plug_with_subplugs(clear_default_graph):
+    """Test the INode.connect() method with subplugs."""
+
+    @Node(outputs=["compound"])
+    def Node1():
+        return {"compound": {"sub1": 1, "sub2": 2}}
+
+    @Node(outputs=[])
+    def Node2(compound):
+        return {}
+
+    n1 = Node1()
+    n2 = Node2()
+    n3 = Node2(name='Node3')
+
+    n1.outputs["compound"]["sub1"].connect(n2.inputs["compound"]["sub1"])
+    n1.outputs["compound"]["sub2"].connect(n2.inputs["compound"]["sub2"])
+
+    n1.connect(n3.inputs["compound"])
+
+    assert isinstance(n2.inputs["compound"]["sub1"], SubInputPlug)
+    assert isinstance(n2.inputs["compound"]["sub2"], SubInputPlug)
+    assert n2.inputs["compound"]["sub1"] in n1.outputs["compound"]["sub1"].connections
+    assert n2.inputs["compound"]["sub2"] in n1.outputs["compound"]["sub2"].connections
+
+    assert isinstance(n3.inputs["compound"]["sub1"], SubInputPlug)
+    assert isinstance(n3.inputs["compound"]["sub2"], SubInputPlug)
+    assert n3.inputs["compound"]["sub1"] in n1.outputs["compound"]["sub1"].connections
+    assert n3.inputs["compound"]["sub2"] in n1.outputs["compound"]["sub2"].connections
+
+
+def test_connection_to_subplug(clear_default_graph):
+    """Test the INode.connect() method with subplugs."""
+
+    @Node(outputs=["compound"])
+    def Node1():
+        return {"compound": {"sub1": 1, "sub2": 2}}
+
+    @Node(outputs=[])
+    def Node2(compound):
+        return {}
+
+    n1 = Node1()
+    n2 = Node2()
+
+    n1.connect(n2.inputs["compound"]["sub1"])
+
+    assert isinstance(n2.inputs["compound"]["sub1"], SubInputPlug)
+    assert n2.inputs["compound"]["sub1"] in n1.outputs["compound"]["sub1"].connections
