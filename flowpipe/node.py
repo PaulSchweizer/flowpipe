@@ -177,6 +177,11 @@ class INode(object):
 
         If other is an InputPlug, connect the output with matching name.
         If other is an INode, connect all outputs with matching names.
+
+        Note: This will also connect up sub-plugs if, and only if, they already
+        exist. As they are dynamically created, they will come into existence
+        only after being referenced explicity at least once. Before, the
+        connect() method will not pick them up.
         """
         connections = []  # keep track of the connections established
         if isinstance(other, INode):
@@ -212,7 +217,7 @@ class INode(object):
                         other.name, sub))
         else:
             raise TypeError("Cannot connect outputs to {}".format(type(other)))
-        log.debug("Connected node {0} with ".format(self.name) \
+        log.debug("Connected node {0} with ".format(self.name)
                   + "\n".join(connections))
 
     def on_input_plug_set_dirty(self):
