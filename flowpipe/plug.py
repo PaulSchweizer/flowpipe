@@ -14,6 +14,20 @@ except ImportError:
 if sys.version_info.major > 2:  # pragma: no cover
     basestring = str
 
+class IterationPlug(list):
+    """ This is a special output type, it's basically a list, but for the
+    INode objects it's a trigger to itertate over the input """
+    def get_nested(self, attr):
+        """ Special __getitem__ to get subvalue(s) from the (nested) IterationPlug """
+        nested_list = IterationPlug()
+        for v in self:
+            if isinstance(v, (list, tuple)):
+                nested_list.append(IterationPlug(v).get_nested(attr))
+            elif isinstance(v, dict):
+                nested_list.append(v[attr])
+            else:
+                nested_list.append(getattr(v, attr))
+        return nested_list
 
 class IPlug(object):
     """The interface for the plugs.
