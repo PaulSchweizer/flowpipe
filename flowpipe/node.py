@@ -15,7 +15,7 @@ import time
 import uuid
 import warnings
 
-from .plug import OutputPlug, InputPlug, SubOutputPlug, SubPlug
+from .plug import OutputPlug, InputPlug, SubOutputPlug, SubPlug, IterationPlug
 from .event import Event
 from .utilities import deserialize_node, NodeEncoder, import_class
 from .graph import get_default_graph
@@ -38,10 +38,12 @@ class INode(object):
 
     EVENT_TYPES = ['evaluation-omitted',
                    'evaluation-started',
-                   'evaluation-finished']
+                   'evaluation-finished',
+                   'iteration-started',
+                   'iteration-finished']
 
     def __init__(self, name=None, identifier=None, metadata=None,
-                 graph='default'):
+                 graph='default', iteration_count=None):
         """Initialize the input and output dictionaries and the name.
 
         Args:
@@ -49,6 +51,9 @@ class INode(object):
             graph (Graph): The graph to add the node to.
                 If set to 'default', the Node is added to the default graph.
                 If set to None, the Node is not added to any grpah.
+            iteration_count (int): Number of iterations if known before hand.
+                If ommited no check is done.
+                If value is -1, internal iteration is disabled.
         """
         self.EVENTS = {ev_type: Event(ev_type) for ev_type in self.EVENT_TYPES}
 
@@ -59,6 +64,8 @@ class INode(object):
         self.outputs = dict()
         self.metadata = metadata or {}
         self.omit = False
+        assert (isinstance(iteration_count, int) and iteration_count >= -1) or iteration_count is None, "Please parse an positive integer, None or -1 for argument `iteration_count`"
+        self.iteration_count = iteration_count
         try:
             self.file_location = inspect.getfile(self.__class__)
         except TypeError as e:  # pragma: no cover
@@ -136,7 +143,7 @@ class INode(object):
 
         # Compute and redirect the output to the output plugs
         start_time = time.time()
-        outputs = self.compute(**inputs) or dict()
+        outputs = self._evaluate(**inputs)
         eval_time = time.time() - start_time
 
         self.stats = {
@@ -144,13 +151,7 @@ class INode(object):
             'start_time': start_time
         }
 
-        # all_outputs = self.all_outputs()
-        for name, value in outputs.items():
-            if '.' in name:
-                parent_plug, sub_plug = name.split('.')
-                self.outputs[parent_plug][sub_plug].value = value
-            else:
-                self.outputs[name].value = value
+        self._set_outputs(outputs)
 
         # Set the inputs clean
         for input_ in self.all_inputs().values():
@@ -159,6 +160,63 @@ class INode(object):
         self.EVENTS['evaluation-finished'].emit(self)
 
         return outputs
+
+    def _evaluate(self, **inputs):
+        # Look if iteration is needed
+        # Iterables is a dictionary with each entry an list of inputs to iterate over later-on
+        is_iteration_detected, iterables = False, {}
+        # If itertation is disabled just continue normally
+        if self.iteration_count != -1:
+            # Iterate over the inputs
+            for key, value in inputs.items():
+                # Input value is an IterationPlug so iteration is needed
+                if isinstance(value, IterationPlug):  
+                    is_iteration_detected = True
+                    iterables[key] = [{key: x} for x in value]  # Create a list of kwargs to iterate over lateron.
+                    if self.iteration_count is not None:
+                        # Check the number of iterations if provided
+                        assert len(value) == self.iteration_count, f"Length ({len(value)}) of iterable `{key}` is unequal to expected length {self.iteration_count}"
+                # Special case for subinputs
+                elif isinstance(value, dict):
+                    for subkey, subvalue in value.items():
+                        if isinstance(subvalue, IterationPlug):  # Same as above but a layer deeper.
+                            is_iteration_detected = True
+                            if key not in iterables:
+                                iterables[key] = [{key: {subkey: x}} for x in subvalue]
+                            else:
+                                iterables[key] = [{key: {**x[key], subkey: y}} for x, y in zip(iterables[key], subvalue)]
+                            if self.iteration_count is not None:
+                                assert len(subvalue) == self.iteration_count, f"Length ({len(subvalue)}) of iterable `{key}` is unequal to expected length {self.iteration_count}"
+
+        
+        if is_iteration_detected: # Iterate if iteration is detected
+            outputs = {}
+            for arguments in zip(*iterables.values()):  # Loop over the list of kwargs in iterables
+                [inputs.update(arg) for arg in arguments]  # Update the inputs
+                output = self._evaluate(**inputs)  # Compute the node
+                for key, value in output.items():
+                    if key not in outputs:
+                        outputs[key] = IterationPlug()
+                    # Put the output also in an IterationPlug so the next node also knows that it should iterate.
+                    outputs[key].append(value)
+        else:  # Otherwise just calculate normally
+            self.EVENTS['iteration-started'].emit(self)
+            
+            outputs = self.compute(**inputs) or dict()
+            self._set_outputs(outputs)
+            
+            self.EVENTS['iteration-finished'].emit(self)
+
+        return outputs
+
+    def _set_outputs(self, outputs):
+        """Help function to set the output plugs"""
+        for name, value in outputs.items():
+            if '.' in name:
+                parent_plug, sub_plug = name.split('.')
+                self.outputs[parent_plug][sub_plug].value = value
+            else:
+                self.outputs[name].value = value
 
     @abstractmethod
     def compute(self, *args, **kwargs):  # pragma: no cover
@@ -475,7 +533,7 @@ class FunctionNode(INode):
         "graph")
 
     def __init__(self, func=None, outputs=None, name=None,
-                 identifier=None, metadata=None, graph=None, **kwargs):
+                 identifier=None, metadata=None, graph=None, iteration_count=None, **kwargs):
         """The data on the function is used to drive the Node.
         The function itself becomes the compute method.
         The function input args become the InputPlugs.
@@ -483,7 +541,7 @@ class FunctionNode(INode):
         """
         super(FunctionNode, self).__init__(
             name or getattr(func, '__name__', None),
-            identifier, metadata, graph)
+            identifier, metadata, graph, iteration_count)
         self._initialize(func, outputs or [], metadata)
         for plug, value in kwargs.items():
             self.inputs[plug].value = value
