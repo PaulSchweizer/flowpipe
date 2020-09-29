@@ -25,7 +25,6 @@ from .utilities import NodeEncoder, deserialize_node, import_class
 
 log = logging.getLogger(__name__)
 
-
 # Use getfullargspec on py3.x to make type hints work
 try:
     getargspec = inspect.getfullargspec
