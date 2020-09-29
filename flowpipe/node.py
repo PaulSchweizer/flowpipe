@@ -3,7 +3,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 from abc import ABCMeta, abstractmethod
 try:
-    from collections import OrderedDict
+    from collections import OrderedDict, defaultdict
 except ImportError:
     from ordereddict import OrderedDict
 import logging
@@ -188,20 +188,21 @@ class INode(object):
                             if self.iteration_count is not None:
                                 assert len(subvalue) == self.iteration_count, f"Length ({len(subvalue)}) of iterable `{key}` is unequal to expected length {self.iteration_count}"
 
-        
-        if is_iteration_detected: # Iterate if iteration is detected
-            outputs = {}
-            for arguments in zip(*iterables.values()):  # Loop over the list of kwargs in iterables
-                [inputs.update(arg) for arg in arguments]  # Update the inputs
-                output = self._evaluate(**inputs)  # Compute the node
+        if is_iteration_detected:  # Iterate if iteration is detected
+            outputs = defaultdict(IterationPlug)
+            for arguments in zip(
+                    *iterables.values()):  # Loop over the list of kwargs in iterables
+                for arg in arguments:
+                    iter_args = inputs.copy()
+                    iter_args.update(arg)  # Update the inputs
+                output = self._evaluate(**iter_args)  # Compute the node
                 for key, value in output.items():
-                    if key not in outputs:
-                        outputs[key] = IterationPlug()
-                    # Put the output also in an IterationPlug so the next node also knows that it should iterate.
+                    # Put the output also in an IterationPlug so the next node
+                    # also knows that it should iterate.
                     outputs[key].append(value)
         else:  # Otherwise just calculate normally
             self.EVENTS['iteration-started'].emit(self)
-            
+
             outputs = self.compute(**inputs) or dict()
             self._set_outputs(outputs)
             
