@@ -1,25 +1,27 @@
 """Nodes manipulate incoming data and provide the outgoing data."""
-from __future__ import print_function
-from __future__ import absolute_import
+from __future__ import absolute_import, print_function
+
 from abc import ABCMeta, abstractmethod
+
 try:
     from collections import OrderedDict, defaultdict
 except ImportError:
     from ordereddict import OrderedDict
-import logging
+
 import copy
 import inspect
 import json
+import logging
 import pickle
 import time
 import uuid
 import warnings
+from numbers import Integral
 
-from .plug import OutputPlug, InputPlug, SubOutputPlug, SubPlug, IterationPlug
 from .event import Event
-from .utilities import deserialize_node, NodeEncoder, import_class
 from .graph import get_default_graph
-
+from .plug import InputPlug, IterationPlug, OutputPlug, SubOutputPlug, SubPlug
+from .utilities import NodeEncoder, deserialize_node, import_class
 
 log = logging.getLogger(__name__)
 
@@ -64,7 +66,13 @@ class INode(object):
         self.outputs = dict()
         self.metadata = metadata or {}
         self.omit = False
-        assert (isinstance(iteration_count, int) and iteration_count >= -1) or iteration_count is None, "Please parse an positive integer, None or -1 for argument `iteration_count`"
+
+        if iteration_count is None:
+            pass
+        elif not isinstance(iteration_count, Integral):
+            raise TypeError("iteration_count has to be an integer")
+        elif -1 < iteration_count:
+            raise ValueError("iteration_count has to be positive or -1")
         self.iteration_count = iteration_count
         try:
             self.file_location = inspect.getfile(self.__class__)
