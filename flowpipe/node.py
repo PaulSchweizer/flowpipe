@@ -64,7 +64,14 @@ class INode(object):
         self.outputs = dict()
         self.metadata = metadata or {}
         self.omit = False
-        assert (isinstance(iteration_count, int) and iteration_count >= -1) or iteration_count is None, "Please parse an positive integer, None or -1 for argument `iteration_count`"
+
+        from numbers import Integral
+        if iteration_count is None:
+            pass
+        elif not isinstance(iteration_count, Integral):
+            raise TypeError("iteration_count has to be an integer")
+        elif -1 < iteration_count:
+            raise ValueError("iteration_count has to be positive or -1")
         self.iteration_count = iteration_count
         try:
             self.file_location = inspect.getfile(self.__class__)
