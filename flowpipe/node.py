@@ -199,8 +199,8 @@ class INode(object):
             outputs = defaultdict(IterationPlug)
             for arguments in zip(
                     *iterables.values()):  # Loop over the list of kwargs in iterables
+                iter_args = inputs.copy()
                 for arg in arguments:
-                    iter_args = inputs.copy()
                     iter_args.update(arg)  # Update the inputs
                 output = self._evaluate(**iter_args)  # Compute the node
                 for key, value in output.items():
