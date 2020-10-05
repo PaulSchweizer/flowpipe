@@ -20,7 +20,7 @@ from numbers import Integral
 
 from .event import Event
 from .graph import get_default_graph
-from .plug import InputPlug, IterationPlug, OutputPlug, SubOutputPlug, SubPlug
+from .plug import InputPlug, IterationList, OutputPlug, SubOutputPlug, SubPlug
 from .utilities import NodeEncoder, deserialize_node, import_class
 
 log = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ class INode(object):
             pass
         elif not isinstance(iteration_count, Integral):
             raise TypeError("iteration_count has to be an integer")
-        elif -1 < iteration_count:
+        elif iteration_count < -1:
             raise ValueError("iteration_count has to be positive or -1")
         self.iteration_count = iteration_count
         try:
@@ -176,27 +176,26 @@ class INode(object):
         if self.iteration_count != -1:
             # Iterate over the inputs
             for key, value in inputs.items():
-                # Input value is an IterationPlug so iteration is needed
-                if isinstance(value, IterationPlug):  
+                # Input value is an IterationList so iteration is needed
+                if isinstance(value, IterationList):  
                     is_iteration_detected = True
                     iterables[key] = [{key: x} for x in value]  # Create a list of kwargs to iterate over lateron.
-                    if self.iteration_count is not None:
-                        # Check the number of iterations if provided
-                        assert len(value) == self.iteration_count, f"Length ({len(value)}) of iterable `{key}` is unequal to expected length {self.iteration_count}"
+                    if self.iteration_count is not None and not len(value) == self.iteration_count:
+                        raise ValueError(f"Length ({len(value)}) of iterable `{key}` is unequal to expected length {self.iteration_count}")
                 # Special case for subinputs
                 elif isinstance(value, dict):
                     for subkey, subvalue in value.items():
-                        if isinstance(subvalue, IterationPlug):  # Same as above but a layer deeper.
+                        if isinstance(subvalue, IterationList):  # Same as above but a layer deeper.
                             is_iteration_detected = True
                             if key not in iterables:
                                 iterables[key] = [{key: {subkey: x}} for x in subvalue]
                             else:
                                 iterables[key] = [{key: {**x[key], subkey: y}} for x, y in zip(iterables[key], subvalue)]
-                            if self.iteration_count is not None:
-                                assert len(subvalue) == self.iteration_count, f"Length ({len(subvalue)}) of iterable `{key}` is unequal to expected length {self.iteration_count}"
+                            if self.iteration_count is not None and not len(subvalue) == self.iteration_count:
+                                raise ValueError(f"Length ({len(subvalue)}) of iterable `{key}` is unequal to expected length {self.iteration_count}")
 
         if is_iteration_detected:  # Iterate if iteration is detected
-            outputs = defaultdict(IterationPlug)
+            outputs = defaultdict(IterationList)
             for arguments in zip(
                     *iterables.values()):  # Loop over the list of kwargs in iterables
                 iter_args = inputs.copy()
@@ -204,7 +203,7 @@ class INode(object):
                     iter_args.update(arg)  # Update the inputs
                 output = self._evaluate(**iter_args)  # Compute the node
                 for key, value in output.items():
-                    # Put the output also in an IterationPlug so the next node
+                    # Put the output also in an IterationList so the next node
                     # also knows that it should iterate.
                     outputs[key].append(value)
         else:  # Otherwise just calculate normally
