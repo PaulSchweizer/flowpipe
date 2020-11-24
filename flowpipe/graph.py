@@ -43,7 +43,7 @@ class Graph(object):
 
     def __getitem__(self, key):
         """Grant access to Nodes via their name."""
-        for node in self.nodes:
+        for node in self.all_nodes:
             if node.name == key:
                 return node
         raise KeyError(
