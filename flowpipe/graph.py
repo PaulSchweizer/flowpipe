@@ -1,23 +1,25 @@
 """A Graph of Nodes."""
-from __future__ import print_function
-from __future__ import absolute_import
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
-from concurrent import futures
+from __future__ import absolute_import, print_function
+
 import logging
-from multiprocessing import Manager, Process
 import pickle
 import time
 import warnings
+from concurrent import futures
+from multiprocessing import Manager, Process
 
-from ascii_canvas import canvas
-from ascii_canvas import item
+from ascii_canvas import canvas, item
 
 from .errors import CycleError
 from .plug import InputPlug, OutputPlug
 from .utilities import deserialize_graph
+
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
+
+
 
 
 log = logging.getLogger(__name__)
@@ -32,6 +34,7 @@ class Graph(object):
         self.nodes = nodes or []
         self.inputs = {}
         self.outputs = {}
+        self.input_groups = {}
 
     def __unicode__(self):
         """Display the Graph."""
