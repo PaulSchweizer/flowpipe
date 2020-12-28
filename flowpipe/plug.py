@@ -405,7 +405,7 @@ class SubOutputPlug(SubPlug, OutputPlug):
 
 
 class InputPlugGroup(object):
-    """Group plugs inside a group into one entry point onk the graph."""
+    """Group plugs inside a group into one entry point on the graph."""
 
     def __init__(self, name, graph, plugs=None):
         """Initialize the group and assigning it to the `Graph.input_groups`.
