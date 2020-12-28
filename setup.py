@@ -1,6 +1,4 @@
-from setuptools import setup
-from setuptools import find_packages
-
+from setuptools import find_packages, setup
 
 with open('README.md') as stream:
     long_description = stream.read()
@@ -13,7 +11,7 @@ REQUIREMENTS = [
 ]
 
 setup(name='flowpipe',
-      version='0.8.1',
+      version='0.9.0',
       author='Paul Schweizer',
       author_email='paulschweizer@gmx.net',
       description='Lightweight flow-based programming framework.',

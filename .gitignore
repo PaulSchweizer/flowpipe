@@ -8,6 +8,7 @@ cover
 .pytest_cache*
 doc/source/
 logos/
+venv*
 
 # Sublime
 *.sublime-project

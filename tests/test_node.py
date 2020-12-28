@@ -5,7 +5,7 @@ import mock
 import pytest
 
 from flowpipe.node import INode, Node
-from flowpipe.plug import InputPlug, OutputPlug
+from flowpipe.plug import InputPlug, OutputPlug, SubInputPlug
 from flowpipe.graph import reset_default_graph, get_default_graph
 from flowpipe.utilities import get_hash
 from flowpipe.errors import CycleError
@@ -158,13 +158,13 @@ def test_string_representations(clear_default_graph):
     """Print the node."""
     node = SquareNode(name='Node1')
     node1 = SquareNode(name='Node2')
-    node2 = SquareNode(name='Node3')
     node1.inputs['in1'].value = 'Test'
-    node1.inputs['compound_in']['key-1'].value = 'value'
+    node1.inputs['compound_in']['key-1'].value = 'value longer than max'
     node1.inputs['compound_in']['0'].value = 0
     node.outputs['out'] >> node1.inputs['in1']
     node.outputs['compound_out']['1'] >> node1.inputs['compound_in']['1']
-    node1.outputs['compound_out']['1'] >> node2.inputs['in1']
+    node1.outputs['compound_out']['1'].value = 0
+    node1.outputs['out'].value = 'value longer than max'
 
     assert str(node) == '''\
 +-----------------------------+
@@ -172,24 +172,24 @@ def test_string_representations(clear_default_graph):
 |-----------------------------|
 o compound_in<>               |
 o in1<>                       |
-|                compound_out %
-|             compound_out.1  o---
-|                         out o---
+|              compound_out<> %
+|           compound_out.1<>  o---
+|                       out<> o---
 +-----------------------------+'''
 
     assert str(node1) == '''\
-   +-----------------------------+
-   |            Node2            |
-   |-----------------------------|
-   % compound_in                 |
-   o  compound_in.0<0>           |
--->o  compound_in.1<>            |
-   o  compound_in.key-1<"value"> |
--->o in1<>                       |
-   |                compound_out %
-   |             compound_out.1  o---
-   |                         out o
-   +-----------------------------+'''
+   +----------------------------------+
+   |              Node2               |
+   |----------------------------------|
+   % compound_in<>                    |
+   o  compound_in.0<0>                |
+-->o  compound_in.1<>                 |
+   o  compound_in.key-1<value l...>   |
+-->o in1<>                            |
+   |                   compound_out<> %
+   |               compound_out.1<0>  o
+   |                  out<value l...> o
+   +----------------------------------+'''
 
     assert node.list_repr() == '''\
 Node1
@@ -204,11 +204,11 @@ Node2
   [i] compound_in
    [i] compound_in.0: 0
    [i] compound_in.1 << Node1.compound_out.1
-   [i] compound_in.key-1: "value"
+   [i] compound_in.key-1: "value longer than max"
   [i] in1 << Node1.out
   [o] compound_out
-   [o] compound_out.1 >> Node3.in1
-  [o] out: null'''
+   [o] compound_out.1: 0
+  [o] out: "value longer than max"'''
 
 
 def test_node_has_unique_identifier(clear_default_graph):
@@ -599,11 +599,11 @@ def test_node_events(clear_default_graph):
     def finished_listener(node):
         node.finished_listener_called = True
 
-    INode.EVENTS['evaluation-omitted'].register(omitted_listener)
-    INode.EVENTS['evaluation-started'].register(started_listener)
-    INode.EVENTS['evaluation-finished'].register(finished_listener)
-
     node = SquareNode(in1=1)
+
+    node.EVENTS['evaluation-omitted'].register(omitted_listener)
+    node.EVENTS['evaluation-started'].register(started_listener)
+    node.EVENTS['evaluation-finished'].register(finished_listener)
 
     node.omit = True
     node.evaluate()
@@ -613,3 +613,164 @@ def test_node_events(clear_default_graph):
     node.evaluate()
     assert node.started_listener_called
     assert node.finished_listener_called
+
+
+def test_node_event_emission_separation(clear_default_graph):
+    """Assert that events are emitted only on the triggering node."""
+    def inc_execution_counter(node):
+        node.execution_count += 1
+
+    node1 = SquareNode(in1=1, name="node1")
+    node1.execution_count = 0
+    node1.EVENTS['evaluation-started'].register(inc_execution_counter)
+
+    node2 = SquareNode(in1=1, name="node2")
+    node2.execution_count = 0
+    node2.EVENTS['evaluation-started'].register(inc_execution_counter)
+
+    node1.evaluate()
+
+    assert node1.execution_count == 1
+    assert node2.execution_count == 0
+
+    node2.evaluate()
+
+    assert node1.execution_count == 1
+    assert node2.execution_count == 1
+
+
+def test_rshift_into_plug(clear_default_graph):
+    """Test the node rshift operator with a plug as target.
+    Note that OutputPlug >> INode is tested in the plug tests."""
+    @Node(outputs=["marker"])
+    def Node1():
+        return {"marker": None}
+
+    @Node(outputs=[])
+    def Node2(marker):
+        return {}
+
+    @Node(outputs=[])
+    def Node3(no_such_input):
+        return {}
+
+    n1 = Node1()
+    n2 = Node2()
+    n3 = Node3()
+
+    n1 >> n2.inputs["marker"]
+    assert n2.inputs["marker"] in n1.outputs["marker"].connections
+
+    with pytest.raises(KeyError):
+        n1 >> n3.inputs["no_such_input"]
+
+    with pytest.raises(TypeError):
+        n1 >> "a string"
+
+
+def test_rshift_into_node(clear_default_graph):
+    """Test the node rshift operator with an INode as target.
+    Note that OutputPlug >> INode is tested in the plug tests."""
+    @Node(outputs=["marker"])
+    def Node1():
+        return {"marker": None}
+
+    @Node(outputs=[])
+    def Node2(marker):
+        return {}
+
+    @Node(outputs=[])
+    def Node3(no_such_input):
+        return {}
+
+    n1 = Node1()
+    n2 = Node2()
+    n3 = Node3()
+
+    n1 >> n2
+    assert n2.inputs["marker"] in n1.outputs["marker"].connections
+
+    with pytest.raises(ValueError):
+        n1 >> n3
+
+
+def test_connection_to_node_with_subplugs(clear_default_graph):
+    """Test the INode.connect() method with subplugs."""
+    @Node(outputs=["compound"])
+    def Node1():
+        return {"compound": {"sub1": 1, "sub2": 2}}
+
+    @Node(outputs=[])
+    def Node2(compound):
+        return {}
+
+    n1 = Node1()
+    n2 = Node2()
+    n3 = Node2(name='Node3')
+
+    n1.outputs["compound"]["sub1"].connect(n2.inputs["compound"]["sub1"])
+    n1.outputs["compound"]["sub2"].connect(n2.inputs["compound"]["sub2"])
+
+    n1.connect(n3)
+
+    print(get_default_graph())
+    assert isinstance(n2.inputs["compound"]["sub1"], SubInputPlug)
+    assert isinstance(n2.inputs["compound"]["sub2"], SubInputPlug)
+    assert n2.inputs["compound"]["sub1"] in n1.outputs["compound"]["sub1"].connections
+    assert n2.inputs["compound"]["sub2"] in n1.outputs["compound"]["sub2"].connections
+
+    assert isinstance(n3.inputs["compound"]["sub1"], SubInputPlug)
+    assert isinstance(n3.inputs["compound"]["sub2"], SubInputPlug)
+    assert n3.inputs["compound"]["sub1"] in n1.outputs["compound"]["sub1"].connections
+    assert n3.inputs["compound"]["sub2"] in n1.outputs["compound"]["sub2"].connections
+
+
+def test_connection_to_plug_with_subplugs(clear_default_graph):
+    """Test the INode.connect() method with subplugs."""
+
+    @Node(outputs=["compound"])
+    def Node1():
+        return {"compound": {"sub1": 1, "sub2": 2}}
+
+    @Node(outputs=[])
+    def Node2(compound):
+        return {}
+
+    n1 = Node1()
+    n2 = Node2()
+    n3 = Node2(name='Node3')
+
+    n1.outputs["compound"]["sub1"].connect(n2.inputs["compound"]["sub1"])
+    n1.outputs["compound"]["sub2"].connect(n2.inputs["compound"]["sub2"])
+
+    n1.connect(n3.inputs["compound"])
+
+    assert isinstance(n2.inputs["compound"]["sub1"], SubInputPlug)
+    assert isinstance(n2.inputs["compound"]["sub2"], SubInputPlug)
+    assert n2.inputs["compound"]["sub1"] in n1.outputs["compound"]["sub1"].connections
+    assert n2.inputs["compound"]["sub2"] in n1.outputs["compound"]["sub2"].connections
+
+    assert isinstance(n3.inputs["compound"]["sub1"], SubInputPlug)
+    assert isinstance(n3.inputs["compound"]["sub2"], SubInputPlug)
+    assert n3.inputs["compound"]["sub1"] in n1.outputs["compound"]["sub1"].connections
+    assert n3.inputs["compound"]["sub2"] in n1.outputs["compound"]["sub2"].connections
+
+
+def test_connection_to_subplug(clear_default_graph):
+    """Test the INode.connect() method with subplugs."""
+
+    @Node(outputs=["compound"])
+    def Node1():
+        return {"compound": {"sub1": 1, "sub2": 2}}
+
+    @Node(outputs=[])
+    def Node2(compound):
+        return {}
+
+    n1 = Node1()
+    n2 = Node2()
+
+    n1.connect(n2.inputs["compound"]["sub1"])
+
+    assert isinstance(n2.inputs["compound"]["sub1"], SubInputPlug)
+    assert n2.inputs["compound"]["sub1"] in n1.outputs["compound"]["sub1"].connections

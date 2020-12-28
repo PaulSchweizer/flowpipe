@@ -1,24 +1,23 @@
 """A Graph of Nodes."""
-from __future__ import print_function
-from __future__ import absolute_import
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
-from concurrent import futures
+from __future__ import absolute_import, print_function
+
 import logging
-from multiprocessing import Manager, Process
 import pickle
 import time
 import warnings
+from concurrent import futures
+from multiprocessing import Manager, Process
 
-from ascii_canvas import canvas
-from ascii_canvas import item
+from ascii_canvas import canvas, item
 
 from .errors import CycleError
 from .plug import InputPlug, OutputPlug
 from .utilities import deserialize_graph
 
+try:
+    from collections import OrderedDict
+except ImportError:
+    from ordereddict import OrderedDict
 
 log = logging.getLogger(__name__)
 
@@ -32,6 +31,7 @@ class Graph(object):
         self.nodes = nodes or []
         self.inputs = {}
         self.outputs = {}
+        self.input_groups = {}
 
     def __unicode__(self):
         """Display the Graph."""
@@ -46,8 +46,19 @@ class Graph(object):
         for node in self.nodes:
             if node.name == key:
                 return node
+        # Search through subgraphs if no node found on graph itself
+        if "." in key:
+            subgraph_name = key.split(".")[0]
+            node_name = key.split(".")[-1]
+            for node in self.all_nodes:
+                if node.name == node_name and node.graph.name == subgraph_name:
+                    return node
+
         raise KeyError(
-            "Graph does not contain a Node named '{0}'".format(key))
+            "Graph does not contain a Node named '{0}'. "
+            "If the node is part of a subgraph of this graph, use this "
+            "form to access the node: '{{subgraph.name}}.{{node.name}}', "
+            "e.g. 'sub.node'".format(key))
 
     @property
     def all_nodes(self):
@@ -136,6 +147,17 @@ class Graph(object):
             log.warning(
                 'Node "{0}" is already part of this Graph'.format(node.name))
 
+    def delete_node(self, node):
+        """Disconnect all plugs and then delete the node object."""
+        if node in self.nodes:
+            for plug in node.all_inputs().values():
+                for connection in plug.connections:
+                    plug.disconnect(connection)
+            for plug in node.all_outputs().values():
+                for connection in plug.connections:
+                    plug.disconnect(connection)
+            del self.nodes[self.nodes.index(node)]
+
     def add_plug(self, plug, name=None):
         """Promote the given plug this graph.
 
@@ -205,7 +227,7 @@ class Graph(object):
         return True
 
     def evaluate(self, mode="linear", skip_clean=False,
-                 submission_delay=0.1, max_workers=None):
+                 submission_delay=0.1, max_workers=None, data_persistence=True):
         """Evaluate all Nodes in the graph.
 
         Sorts the nodes in the graph into a resolution order and evaluates the
@@ -230,6 +252,9 @@ class Graph(object):
                 issuing new threads/processes if nodes are ready to process.
             max_workers (int): The maximum number of parallel threads to spawn.
                 None defaults to your pythons ThreadPoolExecutor default.
+            data_persistence (bool): If false, the data on plugs that have
+                connections gets cleared (set to None). This reduces the
+                reference count of objects.
         """
         log.info('Evaluating Graph "{0}"'.format(self.name))
 
@@ -253,6 +278,15 @@ class Graph(object):
 
         eval_func(nodes_to_evaluate, **eval_func_args)
 
+        if not data_persistence:
+            for node in nodes_to_evaluate:
+                for input_plug in node.all_inputs().values():
+                    if input_plug.connections:
+                        input_plug.value = None
+                for output_plug in node.all_outputs().values():
+                    if output_plug.connections:
+                        output_plug.value = None
+
     def _evaluate_linear(self, nodes_to_evaluate):
         """Iterate over all nodes in a single thread (the current one)."""
         log.debug("{0} evaluating {1} nodes in linear mode.".format(
@@ -264,30 +298,49 @@ class Graph(object):
         """Evaluate each node in a new thread."""
         log.debug("{0} evaluating {1} nodes in threading mode.".format(
             self.name, len(nodes_to_evaluate)))
+
         def node_runner(node):
             """Run a node's evaluate method and return the node."""
             node.evaluate()
             return node
 
-        running_futures = []
+        running_futures = {}
         with futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
             while nodes_to_evaluate or running_futures:
+                log.debug("Iterating thread submission with {0} nodes to "
+                          "evaluate and {1} running futures".format(
+                              len(nodes_to_evaluate), len(running_futures)))
                 # Submit new nodes that are ready to be evaluated
                 not_submitted = []
                 for node in nodes_to_evaluate:
                     if not any(n.is_dirty for n in node.upstream_nodes):
                         fut = executor.submit(node_runner, node)
-                        running_futures.append(fut)
+                        running_futures[node.name] = fut
                     else:
                         not_submitted.append(node)
                 nodes_to_evaluate = not_submitted
 
+                # A deadlock situation:
+                # No nodes running means no nodes can turn clean but nodes on
+                # nodes_to_evaluate not submitted means dirty upstream nodes
+                # and while loop will never terminate
+                if nodes_to_evaluate and not running_futures:
+                    for node in nodes_to_evaluate:
+                        dirty_upstream = [nn.name for nn in node.upstream_nodes
+                                          if nn.is_dirty]
+                        log.debug("Node to evaluate: {0} ".format(node.name) +
+                                  "- Dirty upstream nodes:\n" +
+                                  "\n".join(dirty_upstream))
+                    raise RuntimeError(
+                        "Execution hit deadlock: {0} nodes left to evaluate, "
+                        "but no nodes running.".format(len(nodes_to_evaluate)))
+
                 # Wait until a future finishes, then remove all finished nodes
                 # from the relevant lists
-                status = futures.wait(running_futures,
+                status = futures.wait(list(running_futures.values()),
                                       return_when=futures.FIRST_COMPLETED)
                 for s in status.done:
-                    running_futures.remove(s)
+                    del running_futures[s.result().name]
 
     def _evaluate_multiprocessed(self, nodes_to_evaluate, submission_delay):
         """Similar to the threaded evaluation but with multiprocessing.
@@ -425,8 +478,8 @@ class Graph(object):
                     end = [dnode.item.position[0],
                            dnode.item.position[1] + 3 +
                            list(dnode._sort_plugs(
-                                dnode.all_inputs()).values()).index(
-                                    connection)]
+                               dnode.all_inputs()).values()).index(
+                        connection)]
                     canvas_.add_item(item.Line(start, end), 0)
         return canvas_.render()
 
@@ -506,14 +559,12 @@ def update_node(node, data):
     for name, input_plug in data['inputs'].items():
         node.inputs[name].value = input_plug['value']
         for sub_name, sub_plug in input_plug['sub_plugs'].items():
-            for sub_output in sub_plug['connections'].values():
-                node.inputs[name][sub_name].value = sub_plug['value']
-                node.inputs[name][sub_name].is_dirty = False
+            node.inputs[name][sub_name].value = sub_plug['value']
+            node.inputs[name][sub_name].is_dirty = False
         node.inputs[name].is_dirty = False
     for name, output_plug in data['outputs'].items():
         node.outputs[name].value = output_plug['value']
         for sub_name, sub_plug in output_plug['sub_plugs'].items():
-            for sub_output in sub_plug['connections'].values():
-                node.outputs[name][sub_name].value = sub_plug['value']
-                node.outputs[name][sub_name].is_dirty = False
+            node.outputs[name][sub_name].value = sub_plug['value']
+            node.outputs[name][sub_name].is_dirty = False
         node.outputs[name].is_dirty = False
