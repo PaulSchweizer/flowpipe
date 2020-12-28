@@ -1,7 +1,5 @@
 import pytest
-
-from flowpipe import Graph
-from flowpipe import Node
+from flowpipe import Graph, Node
 
 
 @Node(outputs=["out"])
@@ -154,3 +152,16 @@ def test_serialize_nested_graph_to_json():
     deserialized = Graph.from_json(serialized).to_json()
 
     assert serialized == deserialized
+
+
+def test_access_node_of_subgraph_by_key():
+    main = Graph("main")
+    main_node = DemoNode(name="node", graph=main)
+
+    sub = Graph("sub")
+    sub_node = DemoNode(name="node", graph=sub)
+
+    main["node"].outputs["out"] >> sub["node"].inputs["in_"]
+
+    assert main["node"] == main_node
+    assert main["sub.node"] == sub_node
