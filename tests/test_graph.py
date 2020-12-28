@@ -8,7 +8,7 @@ from flowpipe.errors import CycleError
 from flowpipe.graph import (Graph, get_default_graph, reset_default_graph,
                             set_default_graph)
 from flowpipe.node import INode, Node
-from flowpipe.plug import InputPlug, OutputPlug
+from flowpipe.plug import InputPlug, InputPlugGroup, OutputPlug
 
 
 @pytest.fixture
@@ -171,23 +171,27 @@ def test_serialize_graph_to_pickle(clear_default_graph, branching_graph):
 def test_string_representations(clear_default_graph, branching_graph):
     """Print the Graph."""
     assert str(branching_graph) == '\
-+------------+          +------------+          +--------------------+\n\
-|   Start    |          |   Node1    |          |        End         |\n\
-|------------|          |------------|          |--------------------|\n\
-o in1<>      |     +--->o in1<>      |          % in1<>              |\n\
-o in2<>      |     |    o in2<>      |     +--->o  in1.1<>           |\n\
-|      out<> o-----+    |      out<> o-----+--->o  in1.2<>           |\n\
-|     out2<> o     |    |     out2<> o     |    o in2<>              |\n\
-+------------+     |    +------------+     |    |              out<> o\n\
-                   |    +------------+     |    |             out2<> o\n\
-                   |    |   Node2    |     |    +--------------------+\n\
-                   |    |------------|     |                          \n\
-                   +--->o in1<>      |     |                          \n\
-                        o in2<>      |     |                          \n\
-                        |      out<> o-----+                          \n\
-                        |     out2<> o                                \n\
-                        +------------+                                '
-
++------------------------------------------------------------------------+\n\
+|                               TestGraph                                |\n\
+|------------------------------------------------------------------------|\n\
+| +------------+          +------------+          +--------------------+ |\n\
+| |   Start    |          |   Node1    |          |        End         | |\n\
+| |------------|          |------------|          |--------------------| |\n\
+| o in1<>      |     +--->o in1<>      |          % in1<>              | |\n\
+| o in2<>      |     |    o in2<>      |     +--->o  in1.1<>           | |\n\
+| |      out<> o-----+    |      out<> o-----+--->o  in1.2<>           | |\n\
+| |     out2<> o     |    |     out2<> o     |    o in2<>              | |\n\
+| +------------+     |    +------------+     |    |              out<> o |\n\
+|                    |    +------------+     |    |             out2<> o |\n\
+|                    |    |   Node2    |     |    +--------------------+ |\n\
+|                    |    |------------|     |                           |\n\
+|                    +--->o in1<>      |     |                           |\n\
+|                         o in2<>      |     |                           |\n\
+|                         |      out<> o-----+                           |\n\
+|                         |     out2<> o                                 |\n\
+|                         +------------+                                 |\n\
++------------------------------------------------------------------------+\n\
+                                                                          '
     assert branching_graph.list_repr() == """TestGraph
  Start
   [i] in1: null
@@ -228,30 +232,30 @@ def test_string_representations_with_subgraphs(clear_default_graph):
     n1.outputs['out'] >> end.inputs['in1']['1']
     n2.outputs['out']['0'] >> end.inputs['in1']['2']
     n2.outputs['out']['0'] >> end.inputs['in2']
-
-    print('\n')
-    print(main)
-    return
-
     assert str(main) == '\
-+----main----+          +----sub1----+                  +--------sub2--------+\n\
-|   Start    |          |   Node1    |                  |        End         |\n\
-|------------|          |------------|                  |--------------------|\n\
-o in1<>      |     +--->o in1<>      |                  % in1<>              |\n\
-o in2<>      |     |    o in2<>      |         +------->o  in1.1<>           |\n\
-|      out<> o-----+    |      out<> o---------+   +--->o  in1.2<>           |\n\
-|     out2<> o     |    |     out2<> o             |--->o in2<>              |\n\
-+------------+     |    +------------+             |    |              out<> o\n\
-                   |    +--------sub1--------+     |    |             out2<> o\n\
-                   |    |       Node2        |     |    +--------------------+\n\
-                   |    |--------------------|     |                          \n\
-                   |    % in1<>              |     |                          \n\
-                   +--->o  in1.0<>           |     |                          \n\
-                        o in2<>              |     |                          \n\
-                        |              out<> %     |                          \n\
-                        |           out.0<>  o-----+                          \n\
-                        |             out2<> o                                \n\
-                        +--------------------+                                '
++--------------------------------------------------------------------------------+\n\
+|                                      main                                      |\n\
+|--------------------------------------------------------------------------------|\n\
+| +----main----+          +----sub1----+                  +--------sub2--------+ |\n\
+| |   Start    |          |   Node1    |                  |        End         | |\n\
+| |------------|          |------------|                  |--------------------| |\n\
+| o in1<>      |     +--->o in1<>      |                  % in1<>              | |\n\
+| o in2<>      |     |    o in2<>      |         +------->o  in1.1<>           | |\n\
+| |      out<> o-----+    |      out<> o---------+   +--->o  in1.2<>           | |\n\
+| |     out2<> o     |    |     out2<> o             |--->o in2<>              | |\n\
+| +------------+     |    +------------+             |    |              out<> o |\n\
+|                    |    +--------sub1--------+     |    |             out2<> o |\n\
+|                    |    |       Node2        |     |    +--------------------+ |\n\
+|                    |    |--------------------|     |                           |\n\
+|                    |    % in1<>              |     |                           |\n\
+|                    +--->o  in1.0<>           |     |                           |\n\
+|                         o in2<>              |     |                           |\n\
+|                         |              out<> %     |                           |\n\
+|                         |           out.0<>  o-----+                           |\n\
+|                         |             out2<> o                                 |\n\
+|                         +--------------------+                                 |\n\
++--------------------------------------------------------------------------------+\n\
+                                                                                  '
 
 
 def test_nodes_can_be_added_to_graph(clear_default_graph):
@@ -281,6 +285,79 @@ def test_nodes_can_be_deleted(clear_default_graph, branching_graph):
 
     branching_graph.delete_node(branching_graph["End"])
     assert 0 == len(branching_graph.nodes)
+
+
+def test_string_representation_with_inputpluggroups(branching_graph):
+    InputPlugGroup("in1", branching_graph, [
+        branching_graph["Node1"].inputs["in1"],
+        branching_graph["Node2"].inputs["in1"],
+    ])
+    InputPlugGroup("in2", branching_graph, [
+        branching_graph["Node1"].inputs["in2"],
+        branching_graph["Node2"].inputs["in2"],
+    ])
+    assert str(branching_graph) == """\
++------------------------------------------------------------------------+
+|                               TestGraph                                |
+|------------------------------------------------------------------------|
+o in1                                                                    |
+| `-Node1.in1                                                            |
+| `-Node2.in1                                                            |
+o in2                                                                    |
+| `-Node1.in2                                                            |
+| `-Node2.in2                                                            |
+|------------------------------------------------------------------------|
+| +------------+          +------------+          +--------------------+ |
+| |   Start    |          |   Node1    |          |        End         | |
+| |------------|          |------------|          |--------------------| |
+| o in1<>      |     +--->o in1<>      |          % in1<>              | |
+| o in2<>      |     |    o in2<>      |     +--->o  in1.1<>           | |
+| |      out<> o-----+    |      out<> o-----+--->o  in1.2<>           | |
+| |     out2<> o     |    |     out2<> o     |    o in2<>              | |
+| +------------+     |    +------------+     |    |              out<> o |
+|                    |    +------------+     |    |             out2<> o |
+|                    |    |   Node2    |     |    +--------------------+ |
+|                    |    |------------|     |                           |
+|                    +--->o in1<>      |     |                           |
+|                         o in2<>      |     |                           |
+|                         |      out<> o-----+                           |
+|                         |     out2<> o                                 |
+|                         +------------+                                 |
++------------------------------------------------------------------------+
+                                                                          """
+
+    print(branching_graph.list_repr())
+    # return
+    assert branching_graph.list_repr() == """TestGraph
+ [Input Groups]
+  [g] in1:
+   Node1.in1
+   Node2.in1
+  [g] in2:
+   Node1.in2
+   Node2.in2
+ Start
+  [i] in1: null
+  [i] in2: null
+  [o] out >> Node1.in1, Node2.in1
+  [o] out2: null
+ Node1
+  [i] in1 << Start.out
+  [i] in2: null
+  [o] out >> End.in1.1
+  [o] out2: null
+ Node2
+  [i] in1 << Start.out
+  [i] in2: null
+  [o] out >> End.in1.2
+  [o] out2: null
+ End
+  [i] in1
+   [i] in1.1 << Node1.out
+   [i] in1.2 << Node2.out
+  [i] in2: null
+  [o] out: null
+  [o] out2: null"""
 
 
 def test_nested_graphs_expand_sub_graphs(clear_default_graph):
@@ -480,7 +557,6 @@ def test_cycle_error_when_node_connects_to_itself():
     """
     graph = Graph()
     N1 = FunctionNodeForTesting(name="N1", graph=graph)
-    print(graph)
     with pytest.raises(CycleError):
         N1.outputs["out"] >> N1.inputs["in_"]
 
