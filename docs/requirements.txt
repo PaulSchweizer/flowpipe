@@ -1,2 +1,2 @@
-m2r
+m2r2
 ascii-canvas>=1.3.5

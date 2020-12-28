@@ -1,1 +1,4 @@
-.. literalinclude:: ../../examples/vfx_renderings.py
+VFX Rendering
+-------------
+
+.. literalinclude:: ../../examples/vfx_rendering.py

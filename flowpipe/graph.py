@@ -80,7 +80,7 @@ class Graph(object):
         """All other graphs that the nodes of this graph are connected to.
 
         Returns:
-            A dict in the form of {graph.name: graph}
+            A dict in the form of ``{graph.name: graph}``
         """
         subgraphs = {}
         for node in self.nodes:

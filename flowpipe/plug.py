@@ -7,8 +7,6 @@ from abc import abstractmethod
 
 from .utilities import get_hash
 
-__all__ = ['OutputPlug', 'InputPlug']
-
 try:
     from collections import OrderedDict
 except ImportError:

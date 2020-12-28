@@ -3,10 +3,8 @@
 [![Codacy_Badge_Grade](https://api.codacy.com/project/badge/Grade/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=PaulSchweizer/flowpipe&amp;utm_campaign=Badge_Grade)
 [![Codacy_Badge_Coverage](https://api.codacy.com/project/badge/Coverage/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&utm_medium=referral&utm_content=PaulSchweizer/flowpipe&utm_campaign=Badge_Coverage) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![python 2.7](https://img.shields.io/badge/python-2.7%2B-blue.svg)](https://www.python.org/downloads/) [![python 3.6+](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://readthedocs.org/projects/flowpipe/badge/?version=latest)](https://flowpipe.readthedocs.io/en/latest/?badge=latest)
 
-![Flowpipe Logo](doc/source/_static/logo.png)
+![Flowpipe Logo](https://raw.githubusercontent.com/PaulSchweizer/flowpipe/master/logo.png)
 
-
-![LOGO](logo.png?raw=true)
 # Flow-based Programming
 A lightweight framework for flow-based programming in python.
 
