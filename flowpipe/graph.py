@@ -19,9 +19,6 @@ try:
 except ImportError:
     from ordereddict import OrderedDict
 
-
-
-
 log = logging.getLogger(__name__)
 
 
@@ -46,11 +43,22 @@ class Graph(object):
 
     def __getitem__(self, key):
         """Grant access to Nodes via their name."""
-        for node in self.all_nodes:
+        for node in self.nodes:
             if node.name == key:
                 return node
+        # Search through subgraphs if no node found on graph itself
+        if "." in key:
+            subgraph_name = key.split(".")[0]
+            node_name = key.split(".")[-1]
+            for node in self.all_nodes:
+                if node.name == node_name and node.graph.name == subgraph_name:
+                    return node
+
         raise KeyError(
-            "Graph does not contain a Node named '{0}'".format(key))
+            "Graph does not contain a Node named '{0}'. "
+            "If the node is part of a subgraph of this graph, use this "
+            "form to access the node: '{{subgraph.name}}.{{node.name}}', "
+            "e.g. 'sub.node'".format(key))
 
     @property
     def all_nodes(self):
