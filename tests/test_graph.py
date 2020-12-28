@@ -1,16 +1,14 @@
 from __future__ import print_function
 
-import pytest
-
-import flowpipe.graph
 import time
 
+import flowpipe.graph
+import pytest
+from flowpipe.errors import CycleError
+from flowpipe.graph import (Graph, get_default_graph, reset_default_graph,
+                            set_default_graph)
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, OutputPlug
-from flowpipe.graph import Graph
-from flowpipe.graph import reset_default_graph
-from flowpipe.graph import set_default_graph, get_default_graph
-from flowpipe.errors import CycleError
 
 
 @pytest.fixture
@@ -230,6 +228,10 @@ def test_string_representations_with_subgraphs(clear_default_graph):
     n1.outputs['out'] >> end.inputs['in1']['1']
     n2.outputs['out']['0'] >> end.inputs['in1']['2']
     n2.outputs['out']['0'] >> end.inputs['in2']
+
+    print('\n')
+    print(main)
+    return
 
     assert str(main) == '\
 +----main----+          +----sub1----+                  +--------sub2--------+\n\

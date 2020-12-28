@@ -452,12 +452,12 @@ class Graph(object):
     def node_repr(self):
         """Format to visualize the Graph."""
         canvas_ = canvas.Canvas()
-        x = 0
+        x = 2
 
         evaluation_matrix = self.evaluation_matrix
 
         for row in evaluation_matrix:
-            y = 0
+            y = 2
             x_diff = 0
             for node in row:
                 item_ = item.Item(str(node), [x, y])
@@ -481,6 +481,13 @@ class Graph(object):
                                dnode.all_inputs()).values()).index(
                         connection)]
                     canvas_.add_item(item.Line(start, end), 0)
+
+        # The graph
+        canvas_.add_item(item.Line((0, 0), (0, canvas_.bbox[3])))
+        canvas_.add_item(item.Line((1, 0), (canvas_.bbox[2], 0)))
+        canvas_.add_item(item.Line((canvas_.bbox[2], 0), (canvas_.bbox[2], canvas_.bbox[3] - 1)))
+        canvas_.add_item(item.Line((1, canvas_.bbox[3] - 1), (canvas_.bbox[2] - 2, canvas_.bbox[3] - 1)))
+
         return canvas_.render()
 
     def list_repr(self):
