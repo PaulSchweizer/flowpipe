@@ -1,9 +1,12 @@
 """Plugs are ins and outs for Nodes through which they exchange data."""
 from __future__ import print_function
-from abc import abstractmethod
+
 import sys
 import warnings
+from abc import abstractmethod
+
 from .utilities import get_hash
+
 __all__ = ['OutputPlug', 'InputPlug']
 
 try:
@@ -106,6 +109,10 @@ class IPlug(object):
 
     def disconnect(self, plug):
         """Break the connection to the given Plug."""
+        if isinstance(plug, InputPlugGroup):
+            for plug_ in plug:
+                self.disconnect(plug_)
+            return
         if plug in self.connections:
             self.connections.pop(self.connections.index(plug))
             self.is_dirty = True
@@ -133,7 +140,7 @@ class OutputPlug(IPlug):
             name (str): The name of the Plug.
             node (INode): The Node holding the Plug.
         """
-        self.accepted_plugs = (InputPlug,)
+        self.accepted_plugs = (InputPlug, InputPlugGroup)
         super(OutputPlug, self).__init__(name, node)
         if not isinstance(self, SubPlug):
             self.node.outputs[self.name] = self
@@ -160,6 +167,11 @@ class OutputPlug(IPlug):
         if not isinstance(plug, self.accepted_plugs):
             raise TypeError("Cannot connect {0} to {1}".format(
                 type(self), type(plug)))
+        if isinstance(plug, InputPlugGroup):
+            for plug_ in plug:
+                self.connect(plug_)
+            return
+
         if self.node.graph.accepts_connection(self, plug):
             for connection in plug.connections:
                 plug.disconnect(connection)
@@ -390,3 +402,44 @@ class SubOutputPlug(SubPlug, OutputPlug):
             'value': self.value,
             'connections': connections
         }
+
+
+class InputPlugGroup(object):
+    """Group plugs inside a group into one entry point on the graph."""
+
+    def __init__(self, name, graph, plugs=None):
+        """Initialize the group and assigning it to the `Graph.input_groups`.
+
+        Can be connected to an OutputPlug.
+        Args:
+            name (str): The name of the InputPlugGroup.
+            graph (Graph): The Graph holding the PlugGroup.
+            plugs (list of InputPlug): The plugs in this group.
+        """
+        self.name = name
+        self.graph = graph
+        self.plugs = plugs or []
+        self.graph.input_groups[self.name] = self
+
+    def connect(self, plug):
+        """Connect all plugs in this group to the given plug."""
+        for input_plug in self.plugs:
+            plug.connect(input_plug)
+
+    def disconnect(self, plug):
+        """Disconnect all plugs in this group from the given plug."""
+        for input_plug in self.plugs:
+            plug.disconnect(input_plug)
+
+    def __iter__(self):
+        """Convenience to iterate over the plugs in this group."""
+        for plug in self.plugs:
+            yield plug
+
+    def __rshift__(self, other):
+        """Syntactic sugar for the connect() method."""
+        self.connect(other)
+
+    def __lshift__(self, other):
+        """Syntactic sugar for the disconnect() method."""
+        self.disconnect(other)
