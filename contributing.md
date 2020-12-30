@@ -45,15 +45,16 @@ We generally follow [pep8](https://www.python.org/dev/peps/pep-0008/) with these
 - Single quotes for strings in the code, double quotes for docstrings
 - For docstrings please use the [google style](https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings)
 
-## Release to PyPi
+## Release to PyPi (Collaborators only)
 
 Currently there is no specific release policy enacted, so please state in your Pull Request whether you'd need a new PyPi release after the merge and we will release it.
 
 To perform a release as a collaborator, follow this recipe:
-1. On the master branch, update the version number in `setup.py`. Commit and push that change.
-2. On the github page, navigate to "relases" and draft a new release.
-3. Enter the required info for a new release. _Make sure the version number you give here is the same as in setup.py!_
-4. Click "Publish release", and the CI pipeline will automatically build a new release and push it to PYPI.
+1. On the master branch, update the version number in `setup.py` and `docs\conf.py`.
+2. Commit and push that change.
+3. On the github page, navigate to "Releases" and "Draft a new release".
+4. Enter the required info for a new release. _Make sure the version number you give here is the same as in setup.py!_
+5. Click "Publish release", and the CI pipeline will automatically build a new release and push it to PyPi.
 
 # Next Steps: Become a Collaborator on github
 
