@@ -11,23 +11,6 @@ script:
   --cov-report=term  --cov-config .coveragerc
 after_success:
 - python-codacy-coverage -r coverage.xml
-- cd $TRAVIS_BUILD_DIR
-- chmod +x .deploy_doxygen.sh
-- "./.deploy_doxygen.sh"
-branches:
-  except:
-  - gh-pages
-addons:
-  apt:
-    packages:
-    - doxygen
-    - doxygen-doc
-    - doxygen-latex
-    - doxygen-gui
-    - graphviz
-env:
-  global:
-  - DOXYFILE: "$TRAVIS_BUILD_DIR/config.dox"
 deploy:
   provider: pypi
   skip_existing: true

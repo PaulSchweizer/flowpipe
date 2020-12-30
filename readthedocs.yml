@@ -1,0 +1,10 @@
+sphinx:
+  configuration: docs/conf.py
+  builder: html
+  fail_on_warning: False
+
+python:
+  version: 3.7
+  install:
+    - requirements: requirements.txt
+    - requirements: docs/requirements.txt

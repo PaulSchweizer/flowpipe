@@ -1,9 +1,12 @@
+venv/
+docs/build
 *____*
 gui
 celery
 cover
 .coverage
 .pytest_cache*
+doc/source/
 logos/
 venv*
 

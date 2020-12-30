@@ -1,15 +1,14 @@
-
 [![Version](https://img.shields.io/pypi/v/flowpipe.svg)](https://pypi.org/project/flowpipe/)
 [![Build Status](https://travis-ci.org/PaulSchweizer/flowpipe.svg?branch=master)](https://travis-ci.org/PaulSchweizer/flowpipe)
 [![Codacy_Badge_Grade](https://api.codacy.com/project/badge/Grade/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=PaulSchweizer/flowpipe&amp;utm_campaign=Badge_Grade)
-[![Codacy_Badge_Coverage](https://api.codacy.com/project/badge/Coverage/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&utm_medium=referral&utm_content=PaulSchweizer/flowpipe&utm_campaign=Badge_Coverage) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![python 2.7](https://img.shields.io/badge/python-2.7%2B-blue.svg)](https://www.python.org/downloads/) [![python 3.6+](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/downloads/)
+[![Codacy_Badge_Coverage](https://api.codacy.com/project/badge/Coverage/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&utm_medium=referral&utm_content=PaulSchweizer/flowpipe&utm_campaign=Badge_Coverage) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![python 2.7](https://img.shields.io/badge/python-2.7%2B-blue.svg)](https://www.python.org/downloads/) [![python 3.6+](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://readthedocs.org/projects/flowpipe/badge/?version=latest)](https://flowpipe.readthedocs.io/en/latest/?badge=latest)
 
+![Flowpipe Logo](https://raw.githubusercontent.com/PaulSchweizer/flowpipe/master/logo.png)
 
-![LOGO](logo.png?raw=true)
 # Flow-based Programming
 A lightweight framework for flow-based programming in python.
 
-```
+```c
 +-------------------+          +---------------------+
 |   Invite People   |          |   Birthday Party    |
 |-------------------|          |---------------------|
@@ -104,7 +103,7 @@ print(graph.list_repr())
 
 Output:
 
-```
+```c
 How to build a house
 +------------------------+          +------------------------+          +---------------------------+
 |      HireWorkers       |          |       Build Roof       |          |    Housewarming Party     |
@@ -170,7 +169,7 @@ graph.evaluate(mode='threading')  # Options are linear, threading and multiproce
 
 Output:
 
-```
+```c
 4 workers are hired to build the house.
 Michelle, Mike are building the roof
 Jane, John are building the walls
@@ -200,7 +199,7 @@ graph.evaluate()
 
 Output:
 
-```
+```c
 How to throw a birthday party
 +-------------------+          +---------------------+
 |   InvitePeople    |          |   Birthday Party    |

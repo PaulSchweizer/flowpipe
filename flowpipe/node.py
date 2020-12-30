@@ -301,18 +301,20 @@ class INode(object):
     def node_repr(self):
         """The node formated into a string looking like a node.
 
-        +--Node.graph.name--+
-        |     Node.Name     |
-        |-------------------|
-        % compound_in       |
-        o  compound_in-1    |
-        o  compound_in-2    |
-        o in                |
-        |               out o
-        |      compound_out %
-        |   compound_out-1  o
-        |   compound_out-2  o
-        +-------------------+
+        ::
+
+            +--Node.graph.name--+
+            |     Node.Name     |
+            |-------------------|
+            % compound_in       |
+            o  compound_in-1    |
+            o  compound_in-2    |
+            o in                |
+            |               out o
+            |      compound_out %
+            |   compound_out-1  o
+            |   compound_out-2  o
+            +-------------------+
         """
         max_value_length = 10
 
@@ -393,15 +395,17 @@ class INode(object):
     def list_repr(self):
         """List representation of the node showing inputs and their values.
 
-        Node
-          [i] in: "A"
-          [i] in_compound
-           [i] in_compound.0: "B"
-           [i] in_compound.1 << Node1.out
-          [o] compound_out
-           [o] in_compound.0: null
-           [o] compound_out.1 >> Node2.in, Node3.in
-          [o] out >> Node4.in
+        ::
+
+            Node
+              [i] in: "A"
+              [i] in_compound
+               [i] in_compound.0: "B"
+               [i] in_compound.1 << Node1.out
+              [o] compound_out
+               [o] in_compound.0: null
+               [o] compound_out.1 >> Node2.in, Node3.in
+              [o] out >> Node4.in
         """
         pretty = []
         pretty.append(self.name)
