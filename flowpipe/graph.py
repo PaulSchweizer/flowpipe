@@ -468,6 +468,40 @@ class Graph(object):
                 canvas_.add_item(item_)
             x += x_diff
 
+        # Include the input groups if any have been set
+        y_off = 2
+        locked_items = []
+        if self.input_groups:
+            for input_group in self.input_groups.values():
+                y_off += 1
+                i = item.Item("o {0}".format(input_group.name), [0, y_off])
+                canvas_.add_item(i)
+                locked_items.append(i)
+                for p in input_group.plugs:
+                    y_off += 1
+                    i = item.Item("`-{0}.{1}".format(p.node.name, p.name), [2, y_off])
+                    canvas_.add_item(i)
+                    locked_items.append(i)
+
+        # Move all items down by Y
+        for i in canvas_.items:
+            if i not in locked_items:
+                i.position[0] += 2
+                i.position[1] += y_off + 1 + int(bool(self.input_groups))
+
+        canvas_.add_item(item.Rectangle(x, canvas_.bbox[3] + 1, [0, 0]), 0)
+
+        # Crop the name of the graph if it is too long
+        name = self.name
+        if len(name) > x - 2:
+            name = name[:x - 2]
+        canvas_.add_item(
+            item.Item("{name:^{x}}".format(name=name, x=x), [0, 1]), 0)
+        canvas_.add_item(item.Rectangle(x, 3, [0, 0]), 0)
+
+        if self.input_groups:
+            canvas_.add_item(item.Rectangle(x, y_off + 2, [0, 0]), 0)
+
         for node in self.all_nodes:
             for i, plug in enumerate(node._sort_plugs(node.all_outputs())):
                 for connection in node._sort_plugs(
@@ -481,12 +515,21 @@ class Graph(object):
                                dnode.all_inputs()).values()).index(
                         connection)]
                     canvas_.add_item(item.Line(start, end), 0)
+
         return canvas_.render()
 
     def list_repr(self):
         """List representation of the graph showing Nodes and connections."""
         pretty = []
         pretty.append(self.name)
+
+        if self.input_groups:
+            pretty.append("[Input Groups]")
+            for name in sorted(self.input_groups.keys()):
+                input_group = self.input_groups[name]
+                pretty.append(" [g] {0}:".format(name))
+                for p in input_group.plugs:
+                    pretty.append("  {0}.{1}".format(p.node.name, p.name))
         for node in self.evaluation_sequence:
             pretty.append(node.list_repr())
         return '\n '.join(pretty)
