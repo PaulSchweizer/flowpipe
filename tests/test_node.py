@@ -1,13 +1,11 @@
 from __future__ import print_function
 
-import hashlib
 import mock
 import pytest
 
 from flowpipe.node import INode, Node
-from flowpipe.plug import InputPlug, OutputPlug, SubInputPlug
-from flowpipe.graph import reset_default_graph, get_default_graph
-from flowpipe.utilities import get_hash
+from flowpipe.plug import InputPlug, OutputPlug, SubInputPlug, InputPlugGroup
+from flowpipe.graph import reset_default_graph, get_default_graph, Graph
 from flowpipe.errors import CycleError
 
 
@@ -774,3 +772,32 @@ def test_connection_to_subplug(clear_default_graph):
 
     assert isinstance(n2.inputs["compound"]["sub1"], SubInputPlug)
     assert n2.inputs["compound"]["sub1"] in n1.outputs["compound"]["sub1"].connections
+
+
+def test_rshift_into_input_plug_group(clear_default_graph):
+    """Test the node rshift operator with an INode as target.
+    Note that OutputPlug >> INode is tested in the plug tests."""
+    g = Graph()
+    g2 = Graph()
+    @Node(outputs=["marker"])
+    def Node1():
+        return {"marker": None}
+
+    @Node(outputs=[])
+    def Node2(marker):
+        return {}
+
+    @Node(outputs=[])
+    def Node3(different_marker):
+        return {}
+
+    n1 = Node1(graph=g)
+    n2 = Node2(graph=g2)
+    n3 = Node3(graph=g2)
+    ig = InputPlugGroup(name="marker",
+                        graph=g2,
+                        plugs=[n2.inputs["marker"],
+                               n3.inputs["different_marker"]])
+
+    n1 >> ig
+    assert n2.inputs["marker"] in n1.outputs["marker"].connections
