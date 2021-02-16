@@ -296,6 +296,7 @@ def test_string_representation_with_inputpluggroups(branching_graph):
         branching_graph["Node1"].inputs["in2"],
         branching_graph["Node2"].inputs["in2"],
     ])
+    print(str(branching_graph))
     assert str(branching_graph) == """\
 +------------------------------------------------------------------------+
 |                               TestGraph                                |

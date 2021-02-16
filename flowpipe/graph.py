@@ -11,7 +11,7 @@ from multiprocessing import Manager, Process
 from ascii_canvas import canvas, item
 
 from .errors import CycleError
-from .plug import InputPlug, OutputPlug
+from .plug import InputPlug, OutputPlug, InputPlugGroup
 from .utilities import deserialize_graph
 
 try:
@@ -31,7 +31,6 @@ class Graph(object):
         self.nodes = nodes or []
         self.inputs = {}
         self.outputs = {}
-        self.input_groups = {}
 
     def __unicode__(self):
         """Display the Graph."""
@@ -128,6 +127,11 @@ class Graph(object):
                 evaluation matrix.
         """
         return [node for row in self.evaluation_matrix for node in row]
+
+    @property
+    def input_groups(self):
+        """Return all inputs that are actually input groups."""
+        return {k: v for k, v in self.inputs.items() if isinstance(v, InputPlugGroup)}
 
     def add_node(self, node):
         """Add given Node to the Graph.
