@@ -325,8 +325,6 @@ o in2                                                                    |
 |                         +------------+                                 |
 +------------------------------------------------------------------------+
                                                                           """
-
-    print(branching_graph.list_repr())
     # return
     assert branching_graph.list_repr() == """TestGraph
  [Input Groups]

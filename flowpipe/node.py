@@ -15,7 +15,7 @@ import time
 import uuid
 import warnings
 
-from .plug import OutputPlug, InputPlug, SubOutputPlug, SubPlug
+from .plug import OutputPlug, InputPlug, SubOutputPlug, SubPlug, InputPlugGroup
 from .event import Event
 from .utilities import deserialize_node, NodeEncoder, import_class
 from .graph import get_default_graph
@@ -107,7 +107,7 @@ class INode(object):
 
     @property
     def downstream_nodes(self):
-        """Nodes connected directly or indirectly to outputs of this Node"""
+        """Nodes connected directly or indirectly to outputs of this Node."""
         downstream_nodes = []
         for output in self.outputs.values():
             downstream = [c.node for c in output.connections]
@@ -198,7 +198,7 @@ class INode(object):
             if not connections:
                 raise ValueError("{0} has no matching inputs".format(
                     other.name))
-        elif isinstance(other, InputPlug):
+        elif isinstance(other, (InputPlug, InputPlugGroup)):
             try:
                 if isinstance(other, SubPlug):
                     out_name, sub_name = other.name.split(".")

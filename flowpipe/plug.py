@@ -417,7 +417,7 @@ class InputPlugGroup(object):
         self.name = name
         self.graph = graph
         self.plugs = plugs or []
-        self.graph.input_groups[self.name] = self
+        self.graph.inputs[self.name] = self
 
     def connect(self, plug):
         """Connect all plugs in this group to the given plug."""
@@ -441,3 +441,19 @@ class InputPlugGroup(object):
     def __lshift__(self, other):
         """Syntactic sugar for the disconnect() method."""
         self.disconnect(other)
+
+    @property
+    def value(self):
+        """Getting the value of an InputPlugGroup is not supported.
+
+        The value property is implemented nonetheless, in order to allow for
+        convenient setting of the value of all plugs in the InputPlugGroup.
+        """
+        raise AttributeError(
+            "Getting the value of an InputPlugGroup is not supported")
+
+    @value.setter
+    def value(self, new_value):
+        """Set the value for all grouped plugs."""
+        for plug in self.plugs:
+            plug.value = new_value
