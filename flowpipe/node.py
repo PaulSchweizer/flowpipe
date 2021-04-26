@@ -38,7 +38,8 @@ class INode(object):
 
     EVENT_TYPES = ['evaluation-omitted',
                    'evaluation-started',
-                   'evaluation-finished']
+                   'evaluation-finished',
+                   'evaluation-exception']
 
     def __init__(self, name=None, identifier=None, metadata=None,
                  graph='default'):
@@ -136,7 +137,11 @@ class INode(object):
 
         # Compute and redirect the output to the output plugs
         start_time = time.time()
-        outputs = self.compute(**inputs) or dict()
+        try:
+            outputs = self.compute(**inputs) or dict()
+        except Exception:
+            self.EVENTS['evaluation-exception'].emit(self)
+            raise
         eval_time = time.time() - start_time
 
         self.stats = {

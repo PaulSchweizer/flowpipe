@@ -801,3 +801,23 @@ def test_rshift_into_input_plug_group(clear_default_graph):
 
     n1 >> ig
     assert n2.inputs["marker"] in n1.outputs["marker"].connections
+
+
+def test_exception_event(clear_default_graph):
+    """Test the proper handling of exceptions in nodes."""
+    g = Graph()
+
+    def has_been_executed(n):
+        n.event_happened = True
+
+    @Node()
+    def ErrorNode():
+        raise Exception
+
+    en = ErrorNode(graph=g)
+    en.EVENTS['evaluation-exception'].register(has_been_executed)
+
+    with pytest.raises(Exception):
+        g.evaluate()
+
+    assert en.event_happened
