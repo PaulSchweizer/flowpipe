@@ -175,6 +175,7 @@ Michelle, Mike are building the roof
 Jane, John are building the walls
 Mike, John, Michelle, Jane and Homeowner are having a great party!
 ```
+(Note: for more elaborate evaluation schemes, see [Evaluators](#evaluators))
 
 We now know how to throw a party, so let's invite some people and re-use these skills for a birthday:
 
@@ -236,3 +237,20 @@ An example graph showcasing a common workflow encountered in the VFX/Animation i
 ## VFX Pipeline
 
 If you are working in the VFX/Animation industry, please check out this extensive guide on how to use [flowpipe in a vfx pipeline](flowpipe-for-vfx-pipelines.md)!
+
+#Evaluators
+If your nodes just need sequential, threaded or multiprocessing evaluation, the `Graph.evaluate()` method will serve you just fine. If you want to take more control over the way your Graph is being evaluated, `Evaluators` are for you.  This can also be used to add, e.g. logging or tracing to node evaluation.
+
+Evaluators allow you to take control of node evaluation order, or their scheduling. 
+See `flowpipe/evaluator.py` to see the `Graph.evaluate()` method's evaluation schemes.
+
+To use a custom evaluator, subclass `flowpipe.evaluator.Evaluator`, and provide at least an `_evaluate_nodes(self, nodes)` method.
+This method should take a list of nodes and call their respective `node.evalaute()` methods (along with any other task you want to do for each node being evaluated).
+To use a cusom evaluator, create it and call its `Evalator.evaluate()` method with the Graph to evaluate as an argument:
+```py
+from flowpipe.evaluators import LinearEvaluator
+
+# assuming you created a graph to evaluate above, called `graph`
+lin_eval = LinearEvaluator()
+lin_eval.evaluate(graph)
+```
