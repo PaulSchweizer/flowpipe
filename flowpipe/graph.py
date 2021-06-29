@@ -3,14 +3,13 @@ from __future__ import absolute_import, print_function
 
 import logging
 import pickle
-import time
 import warnings
-from concurrent import futures
-from multiprocessing import Manager, Process
 
 from ascii_canvas import canvas, item
 
 from .errors import CycleError
+from .evaluator import LinearEvaluator, ThreadedEvaluator, \
+    LegacyMultiprocessingEvaluator
 from .plug import InputPlug, OutputPlug, InputPlugGroup
 from .utilities import deserialize_graph
 
@@ -231,7 +230,8 @@ class Graph(object):
         return True
 
     def evaluate(self, mode="linear", skip_clean=False,
-                 submission_delay=0.1, max_workers=None, data_persistence=True):
+                 submission_delay=0.1, max_workers=None, data_persistence=True,
+                 evaluator=None):
         """Evaluate all Nodes in the graph.
 
         Sorts the nodes in the graph into a resolution order and evaluates the
@@ -259,133 +259,38 @@ class Graph(object):
             data_persistence (bool): If false, the data on plugs that have
                 connections gets cleared (set to None). This reduces the
                 reference count of objects.
+            evaluator (flowpipe.evaluators.Evaluator): The evaluator to use.
+                For the basic evaluation modes will be picked by 'mode'.
         """
         log.info('Evaluating Graph "{0}"'.format(self.name))
 
         # map mode keywords to evaluation functions and their arguments
         eval_modes = {
-            "linear": (self._evaluate_linear, {}),
-            "threading": (self._evaluate_threaded, {"max_workers": max_workers}),
-            "multiprocessing": (self._evaluate_multiprocessed,
+            "linear": (LinearEvaluator, {}),
+            "threading": (ThreadedEvaluator, {"max_workers": max_workers}),
+            "multiprocessing": (LegacyMultiprocessingEvaluator,
                                 {"submission_delay": submission_delay})
         }
 
-        try:
-            eval_func, eval_func_args = eval_modes[mode]
-        except KeyError:
-            mode_options = ", ".join(eval_modes.keys())
-            raise ValueError(
-                "Invalid mode {0}, options are {1}".format(mode, mode_options))
+        if mode and evaluator:
+            raise ValueError("Both 'mode' and 'evaluator' arguments passed.")
+        elif mode:
+            try:
+                eval_cls, eval_args = eval_modes[mode]
+            except KeyError:
+                raise ValueError("Unkown mode: {0}".format(mode))
+            evaluator = eval_cls(**eval_args)
 
-        nodes_to_evaluate = [n for n in self.evaluation_sequence
-                             if n.is_dirty or not skip_clean]
-
-        eval_func(nodes_to_evaluate, **eval_func_args)
+        evaluator.evaluate(graph=self, skip_clean=skip_clean)
 
         if not data_persistence:
-            for node in nodes_to_evaluate:
+            for node in self.nodes:
                 for input_plug in node.all_inputs().values():
                     if input_plug.connections:
                         input_plug.value = None
                 for output_plug in node.all_outputs().values():
                     if output_plug.connections:
                         output_plug.value = None
-
-    def _evaluate_linear(self, nodes_to_evaluate):
-        """Iterate over all nodes in a single thread (the current one)."""
-        log.debug("{0} evaluating {1} nodes in linear mode.".format(
-            self.name, len(nodes_to_evaluate)))
-        for node in nodes_to_evaluate:
-            node.evaluate()
-
-    def _evaluate_threaded(self, nodes_to_evaluate, max_workers=None):
-        """Evaluate each node in a new thread."""
-        log.debug("{0} evaluating {1} nodes in threading mode.".format(
-            self.name, len(nodes_to_evaluate)))
-
-        def node_runner(node):
-            """Run a node's evaluate method and return the node."""
-            node.evaluate()
-            return node
-
-        running_futures = {}
-        with futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            while nodes_to_evaluate or running_futures:
-                log.debug("Iterating thread submission with {0} nodes to "
-                          "evaluate and {1} running futures".format(
-                              len(nodes_to_evaluate), len(running_futures)))
-                # Submit new nodes that are ready to be evaluated
-                not_submitted = []
-                for node in nodes_to_evaluate:
-                    if not any(n.is_dirty for n in node.upstream_nodes):
-                        fut = executor.submit(node_runner, node)
-                        running_futures[node.name] = fut
-                    else:
-                        not_submitted.append(node)
-                nodes_to_evaluate = not_submitted
-
-                # A deadlock situation:
-                # No nodes running means no nodes can turn clean but nodes on
-                # nodes_to_evaluate not submitted means dirty upstream nodes
-                # and while loop will never terminate
-                if nodes_to_evaluate and not running_futures:
-                    for node in nodes_to_evaluate:
-                        dirty_upstream = [nn.name for nn in node.upstream_nodes
-                                          if nn.is_dirty]
-                        log.debug("Node to evaluate: {0} ".format(node.name) +
-                                  "- Dirty upstream nodes:\n" +
-                                  "\n".join(dirty_upstream))
-                    raise RuntimeError(
-                        "Execution hit deadlock: {0} nodes left to evaluate, "
-                        "but no nodes running.".format(len(nodes_to_evaluate)))
-
-                # Wait until a future finishes, then remove all finished nodes
-                # from the relevant lists
-                status = futures.wait(list(running_futures.values()),
-                                      return_when=futures.FIRST_COMPLETED)
-                for s in status.done:
-                    del running_futures[s.result().name]
-
-    def _evaluate_multiprocessed(self, nodes_to_evaluate, submission_delay):
-        """Similar to the threaded evaluation but with multiprocessing.
-
-        Nodes communicate via a manager and are evaluated in a dedicated
-        function.
-        The original node objects are updated with the results from the
-        corresponding processes to reflect the evaluation.
-        """
-        log.debug("{0} evaluating {1} nodes in multiprocessing mode.".format(
-            self.name, len(nodes_to_evaluate)))
-        manager = Manager()
-        nodes_data = manager.dict()
-        processes = {}
-
-        def upstream_ready(processes, node):
-            for upstream in node.upstream_nodes:
-                if upstream in nodes_to_evaluate:
-                    return False
-            return True
-
-        while nodes_to_evaluate:
-            for node in nodes_to_evaluate:
-                process = processes.get(node.name)
-                if process and not process.is_alive():
-                    # If the node is done computing, drop it from the list
-                    nodes_to_evaluate.remove(node)
-                    update_node(node, nodes_data[node.identifier])
-                    continue
-                if node.name not in processes and upstream_ready(
-                        processes, node):
-                    # If all deps are ready and no thread is active, create one
-                    nodes_data[node.identifier] = node.to_json()
-                    processes[node.name] = Process(
-                        target=evaluate_node_in_process,
-                        name='flowpipe.{0}.{1}'.format(self.name, node.name),
-                        args=(node.identifier, nodes_data))
-                    processes[node.name].daemon = True
-                    processes[node.name].start()
-
-            time.sleep(submission_delay)
 
     def to_pickle(self):
         """Serialize the graph into a pickle."""
@@ -559,59 +464,3 @@ def set_default_graph(graph):
 def reset_default_graph():
     """Reset the default graph to an empty graph."""
     set_default_graph(Graph(name="default"))
-
-
-def evaluate_node_in_process(identifier, nodes_data):
-    """Evaluate a node when multiprocessing.
-
-    1. Deserializing the node from the given nodes_data dict
-    2. Retrieving upstream data from the nodes_data dict
-    3. Evaluating the node
-    4. Serializing the results back into the nodes_data
-
-    Args:
-        identifier (str): The identifier of the node to evaluate
-        nodes_data (dict): Used like a "database" to store the nodes
-    """
-    from flowpipe.node import INode
-    data = nodes_data[identifier]
-    node = INode.from_json(data)
-
-    for name, input_plug in data['inputs'].items():
-        for input_identifier, output_plug in input_plug['connections'].items():
-            upstream_node = INode.from_json(nodes_data[input_identifier])
-            node.inputs[name].value = upstream_node.outputs[output_plug].value
-        for sub_name, sub_plug in input_plug['sub_plugs'].items():
-            for sub_id, sub_output in sub_plug['connections'].items():
-                upstream_node = INode.from_json(nodes_data[sub_id])
-                node.inputs[name][sub_name].value = (
-                    upstream_node.all_outputs()[sub_output].value)
-
-    node.evaluate()
-
-    for name, plug in node.outputs.items():
-        data['outputs'][name]['value'] = plug.value
-        for sub_name, sub_plug in plug._sub_plugs.items():
-            if sub_name not in data['outputs'][name]['sub_plugs']:
-                data['outputs'][name]['sub_plugs'][sub_name] = (
-                    sub_plug.serialize())
-            data['outputs'][name]['sub_plugs'][sub_name]['value'] = (
-                sub_plug.value)
-
-    nodes_data[identifier] = data
-
-
-def update_node(node, data):
-    """Apply the plug values of the data dict to the node object."""
-    for name, input_plug in data['inputs'].items():
-        node.inputs[name].value = input_plug['value']
-        for sub_name, sub_plug in input_plug['sub_plugs'].items():
-            node.inputs[name][sub_name].value = sub_plug['value']
-            node.inputs[name][sub_name].is_dirty = False
-        node.inputs[name].is_dirty = False
-    for name, output_plug in data['outputs'].items():
-        node.outputs[name].value = output_plug['value']
-        for sub_name, sub_plug in output_plug['sub_plugs'].items():
-            node.outputs[name][sub_name].value = sub_plug['value']
-            node.outputs[name][sub_name].is_dirty = False
-        node.outputs[name].is_dirty = False

@@ -9,6 +9,7 @@ from flowpipe.graph import (Graph, get_default_graph, reset_default_graph,
                             set_default_graph)
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, InputPlugGroup, OutputPlug
+from flowpipe.evaluator import LinearEvaluator
 
 
 @pytest.fixture
@@ -670,10 +671,37 @@ def test_clear_plugs_after_use_if_not_data_persistent():
     graph.evaluate(data_persistence=False)
 
     assert N1.inputs["in_"].value == data
-    assert N1.outputs["out"].value == None
+    assert N1.outputs["out"].value is None
 
-    assert N2.inputs["in_"].value == None
-    assert N2.outputs["out"].value == None
+    assert N2.inputs["in_"].value is None
+    assert N2.outputs["out"].value is None
 
-    assert N3.inputs["in_"].value == None
+    assert N3.inputs["in_"].value is None
     assert N3.outputs["out"].value == data
+
+
+def test_passing_evaluator(clear_default_graph, branching_graph):
+    """Test that passing an evalutor to graph.evaluate works."""
+    graph = Graph(name='test_passing_evaluator')
+
+    @Node(outputs=['result'])
+    def AddNode(number1, number2):
+        return {'result': number1 + number2}
+
+    n1 = AddNode(name='AddNode1', graph=graph, number1=1, number2=1)
+    n2 = AddNode(name='AddNode2', graph=graph, number2=1)
+    n3 = AddNode(name='AddNode3', graph=graph, number2=1)
+
+    n1.outputs['result'] >> n2.inputs['number1']
+    n1.outputs['result'] >> n3.inputs['number1']
+
+    graph.evaluate(mode=None, evaluator=LinearEvaluator())
+
+    assert n2.outputs['result'].value == 3
+    assert n3.outputs['result'].value == 3
+
+
+def test_mode_and_evalutor_are_exclusive(clear_default_graph, branching_graph):
+    """Test that passing both mode and evaluator raises an exception."""
+    with pytest.raises(ValueError):
+        branching_graph.evaluate(mode="linear", evaluator=LinearEvaluator())
