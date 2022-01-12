@@ -1,7 +1,7 @@
 [![Version](https://img.shields.io/pypi/v/flowpipe.svg)](https://pypi.org/project/flowpipe/)
 [![Build Status](https://travis-ci.org/PaulSchweizer/flowpipe.svg?branch=master)](https://travis-ci.org/PaulSchweizer/flowpipe)
 [![Codacy_Badge_Grade](https://api.codacy.com/project/badge/Grade/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=PaulSchweizer/flowpipe&amp;utm_campaign=Badge_Grade)
-[![Codacy_Badge_Coverage](https://api.codacy.com/project/badge/Coverage/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&utm_medium=referral&utm_content=PaulSchweizer/flowpipe&utm_campaign=Badge_Coverage) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![python 2.7](https://img.shields.io/badge/python-2.7%2B-blue.svg)](https://www.python.org/downloads/) [![python 3.6+](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://readthedocs.org/projects/flowpipe/badge/?version=latest)](https://flowpipe.readthedocs.io/en/latest)
+[![Codacy_Badge_Coverage](https://api.codacy.com/project/badge/Coverage/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&utm_medium=referral&utm_content=PaulSchweizer/flowpipe&utm_campaign=Badge_Coverage) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![python 2.7](https://img.shields.io/badge/python-2.7%2B-blue.svg)](https://www.python.org/downloads/) [![python 3.6+](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://readthedocs.org/projects/flowpipe/badge/?version=latest)](https://flowpipe.readthedocs.io/en/latest) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 ![Flowpipe Logo](https://raw.githubusercontent.com/PaulSchweizer/flowpipe/master/logo.png)
 
@@ -237,7 +237,6 @@ An example graph showcasing a common workflow encountered in the VFX/Animation i
 ## VFX Pipeline
 
 If you are working in the VFX/Animation industry, please check out this extensive guide on how to use [flowpipe in a vfx pipeline](flowpipe-for-vfx-pipelines.md)!
-
 
 # Evaluators
 

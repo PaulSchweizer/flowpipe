@@ -9,6 +9,7 @@ cover
 doc/source/
 logos/
 venv*
+.vscode
 
 # Sublime
 *.sublime-project

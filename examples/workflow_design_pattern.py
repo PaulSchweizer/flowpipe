@@ -16,8 +16,7 @@ well as data taken from other sources (database, filesystem).
 """
 import getpass
 
-from flowpipe import Graph
-from flowpipe import Node
+from flowpipe import Graph, Node
 
 
 class Workflow(object):
@@ -50,27 +49,36 @@ class PublishWorkflow(Workflow):
         message = SendMessage(graph=self.graph)
         turntable = CreateTurntable(graph=self.graph)
         update_database = UpdateDatabase(graph=self.graph)
-        publish.outputs['published_file'].connect(turntable.inputs['alembic_cache'])
-        publish.outputs['published_file'].connect(message.inputs['values']['path'])
-        turntable.outputs['turntable'].connect(update_database.inputs['images'])
+        publish.outputs["published_file"].connect(
+            turntable.inputs["alembic_cache"]
+        )
+        publish.outputs["published_file"].connect(
+            message.inputs["values"]["path"]
+        )
+        turntable.outputs["turntable"].connect(
+            update_database.inputs["images"]
+        )
 
         # Initialize the graph from user input
-        publish.inputs['source_file'].value = source_file
+        publish.inputs["source_file"].value = source_file
 
         # Initialize the graph through pipeline logic
         # These things can also be done in the nodes themselves of course,
         # it's a design choice and depends on the case
-        message.inputs['template'].value = (
-            'Hello,\n\n'
-            'The following file has been published: {path}\n\n'
-            'Thank you,\n\n'
-            '{sender}'
+        message.inputs["template"].value = (
+            "Hello,\n\n"
+            "The following file has been published: {path}\n\n"
+            "Thank you,\n\n"
+            "{sender}"
         )
-        message.inputs['values']['sender'].value = getpass.getuser()
-        message.inputs['values']['recipients'].value = ['john@mail.com', 'jane@mail.com']
-        turntable.inputs['render_template'].value = 'template.ma'
-        update_database.inputs['asset'].value = source_file.split('.')[0]
-        update_database.inputs['status'].value = 'published'
+        message.inputs["values"]["sender"].value = getpass.getuser()
+        message.inputs["values"]["recipients"].value = [
+            "john@mail.com",
+            "jane@mail.com",
+        ]
+        turntable.inputs["render_template"].value = "template.ma"
+        update_database.inputs["asset"].value = source_file.split(".")[0]
+        update_database.inputs["status"].value = "published"
 
 
 # -----------------------------------------------------------------------------
@@ -80,34 +88,34 @@ class PublishWorkflow(Workflow):
 # -----------------------------------------------------------------------------
 
 
-@Node(outputs=['published_file'])
+@Node(outputs=["published_file"])
 def Publish(source_file):
     """Publish the given source file."""
-    return {'published_file': '/published/file.abc'}
+    return {"published_file": "/published/file.abc"}
 
 
-@Node(outputs=['return_status'])
+@Node(outputs=["return_status"])
 def SendMessage(template, values, recipients):
     """Send message to given recipients."""
-    print('--------------------------------------')
+    print("--------------------------------------")
     print(template.format(**values))
-    print('--------------------------------------')
-    return {'return_status': 0}
+    print("--------------------------------------")
+    return {"return_status": 0}
 
 
-@Node(outputs=['turntable'])
+@Node(outputs=["turntable"])
 def CreateTurntable(alembic_cache, render_template):
     """Load the given cache into the given template file and render."""
-    return {'turntable': '/turntable/turntable.%04d.jpg'}
+    return {"turntable": "/turntable/turntable.%04d.jpg"}
 
 
-@Node(outputs=['asset'])
+@Node(outputs=["asset"])
 def UpdateDatabase(asset, images, status):
     """Update the database entries of the given asset with the given data."""
-    return {'asset': asset}
+    return {"asset": asset}
 
 
-if __name__ == '__main__':
-    workflow = PublishWorkflow('model.ma')
+if __name__ == "__main__":
+    workflow = PublishWorkflow("model.ma")
     print(workflow.graph)
     workflow.evaluate_locally()

@@ -30,10 +30,11 @@ class IPlug(object):
             name (str): The name of the Plug.
             node (INode): The Node holding the Plug.
         """
-        if '.' in name and not isinstance(self, SubPlug):
+        if "." in name and not isinstance(self, SubPlug):
             raise ValueError(
                 'Names for plugs can not contain dots "." as these are '
-                'reserved to identify sub plugs.')
+                "reserved to identify sub plugs."
+            )
         self.name = name
         self.node = node
         self.connections = []
@@ -47,8 +48,9 @@ class IPlug(object):
         Args:
             other (IPlug): The IPlug to connect to.
         """
-        warnings.warn("Use the connect method instead",
-                      DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "Use the connect method instead", DeprecationWarning, stacklevel=2
+        )
         self.connect(other)
 
     def __lshift__(self, other):
@@ -57,8 +59,11 @@ class IPlug(object):
         Args:
             other (IPlug): The IPlug to disconnect.
         """
-        warnings.warn("Use the disconnect method instead",
-                      DeprecationWarning, stacklevel=2)
+        warnings.warn(
+            "Use the disconnect method instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.disconnect(other)
 
     # Extra function to make re-use in subclasses easier
@@ -163,8 +168,9 @@ class OutputPlug(IPlug):
         Set both participating Plugs dirty.
         """
         if not isinstance(plug, self.accepted_plugs):
-            raise TypeError("Cannot connect {0} to {1}".format(
-                type(self), type(plug)))
+            raise TypeError(
+                "Cannot connect {0} to {1}".format(type(self), type(plug))
+            )
         if isinstance(plug, InputPlugGroup):
             for plug_ in plug:
                 self.connect(plug_)
@@ -191,14 +197,14 @@ class OutputPlug(IPlug):
         """
         if not isinstance(key, basestring):
             raise TypeError(
-                'Only strings are allowed as sub-plug keys! '
-                'This is due to the fact that JSON serialization only allows '
-                'strings as keys.')
+                "Only strings are allowed as sub-plug keys! "
+                "This is due to the fact that JSON serialization only allows "
+                "strings as keys."
+            )
         if not self._sub_plugs.get(key):
             self._sub_plugs[key] = SubOutputPlug(
-                key=key,
-                node=self.node,
-                parent_plug=self)
+                key=key, node=self.node, parent_plug=self
+            )
         return self._sub_plugs[key]
 
     def _update_value(self, value):
@@ -214,13 +220,13 @@ class OutputPlug(IPlug):
             connections.setdefault(connection.node.identifier, [])
             connections[connection.node.identifier].append(connection.name)
         return {
-            'name': self.name,
-            'value': self.value if not self._sub_plugs else None,
-            'connections': connections,
-            'sub_plugs': {
+            "name": self.name,
+            "value": self.value if not self._sub_plugs else None,
+            "connections": connections,
+            "sub_plugs": {
                 name: sub_plug.serialize()
                 for name, sub_plug in self._sub_plugs.items()
-            }
+            },
         }
 
 
@@ -249,8 +255,9 @@ class InputPlug(IPlug):
         Set both participating Plugs dirty.
         """
         if not isinstance(plug, self.accepted_plugs):
-            raise TypeError("Cannot connect {0} to {1}".format(
-                type(self), type(plug)))
+            raise TypeError(
+                "Cannot connect {0} to {1}".format(type(self), type(plug))
+            )
         plug.connect(self)
 
     def __getitem__(self, key):
@@ -262,14 +269,14 @@ class InputPlug(IPlug):
         """
         if not isinstance(key, basestring):
             raise TypeError(
-                'Only strings are allowed as sub-plug keys! '
-                'This is due to the fact that JSON serialization only allows '
-                'strings as keys.')
+                "Only strings are allowed as sub-plug keys! "
+                "This is due to the fact that JSON serialization only allows "
+                "strings as keys."
+            )
         if not self._sub_plugs.get(key):
             self._sub_plugs[key] = SubInputPlug(
-                key=key,
-                node=self.node,
-                parent_plug=self)
+                key=key, node=self.node, parent_plug=self
+            )
         return self._sub_plugs[key]
 
     def _update_value(self, value):
@@ -281,15 +288,17 @@ class InputPlug(IPlug):
         """Serialize the Plug containing all it's connections."""
         connections = {}
         if self.connections:
-            connections[self.connections[0].node.identifier] = self.connections[0].name
+            connections[
+                self.connections[0].node.identifier
+            ] = self.connections[0].name
         return {
-            'name': self.name,
-            'value': self.value if not self._sub_plugs else None,
-            'connections': connections,
-            'sub_plugs': {
+            "name": self.name,
+            "value": self.value if not self._sub_plugs else None,
+            "connections": connections,
+            "sub_plugs": {
                 name: sub_plug.serialize()
                 for name, sub_plug in self._sub_plugs.items()
-            }
+            },
         }
 
 
@@ -318,7 +327,8 @@ class SubPlug(object):
         """
         # prevent adding SubPlug to the graph witout their parents
         raise TypeError(
-            "Cannot add SubPlug to graph! Add the parent plug instead.")
+            "Cannot add SubPlug to graph! Add the parent plug instead."
+        )
 
 
 class SubInputPlug(SubPlug, InputPlug):
@@ -340,7 +350,8 @@ class SubInputPlug(SubPlug, InputPlug):
         self.parent_plug._sub_plugs[key] = self
 
         super(SubInputPlug, self).__init__(
-            '{0}.{1}'.format(parent_plug.name, key), node)
+            "{0}.{1}".format(parent_plug.name, key), node
+        )
         self.value = value
         self.is_dirty = True
 
@@ -348,12 +359,13 @@ class SubInputPlug(SubPlug, InputPlug):
         """Serialize the Plug containing all it's connections."""
         connections = {}
         if self.connections:
-            connections[self.connections[0].node.identifier] = \
-                self.connections[0].name
+            connections[
+                self.connections[0].node.identifier
+            ] = self.connections[0].name
         return {
-            'name': self.name,
-            'value': self.value,
-            'connections': connections
+            "name": self.name,
+            "value": self.value,
+            "connections": connections,
         }
 
 
@@ -376,7 +388,8 @@ class SubOutputPlug(SubPlug, OutputPlug):
         self.parent_plug._sub_plugs[key] = self
 
         super(SubOutputPlug, self).__init__(
-            '{0}.{1}'.format(parent_plug.name, key), node)
+            "{0}.{1}".format(parent_plug.name, key), node
+        )
         self.value = value
         self.is_dirty = True
 
@@ -396,9 +409,9 @@ class SubOutputPlug(SubPlug, OutputPlug):
             connections.setdefault(connection.node.identifier, [])
             connections[connection.node.identifier].append(connection.name)
         return {
-            'name': self.name,
-            'value': self.value,
-            'connections': connections
+            "name": self.name,
+            "value": self.value,
+            "connections": connections,
         }
 
 
@@ -450,7 +463,8 @@ class InputPlugGroup(object):
         convenient setting of the value of all plugs in the InputPlugGroup.
         """
         raise AttributeError(
-            "Getting the value of an InputPlugGroup is not supported")
+            "Getting the value of an InputPlugGroup is not supported"
+        )
 
     @value.setter
     def value(self, new_value):

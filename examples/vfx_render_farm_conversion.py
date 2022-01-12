@@ -9,7 +9,6 @@ from tempfile import gettempdir
 
 from flowpipe import Graph, INode, Node
 
-
 # -----------------------------------------------------------------------------
 #
 # Necessary utilities
@@ -26,7 +25,7 @@ class JsonDatabase:
     the JSON files directly.
     """
 
-    PATH = os.path.join(gettempdir(), 'json-database', '{identifier}.json')
+    PATH = os.path.join(gettempdir(), "json-database", "{identifier}.json")
 
     @staticmethod
     def set(node):
@@ -34,7 +33,7 @@ class JsonDatabase:
         serialized_json = JsonDatabase.PATH.format(identifier=node.identifier)
         if not os.path.exists(os.path.dirname(serialized_json)):
             os.makedirs(os.path.dirname(serialized_json))
-        with open(serialized_json, 'w') as f:
+        with open(serialized_json, "w") as f:
             json.dump(node.serialize(), f, indent=2)
         return serialized_json
 
@@ -42,7 +41,7 @@ class JsonDatabase:
     def get(identifier):
         """Retrieve the node behind the given identifier."""
         serialized_json = JsonDatabase.PATH.format(identifier=identifier)
-        with open(serialized_json, 'r') as f:
+        with open(serialized_json, "r") as f:
             data = json.load(f)
         return INode.deserialize(data)
 
@@ -55,22 +54,21 @@ COMMANDS = {
     "python": (
         "python -c '"
         "from my_farm import conversion;"
-        "conversion.evaluate_on_farm(\"{serialized_json}\", {frames})'"),
+        'conversion.evaluate_on_farm("{serialized_json}", {frames})\''
+    ),
     "maya": (
         "mayapy -c '"
         "import maya.standalone;"
-        "maya.standalone.initialize(name=\"python\");"
+        'maya.standalone.initialize(name="python");'
         "from my_farm import conversion;"
-        "conversion.evaluate_on_farm(\"{serialized_json}\", {frames})'")
+        'conversion.evaluate_on_farm("{serialized_json}", {frames})\''
+    ),
 }
 
 
 def convert_graph_to_job(graph):
     """Convert the graph to a dict representing a typical render farm job."""
-    job = {
-        'name': graph.name,
-        'tasks': []
-    }
+    job = {"name": graph.name, "tasks": []}
 
     # Turn every node into a farm task
     tasks = {}
@@ -82,9 +80,9 @@ def convert_graph_to_job(graph):
         # IMPLICIT BATCHING:
         # Create individual tasks for each batch if the batch size is defined
         # Feed the calculated frame range to each batch
-        if node.metadata.get('batch_size') is not None:
-            batch_size = node.metadata['batch_size']
-            frames = node.inputs['frames'].value
+        if node.metadata.get("batch_size") is not None:
+            batch_size = node.metadata["batch_size"]
+            frames = node.inputs["frames"].value
             i = 0
             while i < len(frames) - 1:
                 end = i + batch_size
@@ -92,23 +90,27 @@ def convert_graph_to_job(graph):
                     end = len(frames)
                 f = frames[i:end]
 
-                task = {
-                    'name': '{0}-{1}'.format(node.name, i / batch_size)
-                }
-                command = COMMANDS.get(node.metadata.get('interpreter', 'python'), None)
-                task['command'] = command.format(serialized_json=serialized_json, frames=f)
-                job['tasks'].append(task)
+                task = {"name": "{0}-{1}".format(node.name, i / batch_size)}
+                command = COMMANDS.get(
+                    node.metadata.get("interpreter", "python"), None
+                )
+                task["command"] = command.format(
+                    serialized_json=serialized_json, frames=f
+                )
+                job["tasks"].append(task)
 
                 tasks[node.name].append(task)
 
                 i += batch_size
         else:
-            task = {
-                'name': node.name
-            }
-            command = COMMANDS.get(node.metadata.get('interpreter', 'python'), None)
-            task['command'] = command.format(serialized_json=serialized_json, frames=None)
-            job['tasks'].append(task)
+            task = {"name": node.name}
+            command = COMMANDS.get(
+                node.metadata.get("interpreter", "python"), None
+            )
+            task["command"] = command.format(
+                serialized_json=serialized_json, frames=None
+            )
+            job["tasks"].append(task)
 
             tasks[node.name].append(task)
 
@@ -116,9 +118,9 @@ def convert_graph_to_job(graph):
     for node_name in tasks:
         for task in tasks[node_name]:
             node = graph[node_name]
-            task['dependencies'] = []
+            task["dependencies"] = []
             for upstream in [n.name for n in node.upstream_nodes]:
-                task['dependencies'] += [t['name'] for t in tasks[upstream]]
+                task["dependencies"] += [t["name"] for t in tasks[upstream]]
 
     return job
 
@@ -141,20 +143,20 @@ def evaluate_on_farm(serialized_json, frames=None):
     logging.baseConfig.setLevel(logging.DEBUG)
 
     # Deserialize the node from the serialized json
-    with open(serialized_json, 'r') as f:
+    with open(serialized_json, "r") as f:
         data = json.load(f)
     node = INode.deserialize(data)
 
     # Retrieve the upstream output data
-    for name, input_plug in data['inputs'].items():
-        for identifier, output_plug in input_plug['connections'].items():
+    for name, input_plug in data["inputs"].items():
+        for identifier, output_plug in input_plug["connections"].items():
             upstream_node = JsonDatabase.get(identifier)
             node.inputs[name].value = upstream_node.outputs[output_plug].value
 
     # Specifically assign the batch frames here if applicable
     if frames is not None:
-        all_frames = node.inputs['frames']
-        node.inputs['frames'] = frames
+        all_frames = node.inputs["frames"]
+        node.inputs["frames"] = frames
 
     # Actually evalute the node
     node.evaluate()
@@ -166,7 +168,7 @@ def evaluate_on_farm(serialized_json, frames=None):
     if frames is not None and frames[-1] != all_frames[-1]:
         return
 
-    with open(serialized_json, 'w') as f:
+    with open(serialized_json, "w") as f:
         json.dump(node.serialize(), f, indent=2)
 
 
@@ -177,28 +179,29 @@ def evaluate_on_farm(serialized_json, frames=None):
 # -----------------------------------------------------------------------------
 
 
-@Node(outputs=['renderings'], metadata={'interpreter': 'maya'})
+@Node(outputs=["renderings"], metadata={"interpreter": "maya"})
 def MayaRender(frames, scene_file):
     """Render the given frames from the given scene.."""
-    return {'renderings': '/renderings/file.%04d.exr'}
+    return {"renderings": "/renderings/file.%04d.exr"}
 
 
-@Node(outputs=['status'])
+@Node(outputs=["status"])
 def UpdateDatabase(id_, images):
     """Update the database entries of the given asset with the given data."""
-    return {'status': True}
+    return {"status": True}
 
 
 def implicit_batching(frames, batch_size):
     """Batches are created during the farm conversion."""
-    graph = Graph(name='Rendering')
+    graph = Graph(name="Rendering")
     render = MayaRender(
         graph=graph,
         frames=list(range(frames)),
-        scene_file='/scene/for/rendering.ma',
-        metadata={'batch_size': batch_size})
+        scene_file="/scene/for/rendering.ma",
+        metadata={"batch_size": batch_size},
+    )
     update = UpdateDatabase(graph=graph, id_=123456)
-    render.outputs['renderings'].connect(update.inputs['images'])
+    render.outputs["renderings"].connect(update.inputs["images"])
 
     print(graph)
     print(json.dumps(convert_graph_to_job(graph), indent=2))
@@ -206,20 +209,23 @@ def implicit_batching(frames, batch_size):
 
 def explicit_batching(frames, batch_size):
     """Batches are already part of the graph."""
-    graph = Graph(name='Rendering')
+    graph = Graph(name="Rendering")
     update_database = UpdateDatabase(graph=graph, id_=123456)
     for i in range(0, frames, batch_size):
         maya_render = MayaRender(
-            name='MayaRender{0}-{1}'.format(i, i + batch_size),
+            name="MayaRender{0}-{1}".format(i, i + batch_size),
             graph=graph,
             frames=list(range(i, i + batch_size)),
-            scene_file='/scene/for/rendering.ma')
-        maya_render.outputs['renderings'].connect(update_database.inputs['images'][str(i)])
+            scene_file="/scene/for/rendering.ma",
+        )
+        maya_render.outputs["renderings"].connect(
+            update_database.inputs["images"][str(i)]
+        )
 
     print(graph)
     print(json.dumps(convert_graph_to_job(graph), indent=2))
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     implicit_batching(30, 10)
     explicit_batching(30, 10)
