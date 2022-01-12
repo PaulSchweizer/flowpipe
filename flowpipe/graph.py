@@ -105,7 +105,8 @@ class Graph(object):
         levels = {}
 
         for node in self.all_nodes:
-            self._sort_node(node, levels, level=0)
+            if not len(node.upstream_nodes):
+                self._sort_node(node, levels, level=0)
 
         matrix = []
         for level in sorted(list(set(levels.values()))):
@@ -347,16 +348,22 @@ class Graph(object):
                       DeprecationWarning)
         return deserialize_graph(data)
 
-    def _sort_node(self, node, parent, level):
+    def _sort_node(self, node, levels, level):
         """Sort the node into the correct level."""
-        if node in parent.keys():
-            if level > parent[node]:
-                parent[node] = level
+        if node in levels.keys():
+            if level > levels[node]:
+                levels[node] = level
         else:
-            parent[node] = level
+            levels[node] = level
 
-        for downstream_node in node.downstream_nodes:
-            self._sort_node(downstream_node, parent, level=level + 1)
+        downstream_nodes = set()
+        for output in node.outputs.values():
+            downstream_nodes |= set(c.node for c in output.connections)
+            for sub_plug in output._sub_plugs.values():
+                downstream_nodes |= set(c.node for c in sub_plug.connections)
+
+        for downstream_node in downstream_nodes:
+            self._sort_node(downstream_node, levels, level=level + 1)
 
     def node_repr(self):
         """Format to visualize the Graph."""
