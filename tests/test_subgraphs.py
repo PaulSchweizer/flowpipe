@@ -1,4 +1,5 @@
 import pytest
+
 from flowpipe import Graph, Node
 
 
@@ -102,9 +103,9 @@ def test_subgraphs_can_be_accessed_by_name():
     graph = _nested_graph()
 
     assert len(graph.subgraphs) == 3
-    assert graph.subgraphs['sub0'].name == 'sub0'
-    assert graph.subgraphs['sub1'].name == 'sub1'
-    assert graph.subgraphs['sub2'].name == 'sub2'
+    assert graph.subgraphs["sub0"].name == "sub0"
+    assert graph.subgraphs["sub1"].name == "sub1"
+    assert graph.subgraphs["sub2"].name == "sub2"
 
 
 def test_plugs_can_be_promoted_to_graph_level_under_new_name():

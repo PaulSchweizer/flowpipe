@@ -4,7 +4,6 @@ They an be used to observe the evaluation process.
 """
 import logging
 
-
 log = logging.getLogger(__name__)
 
 
@@ -48,5 +47,5 @@ class Event(object):
 
     def clear(self):
         """Remove all listeners from this event."""
-        for l in self._listeners:
-            self.deregister(l)
+        for listener in self._listeners:
+            self.deregister(listener)

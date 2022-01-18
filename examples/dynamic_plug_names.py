@@ -75,23 +75,28 @@ def get_facematch_graph(threshold):
     """Set up facematching e.g. with paramters taken from a config."""
     facematch_graph = Graph()
 
-    #It is useful to define
-    image_node = EmbeddingNode(input_name="image",
-                               output_name="image_emb",
-                               graph=facematch_graph,
-                               name="ImageEmbeddings")
+    # It is useful to define
+    image_node = EmbeddingNode(
+        input_name="image",
+        output_name="image_emb",
+        graph=facematch_graph,
+        name="ImageEmbeddings",
+    )
 
-    reference_node = EmbeddingNode(input_name="reference",
-                                   output_name="reference_emb",
-                                   graph=facematch_graph,
-                                   name="ReferenceEmbeddings")
+    reference_node = EmbeddingNode(
+        input_name="reference",
+        output_name="reference_emb",
+        graph=facematch_graph,
+        name="ReferenceEmbeddings",
+    )
 
-    match_node = MatchNode(threshold=threshold,
-                           graph=facematch_graph)
+    match_node = MatchNode(threshold=threshold, graph=facematch_graph)
 
     image_node.outputs["image_emb"] >> match_node.inputs["image_emb"]
-    reference_node.outputs["reference_emb"] \
+    (
+        reference_node.outputs["reference_emb"]
         >> match_node.inputs["reference_emb"]
+    )
 
     match_node.outputs["facematch"].promote_to_graph("result")
 
@@ -107,4 +112,3 @@ if __name__ == "__main__":
 
     print(facematch)
     print("\n", facematch.outputs["result"].value)
-

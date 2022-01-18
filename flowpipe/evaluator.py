@@ -1,10 +1,9 @@
 """Classes to evaluate flowpipe Graphs in various ways."""
 
-from concurrent import futures
 import logging
-from multiprocessing import Manager, Process
 import time
-
+from concurrent import futures
+from multiprocessing import Manager, Process
 
 log = logging.getLogger(__name__)
 
@@ -94,9 +93,12 @@ class ThreadedEvaluator(Evaluator):
         running_futures = {}
         with futures.ThreadPoolExecutor(max_workers=self.max_workers) as tpe:
             while nodes_to_evaluate or running_futures:
-                log.debug("Iterating thread submission with {0} nodes to "
-                          "evaluate and {1} running futures".format(
-                              len(nodes_to_evaluate), len(running_futures)))
+                log.debug(
+                    "Iterating thread submission with {0} nodes to "
+                    "evaluate and {1} running futures".format(
+                        len(nodes_to_evaluate), len(running_futures)
+                    )
+                )
                 # Submit new nodes that are ready to be evaluated
                 not_submitted = []
                 for node in nodes_to_evaluate:
@@ -113,19 +115,27 @@ class ThreadedEvaluator(Evaluator):
                 # and while loop will never terminate
                 if nodes_to_evaluate and not running_futures:
                     for node in nodes_to_evaluate:
-                        dirty_upstream = [nn.name for nn in node.upstream_nodes
-                                          if nn.is_dirty]
-                        log.debug("Node to evaluate: {0} ".format(node.name) +
-                                  "- Dirty upstream nodes:\n" +
-                                  "\n".join(dirty_upstream))
+                        dirty_upstream = [
+                            nn.name
+                            for nn in node.upstream_nodes
+                            if nn.is_dirty
+                        ]
+                        log.debug(
+                            "Node to evaluate: {0} ".format(node.name)
+                            + "- Dirty upstream nodes:\n"
+                            + "\n".join(dirty_upstream)
+                        )
                     raise RuntimeError(
                         "Execution hit deadlock: {0} nodes left to evaluate, "
-                        "but no nodes running.".format(len(nodes_to_evaluate)))
+                        "but no nodes running.".format(len(nodes_to_evaluate))
+                    )
 
                 # Wait until a future finishes, then remove all finished nodes
                 # from the relevant lists
-                status = futures.wait(list(running_futures.values()),
-                                      return_when=futures.FIRST_COMPLETED)
+                status = futures.wait(
+                    list(running_futures.values()),
+                    return_when=futures.FIRST_COMPLETED,
+                )
                 for s in status.done:
                     del running_futures[s.result().name]
 
@@ -165,14 +175,17 @@ class LegacyMultiprocessingEvaluator(Evaluator):
                     _update_node(node, nodes_data[node.identifier])
                     continue
                 if node.name not in processes and upstream_ready(
-                        processes, node):
+                    processes, node
+                ):
                     # If all deps are ready and no thread is active, create one
                     nodes_data[node.identifier] = node.to_json()
                     processes[node.name] = Process(
                         target=_evaluate_node_in_process,
-                        name='flowpipe.{0}.{1}'.format(
-                            node.graph.name, node.name),
-                        args=(node.identifier, nodes_data))
+                        name="flowpipe.{0}.{1}".format(
+                            node.graph.name, node.name
+                        ),
+                        args=(node.identifier, nodes_data),
+                    )
                     processes[node.name].daemon = True
                     processes[node.name].start()
 
@@ -192,44 +205,48 @@ def _evaluate_node_in_process(identifier, nodes_data):
         nodes_data (dict): Used like a "database" to store the nodes
     """
     from flowpipe.node import INode
+
     data = nodes_data[identifier]
     node = INode.from_json(data)
 
-    for name, input_plug in data['inputs'].items():
-        for input_identifier, output_plug in input_plug['connections'].items():
+    for name, input_plug in data["inputs"].items():
+        for input_identifier, output_plug in input_plug["connections"].items():
             upstream_node = INode.from_json(nodes_data[input_identifier])
             node.inputs[name].value = upstream_node.outputs[output_plug].value
-        for sub_name, sub_plug in input_plug['sub_plugs'].items():
-            for sub_id, sub_output in sub_plug['connections'].items():
+        for sub_name, sub_plug in input_plug["sub_plugs"].items():
+            for sub_id, sub_output in sub_plug["connections"].items():
                 upstream_node = INode.from_json(nodes_data[sub_id])
-                node.inputs[name][sub_name].value = (
-                    upstream_node.all_outputs()[sub_output].value)
+                node.inputs[name][
+                    sub_name
+                ].value = upstream_node.all_outputs()[sub_output].value
 
     node.evaluate()
 
     for name, plug in node.outputs.items():
-        data['outputs'][name]['value'] = plug.value
+        data["outputs"][name]["value"] = plug.value
         for sub_name, sub_plug in plug._sub_plugs.items():
-            if sub_name not in data['outputs'][name]['sub_plugs']:
-                data['outputs'][name]['sub_plugs'][sub_name] = (
-                    sub_plug.serialize())
-            data['outputs'][name]['sub_plugs'][sub_name]['value'] = (
-                sub_plug.value)
+            if sub_name not in data["outputs"][name]["sub_plugs"]:
+                data["outputs"][name]["sub_plugs"][
+                    sub_name
+                ] = sub_plug.serialize()
+            data["outputs"][name]["sub_plugs"][sub_name][
+                "value"
+            ] = sub_plug.value
 
     nodes_data[identifier] = data
 
 
 def _update_node(node, data):
     """Apply the plug values of the data dict to the node object."""
-    for name, input_plug in data['inputs'].items():
-        node.inputs[name].value = input_plug['value']
-        for sub_name, sub_plug in input_plug['sub_plugs'].items():
-            node.inputs[name][sub_name].value = sub_plug['value']
+    for name, input_plug in data["inputs"].items():
+        node.inputs[name].value = input_plug["value"]
+        for sub_name, sub_plug in input_plug["sub_plugs"].items():
+            node.inputs[name][sub_name].value = sub_plug["value"]
             node.inputs[name][sub_name].is_dirty = False
         node.inputs[name].is_dirty = False
-    for name, output_plug in data['outputs'].items():
-        node.outputs[name].value = output_plug['value']
-        for sub_name, sub_plug in output_plug['sub_plugs'].items():
-            node.outputs[name][sub_name].value = sub_plug['value']
+    for name, output_plug in data["outputs"].items():
+        node.outputs[name].value = output_plug["value"]
+        for sub_name, sub_plug in output_plug["sub_plugs"].items():
+            node.outputs[name][sub_name].value = sub_plug["value"]
             node.outputs[name][sub_name].is_dirty = False
         node.outputs[name].is_dirty = False

@@ -3,8 +3,8 @@ try:
 except ImportError:
     pass
 import json
-from hashlib import sha256
 import sys
+from hashlib import sha256
 
 
 def import_class(module, cls_name, file_location=None):
@@ -17,13 +17,14 @@ def import_class(module, cls_name, file_location=None):
     try:
         module = importlib.import_module(module)
     except NameError:  # pragma: no cover
-        module = __import__(module, globals(), locals(), ['object'], -1)
+        module = __import__(module, globals(), locals(), ["object"], -1)
     try:
         cls = getattr(module, cls_name)
     except AttributeError:  # pragma: no cover
-        loader = importlib.machinery.SourceFileLoder('module', file_location)
-        spec = importlib.machinery.ModuleSpec('module', loader,
-                                              origin=file_location)
+        loader = importlib.machinery.SourceFileLoder("module", file_location)
+        spec = importlib.machinery.ModuleSpec(
+            "module", loader, origin=file_location
+        )
         module = importlib.util.module_from_spec(spec)
         cls = getattr(module, cls_name)
     return cls
@@ -31,51 +32,53 @@ def import_class(module, cls_name, file_location=None):
 
 def deserialize_node(data):
     """De-serialize a node from the given json data."""
-    node = import_class(
-        data['module'], data['cls'], data['file_location'])(graph=None)
+    node = import_class(data["module"], data["cls"], data["file_location"])(
+        graph=None
+    )
     node.post_deserialize(data)
     return node
 
 
 def deserialize_graph(data):
     """De-serialize from the given json data."""
-    graph = import_class(data['module'], data['cls'])()
-    graph.name = data['name']
+    graph = import_class(data["module"], data["cls"])()
+    graph.name = data["name"]
     graph.nodes = []
-    for node in data['nodes']:
+    for node in data["nodes"]:
         deserialized_node = deserialize_node(node)
         graph.nodes.append(deserialized_node)
         deserialized_node.graph = graph
 
     nodes = {n.identifier: n for n in graph.nodes}
 
-    all_nodes = [n for n in data['nodes']]
+    all_nodes = [n for n in data["nodes"]]
 
     subgraphs = []
-    for sub_data in data.get('subgraphs', []):
-        subgraph = import_class(sub_data['module'], sub_data['cls'])()
-        subgraph.name = sub_data['name']
+    for sub_data in data.get("subgraphs", []):
+        subgraph = import_class(sub_data["module"], sub_data["cls"])()
+        subgraph.name = sub_data["name"]
         subgraph.nodes = []
-        for node in sub_data['nodes']:
+        for node in sub_data["nodes"]:
             deserialized_node = deserialize_node(node)
             subgraph.nodes.append(deserialized_node)
             deserialized_node.graph = subgraph
-        all_nodes += sub_data['nodes']
+        all_nodes += sub_data["nodes"]
         subgraphs.append(subgraph)
         nodes.update({n.identifier: n for n in subgraph.nodes})
 
     for node in all_nodes:  # data['nodes']:
-        this = nodes[node['identifier']]
-        for name, input_ in node['inputs'].items():
-            for identifier, plug in input_['connections'].items():
+        this = nodes[node["identifier"]]
+        for name, input_ in node["inputs"].items():
+            for identifier, plug in input_["connections"].items():
                 upstream = nodes[identifier]
                 upstream.outputs[plug] >> this.inputs[name]
-            for sub_plug_name, sub_plug in input_['sub_plugs'].items():
-                sub_plug_name = sub_plug_name.split('.')[-1]
-                for identifier, plug in sub_plug['connections'].items():
+            for sub_plug_name, sub_plug in input_["sub_plugs"].items():
+                sub_plug_name = sub_plug_name.split(".")[-1]
+                for identifier, plug in sub_plug["connections"].items():
                     upstream = nodes[identifier]
                     upstream.outputs[plug].connect(
-                        this.inputs[name][sub_plug_name])
+                        this.inputs[name][sub_plug_name]
+                    )
     return graph
 
 
@@ -123,7 +126,7 @@ def get_hash(obj, hash_func=lambda x: sha256(x).hexdigest()):
         else:
             obj = js
         if isinstance(obj, str):
-            return hash_func(obj.encode('utf-8'))
+            return hash_func(obj.encode("utf-8"))
         if sys.version_info.major > 2:  # pragma: no cover
             try:
                 return hash_func(bytes(obj))
