@@ -4,7 +4,7 @@ python:
 - '3.6'
 install:
 - pip install -r requirements.txt
-- pip install -r test-requirements.txt
+- pip install -r requirements-dev.txt
 - python setup.py install
 script:
 - coverage run --source flowpipe -m pytest ./tests --cov=flowpipe --cov-report=xml

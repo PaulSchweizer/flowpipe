@@ -2,6 +2,22 @@
 
 :+1::tada: Thank you very much for taking the time to contribute! :tada::+1:
 
+## Start coding
+
+This is how you can setup your development environment for flowpipe:
+
+```bash
+git clone https://github.com/PaulSchweizer/flowpipe.git
+cd ./flowpipe
+python -m venv venv
+pip install -r requirements-dev.txt
+pre-commit install
+
+# Run the tests to confirm that your setup is complete
+python setup.py develop
+pytest ./tests
+```
+
 ## Questions
 
 Please don't hesitate to submit any questions as tickets on github!
@@ -28,21 +44,9 @@ We have an extensive, reliable test suite and we want to keep it that way, so pl
 We also want to keep the coverage at 100%. If there are good reasons for not covering parts of the code, please explicitely exclude them either via `# pragma: no cover` directly in the code or by specifying it in the [.coveragerc](.coveragerc) file.
 The tests have to pass on travis (py2.7 and py3.6).
 
-Execute the following steps to run the tests locally:
-```
-python3.6 -m venv ./venv
-source venv/bin/activate
-pip install -r requirements.txt
-pip install -r test-requirements.txt
-python setup.py develop
-pytest ./tests
-```
-
 ## Coding styleguide
 
-We generally follow [pep8](https://www.python.org/dev/peps/pep-0008/) with these additional requirements:
-
-- Single quotes for strings in the code, double quotes for docstrings
+- We use [black](https://github.com/ambv/black)
 - For docstrings please use the [google style](https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings)
 
 ## Release to PyPi (Collaborators only)

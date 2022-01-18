@@ -8,9 +8,12 @@ import warnings
 from ascii_canvas import canvas, item
 
 from .errors import CycleError
-from .evaluator import LinearEvaluator, ThreadedEvaluator, \
-    LegacyMultiprocessingEvaluator
-from .plug import InputPlug, OutputPlug, InputPlugGroup
+from .evaluator import (
+    LegacyMultiprocessingEvaluator,
+    LinearEvaluator,
+    ThreadedEvaluator,
+)
+from .plug import InputPlug, InputPlugGroup, OutputPlug
 from .utilities import deserialize_graph
 
 try:
@@ -37,7 +40,7 @@ class Graph(object):
 
     def __str__(self):
         """Show all input and output Plugs."""
-        return self.__unicode__().encode('utf-8').decode()
+        return self.__unicode__().encode("utf-8").decode()
 
     def __getitem__(self, key):
         """Grant access to Nodes via their name."""
@@ -56,7 +59,8 @@ class Graph(object):
             "Graph does not contain a Node named '{0}'. "
             "If the node is part of a subgraph of this graph, use this "
             "form to access the node: '{{subgraph.name}}.{{node.name}}', "
-            "e.g. 'sub.node'".format(key))
+            "e.g. 'sub.node'".format(key)
+        )
 
     @property
     def all_nodes(self):
@@ -131,7 +135,11 @@ class Graph(object):
     @property
     def input_groups(self):
         """Return all inputs that are actually input groups."""
-        return {k: v for k, v in self.inputs.items() if isinstance(v, InputPlugGroup)}
+        return {
+            k: v
+            for k, v in self.inputs.items()
+            if isinstance(v, InputPlugGroup)
+        }
 
     def add_node(self, node):
         """Add given Node to the Graph.
@@ -144,12 +152,14 @@ class Graph(object):
                     raise ValueError(
                         "Can not add Node of name '{0}', a Node with this "
                         "name already exists on this Graph. Node names on "
-                        "a Graph have to be unique.".format(node.name))
+                        "a Graph have to be unique.".format(node.name)
+                    )
             self.nodes.append(node)
             node.graph = self
         else:
             log.warning(
-                'Node "{0}" is already part of this Graph'.format(node.name))
+                'Node "{0}" is already part of this Graph'.format(node.name)
+            )
 
     def delete_node(self, node):
         """Disconnect all plugs and then delete the node object."""
@@ -175,24 +185,30 @@ class Graph(object):
                 self.inputs[name or plug.name] = plug
             else:
                 key = list(self.inputs.keys())[
-                    list(self.inputs.values()).index(plug)]
+                    list(self.inputs.values()).index(plug)
+                ]
                 raise ValueError(
                     "The given plug '{0}' has already been promoted to this "
-                    "Graph und the key '{1}'".format(plug.name, key))
+                    "Graph und the key '{1}'".format(plug.name, key)
+                )
         elif isinstance(plug, OutputPlug):
             if plug not in self.outputs.values():
                 self.outputs[name or plug.name] = plug
             else:
                 key = list(self.outputs.keys())[
-                    list(self.outputs.values()).index(plug)]
+                    list(self.outputs.values()).index(plug)
+                ]
                 raise ValueError(
                     "The given plug {0} has already been promoted to this "
-                    "Graph und the key '{1}'".format(plug.name, key))
+                    "Graph und the key '{1}'".format(plug.name, key)
+                )
         else:
             raise TypeError(
                 "Plugs of type '{0}' can not be promoted directly to a Graph. "
                 "Only plugs of type '{1}' or '{2}' can be promoted.".format(
-                    type(plug), InputPlug, OutputPlug))
+                    type(plug), InputPlug, OutputPlug
+                )
+            )
 
     def accepts_connection(self, output_plug, input_plug):
         """Raise exception if new connection would violate integrity of graph.
@@ -211,28 +227,38 @@ class Graph(object):
         # Plugs can't be connected to other plugs on their own node
         if in_node is out_node:
             raise CycleError(
-                'Can\'t connect plugs that are part of the same node.')
+                "Can't connect plugs that are part of the same node."
+            )
 
         # If that is downstream of this
         if out_node in in_node.downstream_nodes:
             raise CycleError(
-                'Can\'t connect OutputPlugs to plugs of an upstream node.')
+                "Can't connect OutputPlugs to plugs of an upstream node."
+            )
 
         # Names of subgraphs have to be unique
         if (
-                in_node.graph.name in self.subgraphs and
-                in_node.graph not in self.subgraphs.values()):
+            in_node.graph.name in self.subgraphs
+            and in_node.graph not in self.subgraphs.values()
+        ):
             raise ValueError(
                 "This node is part of graph '{0}', but a different "
                 "graph with the same name is already part of this "
                 "graph. Subgraph names on a Graph have to "
-                "be unique".format(in_node.graph.name))
+                "be unique".format(in_node.graph.name)
+            )
 
         return True
 
-    def evaluate(self, mode="linear", skip_clean=False,
-                 submission_delay=0.1, max_workers=None, data_persistence=True,
-                 evaluator=None):
+    def evaluate(
+        self,
+        mode="linear",
+        skip_clean=False,
+        submission_delay=0.1,
+        max_workers=None,
+        data_persistence=True,
+        evaluator=None,
+    ):
         """Evaluate all Nodes in the graph.
 
         Sorts the nodes in the graph into a resolution order and evaluates the
@@ -269,8 +295,10 @@ class Graph(object):
         eval_modes = {
             "linear": (LinearEvaluator, {}),
             "threading": (ThreadedEvaluator, {"max_workers": max_workers}),
-            "multiprocessing": (LegacyMultiprocessingEvaluator,
-                                {"submission_delay": submission_delay})
+            "multiprocessing": (
+                LegacyMultiprocessingEvaluator,
+                {"submission_delay": submission_delay},
+            ),
         }
 
         if mode and evaluator:
@@ -306,9 +334,11 @@ class Graph(object):
 
         Deprecated.
         """
-        warnings.warn('Graph.serialize is deprecated. Instead, use one of '
-                      'Graph.to_json or Graph.to_pickle',
-                      DeprecationWarning)
+        warnings.warn(
+            "Graph.serialize is deprecated. Instead, use one of "
+            "Graph.to_json or Graph.to_pickle",
+            DeprecationWarning,
+        )
 
         return self._serialize()
 
@@ -319,15 +349,16 @@ class Graph(object):
             with_subgraphs (bool): Set to false to avoid infinite recursion
         """
         data = OrderedDict(
-            module=self.__module__,
-            cls=self.__class__.__name__,
-            name=self.name)
-        data['nodes'] = [node.to_json() for node in self.nodes]
+            module=self.__module__, cls=self.__class__.__name__, name=self.name
+        )
+        data["nodes"] = [node.to_json() for node in self.nodes]
         if with_subgraphs:
-            data['subgraphs'] = [
+            data["subgraphs"] = [
                 graph._serialize(with_subgraphs=False)
                 for graph in sorted(
-                    self.subgraphs.values(), key=lambda g: g.name)]
+                    self.subgraphs.values(), key=lambda g: g.name
+                )
+            ]
         return data
 
     @staticmethod
@@ -343,9 +374,11 @@ class Graph(object):
     @staticmethod
     def deserialize(data):  # pragma: no cover
         """De-serialize from the given json data."""
-        warnings.warn('Graph.deserialize is deprecated. Instead, use one of '
-                      'Graph.from_json or Graph.from_pickle',
-                      DeprecationWarning)
+        warnings.warn(
+            "Graph.deserialize is deprecated. Instead, use one of "
+            "Graph.from_json or Graph.from_pickle",
+            DeprecationWarning,
+        )
         return deserialize_graph(data)
 
     def _sort_node(self, node, levels, level):
@@ -378,8 +411,11 @@ class Graph(object):
             for node in row:
                 item_ = item.Item(str(node), [x, y])
                 node.item = item_
-                x_diff = (item_.bbox[2] - item_.bbox[0] + 4 if
-                          item_.bbox[2] - item_.bbox[0] + 4 > x_diff else x_diff)
+                x_diff = (
+                    item_.bbox[2] - item_.bbox[0] + 4
+                    if item_.bbox[2] - item_.bbox[0] + 4 > x_diff
+                    else x_diff
+                )
                 y += item_.bbox[3] - item_.bbox[1]
                 canvas_.add_item(item_)
             x += x_diff
@@ -395,7 +431,9 @@ class Graph(object):
                 locked_items.append(i)
                 for p in input_group.plugs:
                     y_off += 1
-                    i = item.Item("`-{0}.{1}".format(p.node.name, p.name), [2, y_off])
+                    i = item.Item(
+                        "`-{0}.{1}".format(p.node.name, p.name), [2, y_off]
+                    )
                     canvas_.add_item(i)
                     locked_items.append(i)
 
@@ -410,9 +448,10 @@ class Graph(object):
         # Crop the name of the graph if it is too long
         name = self.name
         if len(name) > x - 2:
-            name = name[:x - 2]
+            name = name[: x - 2]
         canvas_.add_item(
-            item.Item("{name:^{x}}".format(name=name, x=x), [0, 1]), 0)
+            item.Item("{name:^{x}}".format(name=name, x=x), [0, 1]), 0
+        )
         canvas_.add_item(item.Rectangle(x, 3, [0, 0]), 0)
 
         if self.input_groups:
@@ -420,16 +459,22 @@ class Graph(object):
 
         for node in self.all_nodes:
             for i, plug in enumerate(node._sort_plugs(node.all_outputs())):
-                for connection in node._sort_plugs(
-                        node.all_outputs())[plug].connections:
+                for connection in node._sort_plugs(node.all_outputs())[
+                    plug
+                ].connections:
                     dnode = connection.node
-                    start = [node.item.position[0] + node.item.bbox[2],
-                             node.item.position[1] + 3 + len(node.all_inputs()) + i]
-                    end = [dnode.item.position[0],
-                           dnode.item.position[1] + 3 +
-                           list(dnode._sort_plugs(
-                               dnode.all_inputs()).values()).index(
-                        connection)]
+                    start = [
+                        node.item.position[0] + node.item.bbox[2],
+                        node.item.position[1] + 3 + len(node.all_inputs()) + i,
+                    ]
+                    end = [
+                        dnode.item.position[0],
+                        dnode.item.position[1]
+                        + 3
+                        + list(
+                            dnode._sort_plugs(dnode.all_inputs()).values()
+                        ).index(connection),
+                    ]
                     canvas_.add_item(item.Line(start, end), 0)
 
         return canvas_.render()
@@ -448,10 +493,10 @@ class Graph(object):
                     pretty.append("  {0}.{1}".format(p.node.name, p.name))
         for node in self.evaluation_sequence:
             pretty.append(node.list_repr())
-        return '\n '.join(pretty)
+        return "\n ".join(pretty)
 
 
-default_graph = Graph(name='default')
+default_graph = Graph(name="default")
 
 
 def get_default_graph():

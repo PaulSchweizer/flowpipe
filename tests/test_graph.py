@@ -2,14 +2,19 @@ from __future__ import print_function
 
 import time
 
-import flowpipe.graph
 import pytest
+
+import flowpipe.graph
 from flowpipe.errors import CycleError
-from flowpipe.graph import (Graph, get_default_graph, reset_default_graph,
-                            set_default_graph)
+from flowpipe.evaluator import LinearEvaluator
+from flowpipe.graph import (
+    Graph,
+    get_default_graph,
+    reset_default_graph,
+    set_default_graph,
+)
 from flowpipe.node import INode, Node
 from flowpipe.plug import InputPlug, InputPlugGroup, OutputPlug
-from flowpipe.evaluator import LinearEvaluator
 
 
 @pytest.fixture
@@ -18,17 +23,16 @@ def clear_default_graph():
 
 
 class NodeForTesting(INode):
-
     def __init__(self, name=None, in1=None, in2=None, **kwargs):
         super(NodeForTesting, self).__init__(name, **kwargs)
-        OutputPlug('out', self)
-        OutputPlug('out2', self)
-        InputPlug('in1', self, in1)
-        InputPlug('in2', self, in2)
+        OutputPlug("out", self)
+        OutputPlug("out2", self)
+        InputPlug("in1", self, in1)
+        InputPlug("in2", self, in2)
 
     def compute(self, in1, in2):
         """Multiply the two inputs."""
-        return {'out': in1 * in2, 'out2': None}
+        return {"out": in1 * in2, "out2": None}
 
 
 @Node(outputs=["out"])
@@ -38,32 +42,33 @@ def FunctionNodeForTesting(in_, in_1, in_2):
 
 def test_evaluation_matrix(clear_default_graph):
     """The nodes as a 2D grid."""
+
     @Node(outputs=["out", "out2"])
     def DummyNode(in1, in2):
         pass
 
-    start = DummyNode(name='start')
-    n11 = DummyNode(name='11')
-    n12 = DummyNode(name='12')
-    n21 = DummyNode(name='21')
-    n31 = DummyNode(name='31')
-    n32 = DummyNode(name='32')
-    n33 = DummyNode(name='33')
-    end = DummyNode(name='end')
+    start = DummyNode(name="start")
+    n11 = DummyNode(name="11")
+    n12 = DummyNode(name="12")
+    n21 = DummyNode(name="21")
+    n31 = DummyNode(name="31")
+    n32 = DummyNode(name="32")
+    n33 = DummyNode(name="33")
+    end = DummyNode(name="end")
 
     # Connect them
-    start.outputs['out'] >> n11.inputs['in1']
-    start.outputs['out'] >> n21.inputs['in1']
-    start.outputs['out'] >> n31.inputs['in1']['0']
+    start.outputs["out"] >> n11.inputs["in1"]
+    start.outputs["out"] >> n21.inputs["in1"]
+    start.outputs["out"] >> n31.inputs["in1"]["0"]
 
-    n31.outputs['out'] >> n32.inputs['in1']
-    n32.outputs['out'] >> n33.inputs['in1']
+    n31.outputs["out"] >> n32.inputs["in1"]
+    n32.outputs["out"] >> n33.inputs["in1"]
 
-    n11.outputs['out'] >> n12.inputs['in1']
-    n33.outputs['out'] >> n12.inputs['in2']
+    n11.outputs["out"] >> n12.inputs["in1"]
+    n33.outputs["out"] >> n12.inputs["in2"]
 
-    n12.outputs['out'] >> end.inputs['in1']
-    n21.outputs['out2']['0'] >> end.inputs['in2']
+    n12.outputs["out"] >> end.inputs["in1"]
+    n21.outputs["out2"]["0"] >> end.inputs["in2"]
 
     nodes = [start, n11, n12, n21, n31, n32, n33, end]
     graph = Graph(nodes=nodes)
@@ -79,80 +84,80 @@ def test_evaluation_matrix(clear_default_graph):
 
 def test_linar_evaluation_sequence(clear_default_graph):
     """A linear graph."""
-    n1 = NodeForTesting('n1')
-    n2 = NodeForTesting('n2')
-    n3 = NodeForTesting('n3')
-    n4 = NodeForTesting('n4')
-    n1.outputs['out'] >> n2.inputs['in1']
-    n2.outputs['out'] >> n3.inputs['in1']['0']
-    n3.outputs['out']['0'] >> n4.inputs['in1']
+    n1 = NodeForTesting("n1")
+    n2 = NodeForTesting("n2")
+    n3 = NodeForTesting("n3")
+    n4 = NodeForTesting("n4")
+    n1.outputs["out"] >> n2.inputs["in1"]
+    n2.outputs["out"] >> n3.inputs["in1"]["0"]
+    n3.outputs["out"]["0"] >> n4.inputs["in1"]
     nodes = [n2, n1, n3, n4]
     graph = Graph(nodes=nodes)
 
     seq = [s.name for s in graph.evaluation_sequence]
 
-    assert ['n1', 'n2', 'n3', 'n4'] == seq
+    assert ["n1", "n2", "n3", "n4"] == seq
 
 
 def test_branching_evaluation_sequence(clear_default_graph):
     """Branching graph."""
-    n1 = NodeForTesting('n1')
-    n2 = NodeForTesting('n2')
-    n3 = NodeForTesting('n3')
-    n1.outputs['out'] >> n2.inputs['in1']
-    n1.outputs['out'] >> n3.inputs['in1']
+    n1 = NodeForTesting("n1")
+    n2 = NodeForTesting("n2")
+    n3 = NodeForTesting("n3")
+    n1.outputs["out"] >> n2.inputs["in1"]
+    n1.outputs["out"] >> n3.inputs["in1"]
     nodes = [n2, n1, n3]
     graph = Graph(nodes=nodes)
 
     seq = [s.name for s in graph.evaluation_sequence]
 
-    assert 'n1' == seq[0]
-    assert 'n2' in seq[1:]
-    assert 'n3' in seq[1:]
+    assert "n1" == seq[0]
+    assert "n2" in seq[1:]
+    assert "n3" in seq[1:]
 
 
 def test_complex_branching_evaluation_sequence(clear_default_graph):
     """Connect and disconnect nodes."""
     # The Nodes
-    start = NodeForTesting('start')
-    n11 = NodeForTesting('11')
-    n12 = NodeForTesting('12')
-    n21 = NodeForTesting('21')
-    n31 = NodeForTesting('31')
-    n32 = NodeForTesting('32')
-    n33 = NodeForTesting('33')
-    end = NodeForTesting('end')
+    start = NodeForTesting("start")
+    n11 = NodeForTesting("11")
+    n12 = NodeForTesting("12")
+    n21 = NodeForTesting("21")
+    n31 = NodeForTesting("31")
+    n32 = NodeForTesting("32")
+    n33 = NodeForTesting("33")
+    end = NodeForTesting("end")
 
     # Connect them
-    start.outputs['out'] >> n11.inputs['in1']
-    start.outputs['out'] >> n21.inputs['in1']
-    start.outputs['out'] >> n31.inputs['in1']
+    start.outputs["out"] >> n11.inputs["in1"]
+    start.outputs["out"] >> n21.inputs["in1"]
+    start.outputs["out"] >> n31.inputs["in1"]
 
-    n31.outputs['out'] >> n32.inputs['in1']
-    n32.outputs['out'] >> n33.inputs['in1']
+    n31.outputs["out"] >> n32.inputs["in1"]
+    n32.outputs["out"] >> n33.inputs["in1"]
 
-    n11.outputs['out'] >> n12.inputs['in1']
-    n33.outputs['out'] >> n12.inputs['in2']
+    n11.outputs["out"] >> n12.inputs["in1"]
+    n33.outputs["out"] >> n12.inputs["in2"]
 
-    n12.outputs['out'] >> end.inputs['in1']
-    n21.outputs['out'] >> end.inputs['in2']
+    n12.outputs["out"] >> end.inputs["in1"]
+    n21.outputs["out"] >> end.inputs["in2"]
 
     nodes = [start, n11, n12, n21, n31, n32, n33, end]
     graph = Graph(nodes=nodes)
 
     seq = [s.name for s in graph.evaluation_sequence]
 
-    assert 'start' == seq[0]
+    assert "start" == seq[0]
 
-    assert '11' in seq[1:4]
-    assert '21' in seq[1:4]
-    assert '31' in seq[1:4]
+    assert "11" in seq[1:4]
+    assert "21" in seq[1:4]
+    assert "31" in seq[1:4]
 
-    assert '32' in seq[4:6]
-    assert '33' in seq[4:6]
+    assert "32" in seq[4:6]
+    assert "33" in seq[4:6]
 
-    assert '12' == seq[-2]
-    assert 'end' == seq[-1]
+    assert "12" == seq[-2]
+    assert "end" == seq[-1]
 
 
 def test_serialize_graph_to_json(clear_default_graph, branching_graph):
@@ -171,7 +176,9 @@ def test_serialize_graph_to_pickle(clear_default_graph, branching_graph):
 
 def test_string_representations(clear_default_graph, branching_graph):
     """Print the Graph."""
-    assert str(branching_graph) == '\
+    assert (
+        str(branching_graph)
+        == "\
 +------------------------------------------------------------------------+\n\
 |                               TestGraph                                |\n\
 |------------------------------------------------------------------------|\n\
@@ -192,8 +199,11 @@ def test_string_representations(clear_default_graph, branching_graph):
 |                         |     out2<> o                                 |\n\
 |                         +------------+                                 |\n\
 +------------------------------------------------------------------------+\n\
-                                                                          '
-    assert branching_graph.list_repr() == """TestGraph
+                                                                          "
+    )
+    assert (
+        branching_graph.list_repr()
+        == """TestGraph
  Start
   [i] in1: null
   [i] in2: null
@@ -216,6 +226,7 @@ def test_string_representations(clear_default_graph, branching_graph):
   [i] in2: null
   [o] out: null
   [o] out2: null"""
+    )
 
 
 def test_string_representations_with_subgraphs(clear_default_graph):
@@ -224,16 +235,18 @@ def test_string_representations_with_subgraphs(clear_default_graph):
     sub1 = Graph(name="sub1")
     sub2 = Graph(name="sub2")
 
-    start = NodeForTesting(name='Start', graph=main)
-    n1 = NodeForTesting(name='Node1', graph=sub1)
-    n2 = NodeForTesting(name='Node2', graph=sub1)
-    end = NodeForTesting(name='End', graph=sub2)
-    start.outputs['out'] >> n1.inputs['in1']
-    start.outputs['out'] >> n2.inputs['in1']['0']
-    n1.outputs['out'] >> end.inputs['in1']['1']
-    n2.outputs['out']['0'] >> end.inputs['in1']['2']
-    n2.outputs['out']['0'] >> end.inputs['in2']
-    assert str(main) == '\
+    start = NodeForTesting(name="Start", graph=main)
+    n1 = NodeForTesting(name="Node1", graph=sub1)
+    n2 = NodeForTesting(name="Node2", graph=sub1)
+    end = NodeForTesting(name="End", graph=sub2)
+    start.outputs["out"] >> n1.inputs["in1"]
+    start.outputs["out"] >> n2.inputs["in1"]["0"]
+    n1.outputs["out"] >> end.inputs["in1"]["1"]
+    n2.outputs["out"]["0"] >> end.inputs["in1"]["2"]
+    n2.outputs["out"]["0"] >> end.inputs["in2"]
+    assert (
+        str(main)
+        == "\
 +--------------------------------------------------------------------------------+\n\
 |                                      main                                      |\n\
 |--------------------------------------------------------------------------------|\n\
@@ -256,7 +269,8 @@ def test_string_representations_with_subgraphs(clear_default_graph):
 |                         |             out2<> o                                 |\n\
 |                         +--------------------+                                 |\n\
 +--------------------------------------------------------------------------------+\n\
-                                                                                  '
+                                                                                  "
+    )
 
 
 def test_nodes_can_be_added_to_graph(clear_default_graph):
@@ -269,11 +283,14 @@ def test_nodes_can_be_added_to_graph(clear_default_graph):
 def test_nodes_can_be_deleted(clear_default_graph, branching_graph):
     """All connections are cleared before the node object is deleted."""
     branching_graph["Start"].outputs["out"]["0"].connect(
-        branching_graph["Node2"].inputs["in1"]["0"])
+        branching_graph["Node2"].inputs["in1"]["0"]
+    )
     branching_graph["Start"].outputs["out"]["1"].connect(
-        branching_graph["Node2"].inputs["in1"])
+        branching_graph["Node2"].inputs["in1"]
+    )
     branching_graph["Start"].outputs["out"].connect(
-        branching_graph["Node2"].inputs["in1"]["1"])
+        branching_graph["Node2"].inputs["in1"]["1"]
+    )
 
     branching_graph.delete_node(branching_graph["Node2"])
     assert 3 == len(branching_graph.nodes)
@@ -289,15 +306,25 @@ def test_nodes_can_be_deleted(clear_default_graph, branching_graph):
 
 
 def test_string_representation_with_inputpluggroups(branching_graph):
-    InputPlugGroup("in1", branching_graph, [
-        branching_graph["Node1"].inputs["in1"],
-        branching_graph["Node2"].inputs["in1"],
-    ])
-    InputPlugGroup("in2", branching_graph, [
-        branching_graph["Node1"].inputs["in2"],
-        branching_graph["Node2"].inputs["in2"],
-    ])
-    assert str(branching_graph) == """\
+    InputPlugGroup(
+        "in1",
+        branching_graph,
+        [
+            branching_graph["Node1"].inputs["in1"],
+            branching_graph["Node2"].inputs["in1"],
+        ],
+    )
+    InputPlugGroup(
+        "in2",
+        branching_graph,
+        [
+            branching_graph["Node1"].inputs["in2"],
+            branching_graph["Node2"].inputs["in2"],
+        ],
+    )
+    assert (
+        str(branching_graph)
+        == """\
 +------------------------------------------------------------------------+
 |                               TestGraph                                |
 |------------------------------------------------------------------------|
@@ -326,8 +353,11 @@ o in2                                                                    |
 |                         +------------+                                 |
 +------------------------------------------------------------------------+
                                                                           """
+    )
     # return
-    assert branching_graph.list_repr() == """TestGraph
+    assert (
+        branching_graph.list_repr()
+        == """TestGraph
  [Input Groups]
   [g] in1:
    Node1.in1
@@ -357,6 +387,7 @@ o in2                                                                    |
   [i] in2: null
   [o] out: null
   [o] out2: null"""
+    )
 
 
 def test_nested_graphs_expand_sub_graphs(clear_default_graph):
@@ -411,7 +442,7 @@ def test_nested_graphs_expand_sub_graphs(clear_default_graph):
     G2.outputs["out"] >> N7.inputs["in_1"]
     N1.outputs["out"] >> N7.inputs["in_2"]
 
-    order = [['N1', 'N2'], ['N3'], ['N4'], ['N5'], ['N6'], ['N7']]
+    order = [["N1", "N2"], ["N3"], ["N4"], ["N5"], ["N6"], ["N7"]]
 
     for i, nodes in enumerate(G1.evaluation_matrix):
         assert sorted([n.name for n in nodes]) == sorted(order[i])
@@ -457,6 +488,7 @@ def test_nodes_can_add_to_graph_on_init(clear_default_graph):
     @Node()
     def function():
         pass
+
     node = function(graph=graph)
     assert graph["function"] == node
 
@@ -468,7 +500,7 @@ def test_get_default_graph():
 
 
 def test_set_default_graph(clear_default_graph):
-    new_default = Graph(name='new default')
+    new_default = Graph(name="new default")
     set_default_graph(new_default)
     direct = flowpipe.graph.default_graph
     assert direct is new_default
@@ -479,11 +511,11 @@ def test_set_default_graph(clear_default_graph):
 
 
 def test_reset_default_graph(clear_default_graph):
-    new_default = Graph(name='new default')
+    new_default = Graph(name="new default")
     set_default_graph(new_default)
-    assert get_default_graph().name == 'new default'
+    assert get_default_graph().name == "new default"
     reset_default_graph()
-    assert get_default_graph().name == 'default'
+    assert get_default_graph().name == "default"
 
 
 def test_threaded_evaluation():
@@ -505,20 +537,20 @@ def test_threaded_evaluation():
                                |        result o
                                +---------------+
     """
-    sleep_time = .2
-    graph = Graph(name='threaded')
+    sleep_time = 0.2
+    graph = Graph(name="threaded")
 
-    @Node(outputs=['result'])
+    @Node(outputs=["result"])
     def AddNode(number1, number2):
         time.sleep(sleep_time)
-        return {'result': number1 + number2}
+        return {"result": number1 + number2}
 
-    n1 = AddNode(name='AddNode1', graph=graph, number1=1, number2=1)
-    n2 = AddNode(name='AddNode2', graph=graph, number2=1)
-    n3 = AddNode(name='AddNode3', graph=graph, number2=1)
+    n1 = AddNode(name="AddNode1", graph=graph, number1=1, number2=1)
+    n2 = AddNode(name="AddNode2", graph=graph, number2=1)
+    n3 = AddNode(name="AddNode3", graph=graph, number2=1)
 
-    n1.outputs['result'] >> n2.inputs['number1']
-    n1.outputs['result'] >> n3.inputs['number1']
+    n1.outputs["result"] >> n2.inputs["number1"]
+    n1.outputs["result"] >> n3.inputs["number1"]
 
     start = time.time()
     graph.evaluate(mode="threading", max_workers=2)
@@ -527,8 +559,8 @@ def test_threaded_evaluation():
     runtime = end - start
 
     assert runtime < len(graph.nodes) * sleep_time
-    assert n2.outputs['result'].value == 3
-    assert n3.outputs['result'].value == 3
+    assert n2.outputs["result"].value == 3
+    assert n3.outputs["result"].value == 3
 
 
 def test_valid_evaluation_mode():
@@ -682,23 +714,23 @@ def test_clear_plugs_after_use_if_not_data_persistent():
 
 def test_passing_evaluator(clear_default_graph, branching_graph):
     """Test that passing an evalutor to graph.evaluate works."""
-    graph = Graph(name='test_passing_evaluator')
+    graph = Graph(name="test_passing_evaluator")
 
-    @Node(outputs=['result'])
+    @Node(outputs=["result"])
     def AddNode(number1, number2):
-        return {'result': number1 + number2}
+        return {"result": number1 + number2}
 
-    n1 = AddNode(name='AddNode1', graph=graph, number1=1, number2=1)
-    n2 = AddNode(name='AddNode2', graph=graph, number2=1)
-    n3 = AddNode(name='AddNode3', graph=graph, number2=1)
+    n1 = AddNode(name="AddNode1", graph=graph, number1=1, number2=1)
+    n2 = AddNode(name="AddNode2", graph=graph, number2=1)
+    n3 = AddNode(name="AddNode3", graph=graph, number2=1)
 
-    n1.outputs['result'] >> n2.inputs['number1']
-    n1.outputs['result'] >> n3.inputs['number1']
+    n1.outputs["result"] >> n2.inputs["number1"]
+    n1.outputs["result"] >> n3.inputs["number1"]
 
     graph.evaluate(mode=None, evaluator=LinearEvaluator())
 
-    assert n2.outputs['result'].value == 3
-    assert n3.outputs['result'].value == 3
+    assert n2.outputs["result"].value == 3
+    assert n3.outputs["result"].value == 3
 
 
 def test_mode_and_evalutor_are_exclusive(clear_default_graph, branching_graph):

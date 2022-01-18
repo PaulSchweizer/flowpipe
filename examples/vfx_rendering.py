@@ -32,68 +32,78 @@ o scene_file<"/scene/fo>    |     |                                       |     
 from flowpipe import Graph, Node
 
 
-@Node(outputs=['renderings'], metadata={'interpreter': 'maya'})
+@Node(outputs=["renderings"], metadata={"interpreter": "maya"})
 def MayaRender(frames, scene_file):
-    return {'renderings': '/renderings/file.%04d.exr'}
+    return {"renderings": "/renderings/file.%04d.exr"}
 
 
-@Node(outputs=['images'])
+@Node(outputs=["images"])
 def CheckImages(images):
-    return {'images': images}
+    return {"images": images}
 
 
-@Node(outputs=['slapcomp'])
+@Node(outputs=["slapcomp"])
 def CreateSlapComp(images, template):
-    return {'slapcomp': 'slapcomp.nk'}
+    return {"slapcomp": "slapcomp.nk"}
 
 
-@Node(outputs=['renderings'], metadata={'interpreter': 'nuke'})
+@Node(outputs=["renderings"], metadata={"interpreter": "nuke"})
 def NukeRender(frames, scene_file):
-    return {'renderings': '/renderings/file.%04d.exr'}
+    return {"renderings": "/renderings/file.%04d.exr"}
 
 
-@Node(outputs=['quicktime'])
+@Node(outputs=["quicktime"])
 def Quicktime(images):
-    return {'quicktime': 'resulting.mov'}
+    return {"quicktime": "resulting.mov"}
 
 
-@Node(outputs=['status'])
+@Node(outputs=["status"])
 def UpdateDatabase(id_, images):
     """Update the database entries of the given asset with the given data."""
-    return {'status': True}
+    return {"status": True}
 
 
 def complex_cg_render(frames, batch_size):
-    graph = Graph(name='Rendering')
+    graph = Graph(name="Rendering")
 
-    slapcomp = CreateSlapComp(graph=graph, template='nuke_template.nk')
+    slapcomp = CreateSlapComp(graph=graph, template="nuke_template.nk")
     update_database = UpdateDatabase(graph=graph, id_=123456)
 
     for i in range(0, frames, batch_size):
         maya_render = MayaRender(
-            name='MayaRender{0}-{1}'.format(i, i + batch_size),
+            name="MayaRender{0}-{1}".format(i, i + batch_size),
             graph=graph,
             frames=range(i, i + batch_size),
-            scene_file='/scene/for/rendering.ma')
+            scene_file="/scene/for/rendering.ma",
+        )
         check_images = CheckImages(
-            name='CheckImages{0}-{1}'.format(i, i + batch_size),
-            graph=graph)
-        maya_render.outputs['renderings'].connect(check_images.inputs['images'])
-        check_images.outputs['images'].connect(slapcomp.inputs['images'][str(i)])
-        check_images.outputs['images'].connect(update_database.inputs['images'][str(i)])
+            name="CheckImages{0}-{1}".format(i, i + batch_size), graph=graph
+        )
+        maya_render.outputs["renderings"].connect(
+            check_images.inputs["images"]
+        )
+        check_images.outputs["images"].connect(
+            slapcomp.inputs["images"][str(i)]
+        )
+        check_images.outputs["images"].connect(
+            update_database.inputs["images"][str(i)]
+        )
 
     quicktime = Quicktime()
 
     for i in range(0, frames, batch_size):
         nuke_render = NukeRender(
-            name='NukeRender{0}-{1}'.format(i, i + batch_size),
+            name="NukeRender{0}-{1}".format(i, i + batch_size),
             graph=graph,
-            frames=range(i, i + batch_size))
-        slapcomp.outputs['slapcomp'].connect(nuke_render.inputs['scene_file'])
-        nuke_render.outputs['renderings'].connect(quicktime.inputs['images'][str(i)])
+            frames=range(i, i + batch_size),
+        )
+        slapcomp.outputs["slapcomp"].connect(nuke_render.inputs["scene_file"])
+        nuke_render.outputs["renderings"].connect(
+            quicktime.inputs["images"][str(i)]
+        )
 
     print(graph)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     complex_cg_render(30, 10)

@@ -1,4 +1,5 @@
 import pytest
+
 from flowpipe import Graph, InputPlugGroup, Node
 
 
@@ -41,10 +42,14 @@ def demo_graph_fixture():
     DemoNode(graph=main, name="A")
 
     # Group inputs in the sub graph
-    InputPlugGroup("graph_in", sub, [
-        c1.inputs["in_"],
-        c2.inputs["in_"],
-    ])
+    InputPlugGroup(
+        "graph_in",
+        sub,
+        [
+            c1.inputs["in_"],
+            c2.inputs["in_"],
+        ],
+    )
     return sub, main
 
 
@@ -109,8 +114,14 @@ def test_connect_groupinput_to_suboutput(demo_graph_fixture):
 
     sub.inputs["graph_in"].disconnect(main["A"].outputs["out"]["1"])
 
-    assert main["A"].outputs["out"]["1"] not in sub["C1"].inputs["in_"].connections
-    assert main["A"].outputs["out"]["1"] not in sub["C2"].inputs["in_"].connections
+    assert (
+        main["A"].outputs["out"]["1"]
+        not in sub["C1"].inputs["in_"].connections
+    )
+    assert (
+        main["A"].outputs["out"]["1"]
+        not in sub["C2"].inputs["in_"].connections
+    )
 
 
 def test_connect_suboutput_to_groupinput(demo_graph_fixture):
@@ -122,8 +133,14 @@ def test_connect_suboutput_to_groupinput(demo_graph_fixture):
 
     main["A"].outputs["out"]["1"].disconnect(sub.inputs["graph_in"])
 
-    assert main["A"].outputs["out"]["1"] not in sub["C1"].inputs["in_"].connections
-    assert main["A"].outputs["out"]["1"] not in sub["C2"].inputs["in_"].connections
+    assert (
+        main["A"].outputs["out"]["1"]
+        not in sub["C1"].inputs["in_"].connections
+    )
+    assert (
+        main["A"].outputs["out"]["1"]
+        not in sub["C2"].inputs["in_"].connections
+    )
 
 
 def test_setting_value_of_groupinput(demo_graph_fixture):

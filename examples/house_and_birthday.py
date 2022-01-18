@@ -35,7 +35,7 @@ o amount<4>         |     +--->o attendees<>         |
 +-------------------+
 
 """
-from flowpipe import Graph, INode, Node, InputPlug, OutputPlug
+from flowpipe import Graph, INode, InputPlug, Node, OutputPlug
 
 
 class HireWorkers(INode):
@@ -47,16 +47,16 @@ class HireWorkers(INode):
 
     def __init__(self, amount=None, **kwargs):
         super(HireWorkers, self).__init__(**kwargs)
-        InputPlug('amount', self, amount)
-        OutputPlug('workers', self)
+        InputPlug("amount", self, amount)
+        OutputPlug("workers", self)
 
     def compute(self, amount):
-        workers = ['John', 'Jane', 'Mike', 'Michelle']
-        print('{0} workers are hired to build the house.'.format(amount))
-        return {'workers.{0}'.format(i): workers[i] for i in range(amount)}
+        workers = ["John", "Jane", "Mike", "Michelle"]
+        print("{0} workers are hired to build the house.".format(amount))
+        return {"workers.{0}".format(i): workers[i] for i in range(amount)}
 
 
-@Node(outputs=['workers'])
+@Node(outputs=["workers"])
 def Build(workers, section):
     """A node can also be created by the Node decorator.outputs
 
@@ -64,67 +64,73 @@ def Build(workers, section):
     in the decorator itself.
     The wrapped function is used as the compute method.
     """
-    print('{0} are building the {1}'.format(', '.join(workers.values()), section))
-    return {'workers.{0}'.format(i): worker for i, worker in workers.items()}
+    print(
+        "{0} are building the {1}".format(", ".join(workers.values()), section)
+    )
+    return {"workers.{0}".format(i): worker for i, worker in workers.items()}
 
 
 @Node()
 def Party(attendees):
     """Nodes do not necessarily need to have output or input plugs."""
-    print('{0} and {1} are having a great party!'.format(
-        ', '.join(list(attendees.values())[:-1]), list(attendees.values())[-1]))
+    print(
+        "{0} and {1} are having a great party!".format(
+            ", ".join(list(attendees.values())[:-1]),
+            list(attendees.values())[-1],
+        )
+    )
 
 
-graph = Graph(name='Build a House')
+graph = Graph(name="Build a House")
 workers = HireWorkers(graph=graph, amount=4)
-build_walls = Build(graph=graph, name='Build Walls', section='walls')
-build_roof = Build(graph=graph, name='Build Roof', section='roof')
-party = Party(graph=graph, name='Housewarming Party')
+build_walls = Build(graph=graph, name="Build Walls", section="walls")
+build_roof = Build(graph=graph, name="Build Roof", section="roof")
+party = Party(graph=graph, name="Housewarming Party")
 
 # Nodes are connected via their input/output plugs.
-workers.outputs['workers']['0'].connect(build_walls.inputs['workers']['0'])
-workers.outputs['workers']['1'].connect(build_walls.inputs['workers']['1'])
-workers.outputs['workers']['2'].connect(build_roof.inputs['workers']['0'])
-workers.outputs['workers']['3'].connect(build_roof.inputs['workers']['1'])
+workers.outputs["workers"]["0"].connect(build_walls.inputs["workers"]["0"])
+workers.outputs["workers"]["1"].connect(build_walls.inputs["workers"]["1"])
+workers.outputs["workers"]["2"].connect(build_roof.inputs["workers"]["0"])
+workers.outputs["workers"]["3"].connect(build_roof.inputs["workers"]["1"])
 
 # Connecting nodes can be done via the bit shift operator as well
-build_walls.outputs['workers']['0'] >> party.inputs['attendees']['0']
-build_walls.outputs['workers']['1'] >> party.inputs['attendees']['2']
-build_roof.outputs['workers']['0'] >> party.inputs['attendees']['1']
-build_roof.outputs['workers']['1'] >> party.inputs['attendees']['3']
+build_walls.outputs["workers"]["0"] >> party.inputs["attendees"]["0"]
+build_walls.outputs["workers"]["1"] >> party.inputs["attendees"]["2"]
+build_roof.outputs["workers"]["0"] >> party.inputs["attendees"]["1"]
+build_roof.outputs["workers"]["1"] >> party.inputs["attendees"]["3"]
 
 # Initial values can be set onto the input plugs for initialization
-party.inputs['attendees']['4'].value = 'Homeowner'
+party.inputs["attendees"]["4"].value = "Homeowner"
 
 
-print('---------------------------------------')
+print("---------------------------------------")
 print(graph.name)
 print(graph)
 print(graph.list_repr())
-print('---------------------------------------')
+print("---------------------------------------")
 graph.evaluate()
-print('---------------------------------------')
+print("---------------------------------------")
 
 
-graph = Graph(name='Celebrate a Birthday Party')
+graph = Graph(name="Celebrate a Birthday Party")
 
 
-@Node(outputs=['people'])
+@Node(outputs=["people"])
 def InvitePeople(amount):
-    people = ['John', 'Jane', 'Mike', 'Michelle']
-    d = {'people.{0}'.format(i): people[i] for i in range(amount)}
-    d['people'] = {people[i]: people[i] for i in range(amount)}
+    people = ["John", "Jane", "Mike", "Michelle"]
+    d = {"people.{0}".format(i): people[i] for i in range(amount)}
+    d["people"] = {people[i]: people[i] for i in range(amount)}
     return d
 
 
 invite = InvitePeople(graph=graph, amount=4)
-birthday_party = Party(graph=graph, name='Birthday Party')
-invite.outputs['people'] >> birthday_party.inputs['attendees']
+birthday_party = Party(graph=graph, name="Birthday Party")
+invite.outputs["people"] >> birthday_party.inputs["attendees"]
 
 
-print('---------------------------------------')
+print("---------------------------------------")
 print(graph.name)
 print(graph)
-print('---------------------------------------')
+print("---------------------------------------")
 graph.evaluate()
-print('---------------------------------------')
+print("---------------------------------------")
