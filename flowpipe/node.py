@@ -103,28 +103,34 @@ class INode(object):
     @property
     def upstream_nodes(self):
         """Nodes connected directly or indirectly to inputs of this Node."""
-        upstream_nodes = []
+        upstream_nodes = {}
         for input_ in self.inputs.values():
-            upstream = [c.node for c in input_.connections]
+            upstreams = [c.node for c in input_.connections]
             for sub_plug in input_._sub_plugs.values():
-                upstream += [c.node for c in sub_plug.connections]
-            upstream_nodes += upstream
-            for d in upstream:
-                upstream_nodes += d.upstream_nodes
-        return list(set(upstream_nodes))
+                upstreams += [c.node for c in sub_plug.connections]
+            for upstream in upstreams:
+                if upstream.identifier not in upstream_nodes:
+                    upstream_nodes[upstream.identifier] = upstream
+                    for u in upstream.upstream_nodes:
+                        if u.identifier not in upstream_nodes:
+                            upstream_nodes[u.identifier] = u
+        return list(upstream_nodes.values())
 
     @property
     def downstream_nodes(self):
         """Nodes connected directly or indirectly to outputs of this Node."""
-        downstream_nodes = []
+        downstream_nodes = {}
         for output in self.outputs.values():
-            downstream = [c.node for c in output.connections]
+            downstreams = [c.node for c in output.connections]
             for sub_plug in output._sub_plugs.values():
-                downstream += [c.node for c in sub_plug.connections]
-            downstream_nodes += downstream
-            for d in downstream:
-                downstream_nodes += d.downstream_nodes
-        return list(set(downstream_nodes))
+                downstreams += [c.node for c in sub_plug.connections]
+            for downstream in downstreams:
+                if downstream.identifier not in downstream_nodes:
+                    downstream_nodes[downstream.identifier] = downstream
+                    for d in downstream.downstream_nodes:
+                        if d.identifier not in downstream_nodes:
+                            downstream_nodes[d.identifier] = d
+        return list(downstream_nodes.values())
 
     def evaluate(self):
         """Compute this Node, log it and clean the input Plugs.
