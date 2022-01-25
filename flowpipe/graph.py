@@ -115,7 +115,7 @@ class Graph(object):
 
         current_level = 0
         while nodes_to_sort:
-            before_this_level = nodes_to_sort.copy()
+            sorted_this_loop = False
             for node in nodes_to_sort:
                 up_levels = [
                     levels.get(up_node) for up_node in cache_upstream[node]
@@ -127,11 +127,12 @@ class Graph(object):
                     # all upstream nodes are assigned lower levels,
                     # so this node goes on the this level
                     levels[node] = current_level
+                    sorted_this_loop = True
             nodes_to_sort -= set(levels.keys())
             current_level += 1
 
             # this theoretically can't occur, but let's catch it anyways
-            if nodes_to_sort == before_this_level:  # pragma: no cover
+            if not sorted_this_loop:  # pragma: no cover
                 raise RuntimeError("Dependencies could not be resoled")
 
         matrix = []
