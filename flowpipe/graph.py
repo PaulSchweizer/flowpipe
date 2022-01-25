@@ -4,6 +4,7 @@ from __future__ import absolute_import, print_function
 import logging
 import pickle
 import warnings
+from collections import defaultdict
 
 from ascii_canvas import canvas, item
 
@@ -135,12 +136,14 @@ class Graph(object):
             if not sorted_this_loop:  # pragma: no cover
                 raise RuntimeError("Dependencies could not be resoled")
 
+        nodes_by_level = defaultdict(list)
+        for node, level in levels.items():
+            nodes_by_level[level].append(node)
+
         matrix = []
-        for level in sorted(list(set(levels.values()))):
-            row = []
-            for node in [n for n in levels if levels[n] == level]:
-                row.append(node)
-            row.sort(key=lambda key: key.name)
+        for level in sorted(nodes_by_level.keys()):
+            row = nodes_by_level[level]
+            row.sort(key=lambda node: node.name)
             matrix.append(row)
 
         return matrix
