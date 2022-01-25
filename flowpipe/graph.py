@@ -106,11 +106,33 @@ class Graph(object):
         Returns:
             (list of list of INode): Each sub list represents a row.
         """
+        nodes_to_sort = set(self.all_nodes)
         levels = {}
 
-        for node in self.all_nodes:
-            if not len(node.upstream_nodes):
-                self._sort_node(node, levels, level=0)
+        cache_upstream = {
+            node: set(node.upstream_nodes) for node in nodes_to_sort
+        }
+
+        current_level = 0
+        while nodes_to_sort:
+            before_this_level = nodes_to_sort.copy()
+            for node in nodes_to_sort:
+                up_levels = [
+                    levels.get(up_node) for up_node in cache_upstream[node]
+                ]
+                # Add level -1 to properly sort nodes without dependencies
+                up_levels += [-1]
+
+                if None not in up_levels and max(up_levels) < current_level:
+                    # all upstream nodes are assigned lower levels,
+                    # so this node goes on the this level
+                    levels[node] = current_level
+            nodes_to_sort -= set(levels.keys())
+            current_level += 1
+
+            # this theoretically can't occur, but let's catch it anyways
+            if nodes_to_sort == before_this_level:  # pragma: no cover
+                raise RuntimeError("Dependencies could not be resoled")
 
         matrix = []
         for level in sorted(list(set(levels.values()))):
@@ -380,23 +402,6 @@ class Graph(object):
             DeprecationWarning,
         )
         return deserialize_graph(data)
-
-    def _sort_node(self, node, levels, level):
-        """Sort the node into the correct level."""
-        if node in levels.keys():
-            if level > levels[node]:
-                levels[node] = level
-        else:
-            levels[node] = level
-
-        downstream_nodes = set()
-        for output in node.outputs.values():
-            downstream_nodes |= set(c.node for c in output.connections)
-            for sub_plug in output._sub_plugs.values():
-                downstream_nodes |= set(c.node for c in sub_plug.connections)
-
-        for downstream_node in downstream_nodes:
-            self._sort_node(downstream_node, levels, level=level + 1)
 
     def node_repr(self):
         """Format to visualize the Graph."""
