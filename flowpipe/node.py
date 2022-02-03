@@ -101,6 +101,18 @@ class INode(object):
         return False
 
     @property
+    def parents(self):
+        """Nodes connected directly to inputs of this Node."""
+        parents = set()
+        for input_ in self.inputs.values():
+            for conn in input_.connections:
+                parents.add(conn.node)
+            for sub_plug in input_._sub_plugs.values():
+                for conn in sub_plug.connections:
+                    parents.add(conn.node)
+        return parents
+
+    @property
     def upstream_nodes(self):
         """Nodes connected directly or indirectly to inputs of this Node."""
         upstream_nodes = {}
@@ -115,6 +127,18 @@ class INode(object):
                         if u.identifier not in upstream_nodes:
                             upstream_nodes[u.identifier] = u
         return list(upstream_nodes.values())
+
+    @property
+    def children(self):
+        """Nodes connected directly to outputs of this Node."""
+        children = set()
+        for output in self.outputs.values():
+            for conn in output.connections:
+                children.add(conn.node)
+            for sub_plug in output._sub_plugs.values():
+                for conn in sub_plug.connections:
+                    children.add(conn.node)
+        return children
 
     @property
     def downstream_nodes(self):

@@ -4,7 +4,6 @@ from __future__ import absolute_import, print_function
 import logging
 import pickle
 import warnings
-from collections import defaultdict
 
 from ascii_canvas import canvas, item
 
@@ -107,46 +106,31 @@ class Graph(object):
         Returns:
             (list of list of INode): Each sub list represents a row.
         """
+        # Inspired by Kahn's algorithm
         nodes_to_sort = set(self.all_nodes)
-        levels = {}
-
-        cache_upstream = {
-            node: set(node.upstream_nodes) for node in nodes_to_sort
-        }
-
-        current_level = 0
-        while nodes_to_sort:
-            sorted_this_loop = False
-            for node in nodes_to_sort:
-                up_levels = [
-                    levels.get(up_node) for up_node in cache_upstream[node]
-                ]
-                # Add level -1 to properly sort nodes without dependencies
-                up_levels += [-1]
-
-                if None not in up_levels and max(up_levels) < current_level:
-                    # all upstream nodes are assigned lower levels,
-                    # so this node goes on the this level
-                    levels[node] = current_level
-                    sorted_this_loop = True
-            nodes_to_sort -= set(levels.keys())
-            current_level += 1
-
-            # this theoretically can't occur, but let's catch it anyways
-            if not sorted_this_loop:  # pragma: no cover
-                raise RuntimeError("Dependencies could not be resoled")
-
-        nodes_by_level = defaultdict(list)
-        for node, level in levels.items():
-            nodes_by_level[level].append(node)
-
         matrix = []
-        for level in sorted(nodes_by_level.keys()):
-            row = nodes_by_level[level]
-            row.sort(key=lambda node: node.name)
-            matrix.append(row)
 
-        return matrix
+        # cache since this is called often
+        parents = {node: node.parents for node in nodes_to_sort}
+
+        sorted_nodes = set()
+        next_level = {node for node in nodes_to_sort if not parents[node]}
+
+        while next_level:
+            matrix.append(next_level)
+            sorted_nodes |= next_level
+
+            next_level = set()
+            # The next level are all unsorted children of the latest sorted
+            # nodes that don't have any unsorted parents
+            for node in matrix[-1]:
+                for candidate in node.children - sorted_nodes:
+                    if all(
+                        parent in sorted_nodes for parent in parents[candidate]
+                    ):
+                        next_level.add(candidate)
+
+        return [sorted(level, key=lambda node: node.name) for level in matrix]
 
     @property
     def evaluation_sequence(self):
