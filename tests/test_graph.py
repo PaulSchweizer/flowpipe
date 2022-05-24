@@ -78,6 +78,7 @@ def test_evaluation_matrix(clear_default_graph):
     for i, row in enumerate(graph.evaluation_matrix):
         for node in row:
             assert node in order[i]
+        assert len(row) == len(order[i])
 
     graph.evaluate()
 

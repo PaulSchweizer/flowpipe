@@ -52,21 +52,55 @@ class SimpleNode(INode):
         SimpleNode.called_args = args
 
 
-def test_downstream_upstream_nodes(clear_default_graph):
+def test_downstream_upstream_nodes_children_parents(clear_default_graph):
     """Verify downstream and upstream Nodes."""
     node_a = SquareNode("NodeA")
     node_b = SquareNode("NodeB")
     node_c = SquareNode("NodeC")
+    node_d = SquareNode("NodeD")
     node_a.outputs["out"] >> node_b.inputs["in1"]
     node_a.outputs["out"] >> node_c.inputs["compound_in"]["0"]
+    node_b.outputs["out"] >> node_d.inputs["in1"]
 
-    assert 2 == len(node_a.downstream_nodes)
+    assert 3 == len(node_a.downstream_nodes)
+    assert 1 == len(node_b.downstream_nodes)
+    assert 0 == len(node_c.downstream_nodes)
+    assert 0 == len(node_d.downstream_nodes)
     assert node_b in node_a.downstream_nodes
+    assert node_d in node_a.downstream_nodes
     assert node_c in node_a.downstream_nodes
+    assert node_d in node_b.downstream_nodes
+
+    assert 2 == len(node_a.children)
+    assert node_b in node_a.children
+    assert node_c in node_a.children
+    assert node_d not in node_a.children
+
+    assert 1 == len(node_b.children)
+    assert node_d in node_b.children
+    assert node_c not in node_b.children
+
+    assert 0 == len(node_c.children)
+    assert 0 == len(node_d.children)
 
     assert 1 == len(node_b.upstream_nodes)
+    assert 1 == len(node_c.upstream_nodes)
+    assert 2 == len(node_d.upstream_nodes)
     assert node_a in node_b.upstream_nodes
     assert node_a in node_c.upstream_nodes
+    assert node_a in node_d.upstream_nodes
+
+    assert 0 == len(node_a.parents)
+
+    assert 1 == len(node_b.parents)
+    assert node_a in node_b.parents
+
+    assert 1 == len(node_c.parents)
+    assert node_a in node_c.parents
+
+    assert 1 == len(node_d.parents)
+    assert node_b in node_d.parents
+    assert node_a not in node_d.parents
 
 
 def test_evaluate(clear_default_graph):

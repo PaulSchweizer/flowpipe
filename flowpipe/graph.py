@@ -106,21 +106,31 @@ class Graph(object):
         Returns:
             (list of list of INode): Each sub list represents a row.
         """
-        levels = {}
-
-        for node in self.all_nodes:
-            if not len(node.upstream_nodes):
-                self._sort_node(node, levels, level=0)
-
+        # Inspired by Kahn's algorithm
+        nodes_to_sort = set(self.all_nodes)
         matrix = []
-        for level in sorted(list(set(levels.values()))):
-            row = []
-            for node in [n for n in levels if levels[n] == level]:
-                row.append(node)
-            row.sort(key=lambda key: key.name)
-            matrix.append(row)
 
-        return matrix
+        # cache since this is called often
+        parents = {node: node.parents for node in nodes_to_sort}
+
+        sorted_nodes = set()
+        next_level = {node for node in nodes_to_sort if not parents[node]}
+
+        while next_level:
+            matrix.append(next_level)
+            sorted_nodes |= next_level
+
+            next_level = set()
+            # The next level are all unsorted children of the latest sorted
+            # nodes that don't have any unsorted parents
+            for node in matrix[-1]:
+                for candidate in node.children - sorted_nodes:
+                    if all(
+                        parent in sorted_nodes for parent in parents[candidate]
+                    ):
+                        next_level.add(candidate)
+
+        return [sorted(level, key=lambda node: node.name) for level in matrix]
 
     @property
     def evaluation_sequence(self):
@@ -380,23 +390,6 @@ class Graph(object):
             DeprecationWarning,
         )
         return deserialize_graph(data)
-
-    def _sort_node(self, node, levels, level):
-        """Sort the node into the correct level."""
-        if node in levels.keys():
-            if level > levels[node]:
-                levels[node] = level
-        else:
-            levels[node] = level
-
-        downstream_nodes = set()
-        for output in node.outputs.values():
-            downstream_nodes |= set(c.node for c in output.connections)
-            for sub_plug in output._sub_plugs.values():
-                downstream_nodes |= set(c.node for c in sub_plug.connections)
-
-        for downstream_node in downstream_nodes:
-            self._sort_node(downstream_node, levels, level=level + 1)
 
     def node_repr(self):
         """Format to visualize the Graph."""
