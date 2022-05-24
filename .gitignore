@@ -10,6 +10,7 @@ doc/source/
 logos/
 venv*
 .vscode
+*.code-workspace
 
 # Sublime
 *.sublime-project
