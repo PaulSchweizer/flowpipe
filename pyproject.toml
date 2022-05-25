@@ -8,7 +8,7 @@ skip = ["flowpipe/__init__.py"]
 [tool.poetry]
 name = "Flowpipe"
 version = "0.1.0"
-description = "Simple flow-based programming with Python"
+description = "A lightweight framework for flow-based programming in python."
 authors = ["Paul Schweizer <paulschweizer@gmx.net>"]
 license = "MIT"
 
@@ -22,15 +22,13 @@ strip-hints = ">=0.1.7"
 codacy-coverage = "1.3.11"
 coverage = "5.2"
 flake8 = "3.9.2"
-isort = "5.10.1"
+isort = { extras = ["pyproject"], version = "^5.10.1" }
 mock = "4.0.2"
 numpy = "1.19.2"
 pre-commit = "2.16.0"
+pylint = "^2.13.9"
 pytest-cov = "2.5.1"
 pytest = "3.0.3"
-
-[tool.poetry.extras]
-isort = ["pyproject"]
 
 [build-system]
 requires = ["poetry-core>=1.0.0"]
