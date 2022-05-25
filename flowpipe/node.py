@@ -55,7 +55,7 @@ class INode(object):
                 If set to 'default', the Node is added to the default graph.
                 If set to None, the Node is not added to any grpah.
         """
-        self.EVENTS = {ev_type: Event(ev_type) for ev_type in self.EVENT_TYPES}
+        self.events = {ev_type: Event(ev_type) for ev_type in self.EVENT_TYPES}
 
         self.name = name if name is not None else self.__class__.__name__
         self.identifier = (
@@ -63,15 +63,15 @@ class INode(object):
             if identifier is not None
             else "{0}-{1}".format(self.name, uuid.uuid4())
         )
-        self.inputs = dict()
-        self.outputs = dict()
+        self.inputs = {}
+        self.outputs = {}
         self.metadata = metadata or {}
         self.omit = False
         try:
             self.file_location = inspect.getfile(self.__class__)
-        except TypeError as e:  # pragma: no cover
+        except TypeError as error:  # pragma: no cover
             # Excluded from tests, as this is a hard-to test fringe case
-            if all(s in str(e) for s in ("__main__", "built-in class")):
+            if all(s in str(error) for s in ("__main__", "built-in class")):
                 warnings.warn("Cannot serialize nodes defined in '__main__'")
                 self.file_location = None
             else:
@@ -107,7 +107,7 @@ class INode(object):
         for input_ in self.inputs.values():
             for conn in input_.connections:
                 parents.add(conn.node)
-            for sub_plug in input_._sub_plugs.values():
+            for sub_plug in input_.sub_plugs.values():
                 for conn in sub_plug.connections:
                     parents.add(conn.node)
         return parents
@@ -118,14 +118,14 @@ class INode(object):
         upstream_nodes = {}
         for input_ in self.inputs.values():
             upstreams = [c.node for c in input_.connections]
-            for sub_plug in input_._sub_plugs.values():
+            for sub_plug in input_.sub_plugs.values():
                 upstreams += [c.node for c in sub_plug.connections]
             for upstream in upstreams:
                 if upstream.identifier not in upstream_nodes:
                     upstream_nodes[upstream.identifier] = upstream
-                    for u in upstream.upstream_nodes:
-                        if u.identifier not in upstream_nodes:
-                            upstream_nodes[u.identifier] = u
+                    for upstream2 in upstream.upstream_nodes:
+                        if upstream2.identifier not in upstream_nodes:
+                            upstream_nodes[upstream2.identifier] = upstream2
         return list(upstream_nodes.values())
 
     @property
@@ -135,7 +135,7 @@ class INode(object):
         for output in self.outputs.values():
             for conn in output.connections:
                 children.add(conn.node)
-            for sub_plug in output._sub_plugs.values():
+            for sub_plug in output.sub_plugs.values():
                 for conn in sub_plug.connections:
                     children.add(conn.node)
         return children
@@ -146,14 +146,16 @@ class INode(object):
         downstream_nodes = {}
         for output in self.outputs.values():
             downstreams = [c.node for c in output.connections]
-            for sub_plug in output._sub_plugs.values():
+            for sub_plug in output.sub_plugs.values():
                 downstreams += [c.node for c in sub_plug.connections]
             for downstream in downstreams:
                 if downstream.identifier not in downstream_nodes:
                     downstream_nodes[downstream.identifier] = downstream
-                    for d in downstream.downstream_nodes:
-                        if d.identifier not in downstream_nodes:
-                            downstream_nodes[d.identifier] = d
+                    for downstream2 in downstream.downstream_nodes:
+                        if downstream2.identifier not in downstream_nodes:
+                            downstream_nodes[
+                                downstream2.identifier
+                            ] = downstream2
         return list(downstream_nodes.values())
 
     def evaluate(self):
@@ -163,10 +165,10 @@ class INode(object):
         evaluation time and timestamp the computation started.
         """
         if self.omit:
-            self.EVENTS["evaluation-omitted"].emit(self)
+            self.events["evaluation-omitted"].emit(self)
             return {}
 
-        self.EVENTS["evaluation-started"].emit(self)
+        self.events["evaluation-started"].emit(self)
 
         inputs = {}
         for name, plug in self.inputs.items():
@@ -175,9 +177,9 @@ class INode(object):
         # Compute and redirect the output to the output plugs
         start_time = time.time()
         try:
-            outputs = self.compute(**inputs) or dict()
+            outputs = self.compute(**inputs) or {}
         except Exception:
-            self.EVENTS["evaluation-exception"].emit(self)
+            self.events["evaluation-exception"].emit(self)
             raise
         eval_time = time.time() - start_time
 
@@ -195,7 +197,7 @@ class INode(object):
         for input_ in self.all_inputs().values():
             input_.is_dirty = False
 
-        self.EVENTS["evaluation-finished"].emit(self)
+        self.events["evaluation-finished"].emit(self)
 
         return outputs
 
@@ -224,14 +226,14 @@ class INode(object):
         """
         connections = []  # keep track of the connections established
         if isinstance(other, INode):
-            for key in self.outputs.keys():
+            for key, plug in self.outputs.items():
                 if key in other.inputs:
-                    self.outputs[key].connect(other.inputs[key])
+                    plug.connect(other.inputs[key])
                     connections.append(
                         "Node: {0}, Plug: {1}".format(other.name, key)
                     )
-                    for sub in self.outputs[key]._sub_plugs:
-                        self.outputs[key][sub].connect(other.inputs[key][sub])
+                    for sub in plug.sub_plugs:
+                        plug[sub].connect(other.inputs[key][sub])
                         connections.append(
                             "Node: {0}, Plug: {1}, SubPlug: {2}".format(
                                 other.name, key, sub
@@ -248,22 +250,23 @@ class INode(object):
                     out = self.outputs[out_name][sub_name]
                 else:
                     out = self.outputs[other.name]
-            except KeyError:
-                raise KeyError("No output named {0}".format(other.name))
+            except KeyError as error:
+                raise KeyError(
+                    "No output named {0}".format(other.name)
+                ) from error
             else:
                 out.connect(other)
                 connections.append("Plug: {0}".format(other.name))
 
-                for sub in out._sub_plugs:
-                    out._sub_plugs[sub].connect(other[sub])
+                for sub in out.sub_plugs:
+                    out.sub_plugs[sub].connect(other[sub])
                     connections.append(
                         "Plug: {0}, Subplug: {1}".format(other.name, sub)
                     )
         else:
             raise TypeError("Cannot connect outputs to {}".format(type(other)))
         log.debug(
-            "Connected node {0} with ".format(self.name)
-            + "\n".join(connections)
+            "Connected node %s with %s", self.name, "\n".join(connections)
         )
 
     def on_input_plug_set_dirty(self):
@@ -427,12 +430,11 @@ class INode(object):
         pretty += "\n" + offset + "|" + "-" * width + "|"
 
         def _short_value(plug):
-            if plug.value is not None and not plug._sub_plugs:
-                v = str(plug.value)
-                if len(v) > max_value_length:
-                    return "<{0}...>".format(v[: max_value_length - 3])
-                else:
-                    return "<{0}>".format(v)
+            if plug.value is not None and not plug.sub_plugs:
+                value = str(plug.value)
+                if len(value) > max_value_length:
+                    return "<{0}...>".format(value[: max_value_length - 3])
+                return "<{0}>".format(value)
             return "<>"
 
         # Inputs
@@ -444,7 +446,7 @@ class INode(object):
             else:
                 pretty += offset
             plug = "{symbol} {dist}{input_}{value}".format(
-                symbol="%" if in_plug._sub_plugs else "o",
+                symbol="%" if in_plug.sub_plugs else "o",
                 dist=" " if isinstance(in_plug, SubPlug) else "",
                 input_=input_,
                 value=_short_value(in_plug),
@@ -462,7 +464,7 @@ class INode(object):
                     output=output,
                     width=width - dist - len(value),
                     dist=dist * " ",
-                    symbol="%" if out_plug._sub_plugs else "o",
+                    symbol="%" if out_plug.sub_plugs else "o",
                     value=value,
                 )
             )
@@ -490,7 +492,7 @@ class INode(object):
         pretty = []
         pretty.append(self.name)
         for name, plug in sorted(self.all_inputs().items()):
-            if plug._sub_plugs:
+            if plug.sub_plugs:
                 pretty.append("  [i] {name}".format(name=name))
                 continue
             if plug.connections:
@@ -511,7 +513,7 @@ class INode(object):
                     )
                 )
         for name, plug in sorted(self.all_outputs().items()):
-            if plug._sub_plugs:
+            if plug.sub_plugs:
                 pretty.append("  [o] {name}".format(name=name))
                 continue
             if plug.connections:
@@ -545,7 +547,7 @@ class INode(object):
         all_inputs = {}
         for plug in self.inputs.values():
             all_inputs[plug.name] = plug
-            for sub in plug._sub_plugs.values():
+            for sub in plug.sub_plugs.values():
                 all_inputs[sub.name] = sub
         return all_inputs
 
@@ -554,12 +556,12 @@ class INode(object):
         all_outputs = {}
         for plug in self.outputs.values():
             all_outputs[plug.name] = plug
-            for sub in plug._sub_plugs.values():
+            for sub in plug.sub_plugs.values():
                 all_outputs[sub.name] = sub
         return all_outputs
 
     @staticmethod
-    def _sort_plugs(plugs):
+    def sort_plugs(plugs):
         """Sort the given plugs alphabetically into an OrderedDict."""
         sorted_plugs = OrderedDict()
         for i in sorted(plugs, key=lambda x: x.lower()):
@@ -613,10 +615,10 @@ class FunctionNode(INode):
         metadata.update(kwargs.pop("metadata", {}))
         graph = kwargs.pop("graph", "default")
         outputs = []
-        for o in self.outputs.values():
-            outputs.append(o.name)
-            for key in o._sub_plugs.keys():
-                outputs.append("{0}.{1}".format(o.name, key))
+        for output in self.outputs.values():
+            outputs.append(output.name)
+            for key in output.sub_plugs.keys():
+                outputs.append("{0}.{1}".format(output.name, key))
         return self.__class__(
             func=self.func,
             outputs=outputs,
@@ -629,8 +631,7 @@ class FunctionNode(INode):
         """Call and return the wrapped function."""
         if self._use_self:
             return self.func(self, *args, **kwargs)
-        else:
-            return self.func(*args, **kwargs)
+        return self.func(*args, **kwargs)
 
     def _serialize(self):
         """Also serialize the location of the wrapped function."""
@@ -669,7 +670,7 @@ class FunctionNode(INode):
         if func is not None:
             self.file_location = inspect.getfile(func)
             self.class_name = self.func.__name__
-            arg_spec = getargspec(func)
+            arg_spec = getargspec(func)  # pylint: disable=deprecated-method
             defaults = {}
             if arg_spec.defaults is not None:
                 defaults = dict(
@@ -716,7 +717,7 @@ class FunctionNode(INode):
         )
 
 
-def Node(*args, **kwargs):
+def Node(*args, **kwargs):  # pylint: disable=invalid-name
     """Wrap the given function into a Node."""
     cls = kwargs.pop("cls", FunctionNode)
 

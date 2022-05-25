@@ -11,7 +11,8 @@ log = logging.getLogger(__name__)
 class Evaluator(object):
     """An engine to evaluate a Graph."""
 
-    def _evaluation_sequence(self, graph):
+    @staticmethod
+    def _evaluation_sequence(graph):
         """Sort Nodes into a sequential, flat execution order.
 
         Replicated here for flexibility; defaults to Graph's implementation.
@@ -84,7 +85,7 @@ class ThreadedEvaluator(Evaluator):
 
         """
         # create copy to prevent side effects
-        nodes_to_evaluate = [n for n in nodes]
+        nodes_to_evaluate = list(nodes)
 
         def node_runner(node):
             node.evaluate()
@@ -94,10 +95,10 @@ class ThreadedEvaluator(Evaluator):
         with futures.ThreadPoolExecutor(max_workers=self.max_workers) as tpe:
             while nodes_to_evaluate or running_futures:
                 log.debug(
-                    "Iterating thread submission with {0} nodes to "
-                    "evaluate and {1} running futures".format(
-                        len(nodes_to_evaluate), len(running_futures)
-                    )
+                    "Iterating thread submission with %s nodes to "
+                    "evaluate and %s running futures",
+                    len(nodes_to_evaluate),
+                    len(running_futures),
                 )
                 # Submit new nodes that are ready to be evaluated
                 not_submitted = []
@@ -121,9 +122,10 @@ class ThreadedEvaluator(Evaluator):
                             if nn.is_dirty
                         ]
                         log.debug(
-                            "Node to evaluate: {0} ".format(node.name)
-                            + "- Dirty upstream nodes:\n"
-                            + "\n".join(dirty_upstream)
+                            "Node to evaluate: %s\n"
+                            "- Dirty upstream nodes:\n%s",
+                            node.name,
+                            "\n".join(dirty_upstream),
                         )
                     raise RuntimeError(
                         "Execution hit deadlock: {0} nodes left to evaluate, "
@@ -136,8 +138,8 @@ class ThreadedEvaluator(Evaluator):
                     list(running_futures.values()),
                     return_when=futures.FIRST_COMPLETED,
                 )
-                for s in status.done:
-                    del running_futures[s.result().name]
+                for future in status.done:
+                    del running_futures[future.result().name]
 
 
 class LegacyMultiprocessingEvaluator(Evaluator):
@@ -155,12 +157,12 @@ class LegacyMultiprocessingEvaluator(Evaluator):
 
     def _evaluate_nodes(self, nodes):
         # create copy to prevent side effects
-        nodes_to_evaluate = [n for n in nodes]
+        nodes_to_evaluate = list(nodes)
         manager = Manager()
         nodes_data = manager.dict()
         processes = {}
 
-        def upstream_ready(processes, node):
+        def upstream_ready(node):
             for upstream in node.upstream_nodes:
                 if upstream in nodes_to_evaluate:
                     return False
@@ -174,9 +176,7 @@ class LegacyMultiprocessingEvaluator(Evaluator):
                     nodes_to_evaluate.remove(node)
                     _update_node(node, nodes_data[node.identifier])
                     continue
-                if node.name not in processes and upstream_ready(
-                    processes, node
-                ):
+                if node.name not in processes and upstream_ready(node):
                     # If all deps are ready and no thread is active, create one
                     nodes_data[node.identifier] = node.to_json()
                     processes[node.name] = Process(
@@ -204,6 +204,7 @@ def _evaluate_node_in_process(identifier, nodes_data):
         identifier (str): The identifier of the node to evaluate
         nodes_data (dict): Used like a "database" to store the nodes
     """
+    # pylint: disable=import-outside-toplevel, cyclic-import
     from flowpipe.node import INode
 
     data = nodes_data[identifier]
@@ -224,7 +225,7 @@ def _evaluate_node_in_process(identifier, nodes_data):
 
     for name, plug in node.outputs.items():
         data["outputs"][name]["value"] = plug.value
-        for sub_name, sub_plug in plug._sub_plugs.items():
+        for sub_name, sub_plug in plug.sub_plugs.items():
             if sub_name not in data["outputs"][name]["sub_plugs"]:
                 data["outputs"][name]["sub_plugs"][
                     sub_name

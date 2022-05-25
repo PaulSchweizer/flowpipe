@@ -37,9 +37,9 @@ class Event(object):
         """Deregister the given function object if it is registered."""
         if self.is_registered(listener):
             self._listeners.pop(self._listeners.index(listener))
-            log.debug("{0} deregistered".format(listener))
+            log.debug("%s deregistered", listener)
         else:
-            log.exception("{0} was never registered".format(listener))
+            log.exception("%s was never registered", listener)
 
     def is_registered(self, listener):
         """Whether the given function object is already registered."""

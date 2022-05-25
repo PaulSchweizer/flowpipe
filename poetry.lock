@@ -876,7 +876,7 @@ testing = ["pathlib2", "unittest2", "jaraco.itertools", "func-timeout"]
 [metadata]
 lock-version = "1.1"
 python-versions = "~2.7 || ^3.7"
-content-hash = "0ef9b64db64d93ba20cdaec772ac3b3a73c4b47c54e4df2d0e296ac054395e43"
+content-hash = "c7223ede8bf9fd221dfe87b7fc9a5c3311bb48d47a955fb786af0601e25c5cc8"
 
 [metadata.files]
 ascii-canvas = [

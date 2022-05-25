@@ -627,9 +627,9 @@ def test_node_events(clear_default_graph):
 
     node = SquareNode(in1=1)
 
-    node.EVENTS["evaluation-omitted"].register(omitted_listener)
-    node.EVENTS["evaluation-started"].register(started_listener)
-    node.EVENTS["evaluation-finished"].register(finished_listener)
+    node.events["evaluation-omitted"].register(omitted_listener)
+    node.events["evaluation-started"].register(started_listener)
+    node.events["evaluation-finished"].register(finished_listener)
 
     node.omit = True
     node.evaluate()
@@ -649,11 +649,11 @@ def test_node_event_emission_separation(clear_default_graph):
 
     node1 = SquareNode(in1=1, name="node1")
     node1.execution_count = 0
-    node1.EVENTS["evaluation-started"].register(inc_execution_counter)
+    node1.events["evaluation-started"].register(inc_execution_counter)
 
     node2 = SquareNode(in1=1, name="node2")
     node2.execution_count = 0
-    node2.EVENTS["evaluation-started"].register(inc_execution_counter)
+    node2.events["evaluation-started"].register(inc_execution_counter)
 
     node1.evaluate()
 
@@ -876,7 +876,7 @@ def test_exception_event(clear_default_graph):
         raise Exception
 
     en = ErrorNode(graph=g)
-    en.EVENTS["evaluation-exception"].register(has_been_executed)
+    en.events["evaluation-exception"].register(has_been_executed)
 
     with pytest.raises(Exception):
         g.evaluate()

@@ -214,11 +214,11 @@ def test_create_node_with_sub_output_plugs():
         pass
 
     node = function1(name="contains_all_plugs")
-    assert len(node.outputs["out"]._sub_plugs) == 2
+    assert len(node.outputs["out"].sub_plugs) == 2
 
     @Node(outputs=["out.a", "out.b"])
     def function2(in_):
         pass
 
     node = function2(name="contains_only_subplugs")
-    assert len(node.outputs["out"]._sub_plugs) == 2
+    assert len(node.outputs["out"].sub_plugs) == 2
