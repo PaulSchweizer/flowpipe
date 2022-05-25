@@ -3,7 +3,7 @@ name: Pylint
 on: [push]
 
 jobs:
-  build:
+  pylint:
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -22,4 +22,4 @@ jobs:
           poetry install
       - name: Analysing the code with pylint
         run: |
-          poetry run pylint $(git ls-files '*.py')
+          poetry run pylint ./flowpipe

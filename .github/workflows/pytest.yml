@@ -10,7 +10,6 @@ jobs:
       matrix:
         python-version: ["2.7", "3.7"]
     steps:
-      - name: Check out repository code
         uses: actions/checkout@v2
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
@@ -24,4 +23,9 @@ jobs:
           poetry install
       - name: Run tests
         run: |
-          poetry run pytest ./tests -vv
+          poetry run pytest pytest --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=flowpipe tests/ | tee pytest-coverage.txt
+      - name: Pytest coverage comment
+        uses: MishaKav/pytest-coverage-comment@main
+        with:
+          pytest-coverage-path: ./pytest-coverage.txt
+          junitxml-path: ./pytest.xml
