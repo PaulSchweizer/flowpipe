@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.7"]
+        python-version: ["2.7", "3.7"]
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
@@ -23,11 +23,16 @@ jobs:
       - name: Install dependencies
         run: |
           poetry install
-      - name: Run tests
+      - name: Run tests without coverage
+        if: ${{ matrix.python-version == 2.7 }}
         run: |
-          poetry run pytest tests --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=flowpipe | tee pytest-coverage.txt
+          poetry run pytest tests
+      - name: Run tests with coverage
+        if: ${{ matrix.python-version == 3.7 }}
+        run: |
+          poetry run pytest tests --cov-report=term-missing:skip-covered --cov=flowpipe | tee pytest-coverage.txt
       - name: Pytest coverage comment
         uses: MishaKav/pytest-coverage-comment@main
+        if: ${{ matrix.python-version == 3.7 }}
         with:
           pytest-coverage-path: ./pytest-coverage.txt
-          junitxml-path: ./pytest.xml
