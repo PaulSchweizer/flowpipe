@@ -25,7 +25,7 @@ jobs:
           poetry install
       - name: Run tests
         run: |
-          poetry run pytest pytest --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=flowpipe tests/ | tee pytest-coverage.txt
+          poetry run pytest --junitxml=pytest.xml --cov-report=term-missing:skip-covered --cov=flowpipe tests/ | tee pytest-coverage.txt
       - name: Pytest coverage comment
         uses: MishaKav/pytest-coverage-comment@main
         with:

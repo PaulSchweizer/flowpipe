@@ -11,6 +11,7 @@ logos/
 venv*
 .vscode
 *.code-workspace
+pytest*
 
 # Sublime
 *.sublime-project
