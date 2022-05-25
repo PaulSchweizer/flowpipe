@@ -314,8 +314,8 @@ class Graph(object):
         if mode:
             try:
                 eval_cls, eval_args = eval_modes[mode]
-            except KeyError as error:
-                raise ValueError("Unkown mode: {0}".format(mode)) from error
+            except KeyError:
+                raise ValueError("Unkown mode: {0}".format(mode))
             evaluator = eval_cls(**eval_args)
 
         evaluator.evaluate(graph=self, skip_clean=skip_clean)

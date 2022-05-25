@@ -250,10 +250,8 @@ class INode(object):
                     out = self.outputs[out_name][sub_name]
                 else:
                     out = self.outputs[other.name]
-            except KeyError as error:
-                raise KeyError(
-                    "No output named {0}".format(other.name)
-                ) from error
+            except KeyError:
+                raise KeyError("No output named {0}".format(other.name))
             else:
                 out.connect(other)
                 connections.append("Plug: {0}".format(other.name))

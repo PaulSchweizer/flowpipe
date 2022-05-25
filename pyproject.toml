@@ -17,7 +17,8 @@ disable = [
     # Omitted because of Python2.7 support:
     "consider-using-f-string",
     "super-with-arguments",
-    "useless-object-inheritance"
+    "useless-object-inheritance",
+    "raise-missing-from"
 ]
 
 [tool.poetry]
