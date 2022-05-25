@@ -4,7 +4,8 @@ name: PyTest
 on: [push]
 
 jobs:
-  test:
+  tests:
+    name: Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:

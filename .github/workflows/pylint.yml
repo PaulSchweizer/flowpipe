@@ -4,6 +4,7 @@ on: [push]
 
 jobs:
   pylint:
+    name: Pylint
     runs-on: ubuntu-latest
     strategy:
       matrix:
