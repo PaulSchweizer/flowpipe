@@ -23,10 +23,22 @@ disable = [
 
 [tool.poetry]
 name = "Flowpipe"
-version = "0.1.0"
+version = "0.9.0"
 description = "A lightweight framework for flow-based programming in python."
 authors = ["Paul Schweizer <paulschweizer@gmx.net>"]
 license = "MIT"
+readme = "README.md"
+repository = "https://github.com/PaulSchweizer/flowpipe"
+documentation = "https://flowpipe.readthedocs.io/en/latest/"
+classifiers = [
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 2.6",
+    "Programming Language :: Python :: 2.7",
+    "Programming Language :: Python :: 3.4",
+    "Programming Language :: Python :: 3.5",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+]
 
 [tool.poetry.dependencies]
 python = "~2.7 || ^3.7"

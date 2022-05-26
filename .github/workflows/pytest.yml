@@ -30,9 +30,13 @@ jobs:
       - name: Run tests with coverage
         if: ${{ matrix.python-version == 3.7 }}
         run: |
-          poetry run pytest tests --cov-report=term-missing:skip-covered --cov=flowpipe | tee pytest-coverage.txt
+          poetry run pytest tests --cov-report=term-missing:skip-covered --cov-report=xml --cov=flowpipe | tee pytest-coverage.txt
       - name: Pytest coverage comment
         uses: MishaKav/pytest-coverage-comment@main
         if: ${{ matrix.python-version == 3.7 }}
         with:
           pytest-coverage-path: ./pytest-coverage.txt
+      - name: Send pytest coverage report to codacy
+        if: ${{ matrix.python-version == 3.7 }}
+        run: |
+          bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage.xml -t ${{secrets.CODACY_PROJECT_TOKEN}}
