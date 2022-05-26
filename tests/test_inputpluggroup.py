@@ -150,3 +150,9 @@ def test_setting_value_of_groupinput(demo_graph_fixture):
 
     assert sub["C1"].inputs["in_"].value == random_string
     assert sub["C2"].inputs["in_"].value == random_string
+
+
+def test_getting_value_of_groupinput_is_not_possible(demo_graph_fixture):
+    sub, _ = demo_graph_fixture
+    with pytest.raises(AttributeError):
+        sub.inputs["graph_in"].value

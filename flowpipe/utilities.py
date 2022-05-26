@@ -134,4 +134,4 @@ def get_hash(obj, hash_func=lambda x: sha256(x).hexdigest()):
             except TypeError:
                 return None
         else:
-            return None
+            return None  # pragma: no cover

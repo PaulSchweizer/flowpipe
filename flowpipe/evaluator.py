@@ -33,7 +33,7 @@ class Evaluator(object):
 
     def _evaluate_nodes(self, nodes):
         """Perform the actual node evaluation."""
-        raise NotImplementedError
+        raise NotImplementedError  # pragma: no cover
 
     def evaluate(self, graph, skip_clean=False):
         """Evaluate the graph.
@@ -115,7 +115,7 @@ class ThreadedEvaluator(Evaluator):
                 # nodes_to_evaluate not submitted means dirty upstream nodes
                 # and while loop will never terminate
                 if nodes_to_evaluate and not running_futures:
-                    for node in nodes_to_evaluate:
+                    for node in nodes_to_evaluate:  # pragma: no cover
                         dirty_upstream = [
                             nn.name
                             for nn in node.upstream_nodes
@@ -130,7 +130,7 @@ class ThreadedEvaluator(Evaluator):
                     raise RuntimeError(
                         "Execution hit deadlock: {0} nodes left to evaluate, "
                         "but no nodes running.".format(len(nodes_to_evaluate))
-                    )
+                    )  # pragma: no cover
 
                 # Wait until a future finishes, then remove all finished nodes
                 # from the relevant lists
@@ -163,6 +163,7 @@ class LegacyMultiprocessingEvaluator(Evaluator):
         processes = {}
 
         def upstream_ready(node):
+            """Check whether all upstream nodes have been evaluated."""
             for upstream in node.upstream_nodes:
                 if upstream in nodes_to_evaluate:
                     return False

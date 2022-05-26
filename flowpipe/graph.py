@@ -216,7 +216,7 @@ class Graph(object):
                 "Only plugs of type '{1}' or '{2}' can be promoted.".format(
                     type(plug), InputPlug, OutputPlug
                 )
-            )
+            )  # pragma: no cover
 
     def accepts_connection(self, output_plug, input_plug):
         """Raise exception if new connection would violate integrity of graph.
@@ -439,8 +439,6 @@ class Graph(object):
 
         # Crop the name of the graph if it is too long
         name = self.name
-        if len(name) > x_pos - 2:
-            name = name[: x_pos - 2]
         canvas_.add_item(
             item.Item("{name:^{x}}".format(name=name, x=x_pos), [0, 1]), 0
         )
