@@ -39,4 +39,4 @@ jobs:
       - name: Send pytest coverage report to codacy
         if: ${{ matrix.python-version == 3.7 }}
         run: |
-          export CODACY_PROJECT_TOKEN=${{secrets.CODACY_PROJECT_TOKEN}} && bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage.xml
+          export CODACY_API_TOKEN=${{secrets.CODACY_PROJECT_TOKEN}} && export CODACY_ORGANIZATION_PROVIDER=gh && export CODACY_USERNAME=paulschweizer && CODACY_PROJECT_NAME=flowpipe && bash <(curl -Ls https://coverage.codacy.com/get.sh) report -r coverage.xml
