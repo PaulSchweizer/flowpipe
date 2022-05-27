@@ -3,7 +3,6 @@
 [![Codacy_Badge_Grade](https://api.codacy.com/project/badge/Grade/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&utm_medium=referral&utm_content=PaulSchweizer/flowpipe&utm_campaign=Badge_Grade)
 
 <!-- Pytest Coverage Comment:Begin -->
-\n
 <!-- Pytest Coverage Comment:End -->
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/flowpipe) [![Documentation Status](https://readthedocs.org/projects/flowpipe/badge/?version=latest)](https://flowpipe.readthedocs.io/en/latest) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)

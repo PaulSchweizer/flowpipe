@@ -34,7 +34,9 @@ jobs:
       - name: Pytest coverage comment
         uses: MishaKav/pytest-coverage-comment@main
         if: ${{ matrix.python-version == 3.7 }}
+        id: coverageComment
         with:
+          hide-comment: true
           pytest-coverage-path: ./pytest-coverage.txt
       - name: Update Readme with Coverage Html
         if: ${{ matrix.python-version == 3.7 }}
