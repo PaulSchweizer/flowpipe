@@ -42,7 +42,8 @@ jobs:
           sed -i '/<!-- Pytest Coverage Comment:Begin -->/,/<!-- Pytest Coverage Comment:End -->/c\<!-- Pytest Coverage Comment:Begin -->\n\${{ steps.coverageComment.outputs.coverageHtml }}\n${{ steps.coverageComment.outputs.summaryReport }}\n<!-- Pytest Coverage Comment:End -->' ./README.md
       - name: Commit & Push changes to Readme
         if: ${{ matrix.python-version == 3.7 }}
-        uses: actions-js/push@160-replace-travis
+        uses: actions-js/push@master
         with:
           message: Update coverage on Readme
+          branch: 160-replace-travis
           github_token: ${{ secrets.GITHUB_TOKEN }}
