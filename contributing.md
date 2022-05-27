@@ -59,7 +59,7 @@ To perform a release as a collaborator, follow this recipe:
 2. Commit and push that change.
 3. On the github page, navigate to "Releases" and "Draft a new release".
 4. Enter the required info for a new release. _Make sure the version number you give here is the same as in setup.py!_
-5. Click "Publish release", and the CI pipeline will automatically build a new release and push it to PyPi.
+5. Click "Publish release", and the CI pipeline will automatically build a new release and push it to PyPi via github actions (see [publish.yml](.github\workflows\publish.yml)).
 
 # Next Steps: Become a Collaborator on github
 
