@@ -3,7 +3,6 @@
 [![Codacy_Badge_Grade](https://api.codacy.com/project/badge/Grade/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&utm_medium=referral&utm_content=PaulSchweizer/flowpipe&utm_campaign=Badge_Grade)
 
 <!-- Pytest Coverage Comment:Begin -->
-
 <a href="https://github.com/PaulSchweizer/flowpipe/blob/main/README.md"><img alt="Coverage" src="https://img.shields.io/badge/Coverage-100%25-brightgreen.svg" /></a><br/><details><summary>Coverage Report </summary><table><tr><th>File</th><th>Stmts</th><th>Miss</th><th>Cover</th></tr><tbody><tr><td><b>TOTAL</b></td><td><b>940</b></td><td><b>0</b></td><td><b>100%</b></td></tr></tbody></table></details>
 
 <!-- Pytest Coverage Comment:End -->
