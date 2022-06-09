@@ -1,3 +1,4 @@
+"""Utilities for serializing and importing Nodes."""
 try:
     import importlib
 except ImportError:
@@ -21,7 +22,7 @@ def import_class(module, cls_name, file_location=None):
     try:
         cls = getattr(module, cls_name)
     except AttributeError:  # pragma: no cover
-        loader = importlib.machinery.SourceFileLoder("module", file_location)
+        loader = importlib.machinery.SourceFileLoader("module", file_location)
         spec = importlib.machinery.ModuleSpec(
             "module", loader, origin=file_location
         )
@@ -51,7 +52,7 @@ def deserialize_graph(data):
 
     nodes = {n.identifier: n for n in graph.nodes}
 
-    all_nodes = [n for n in data["nodes"]]
+    all_nodes = list(data["nodes"])
 
     subgraphs = []
     for sub_data in data.get("subgraphs", []):
@@ -71,7 +72,7 @@ def deserialize_graph(data):
         for name, input_ in node["inputs"].items():
             for identifier, plug in input_["connections"].items():
                 upstream = nodes[identifier]
-                upstream.outputs[plug] >> this.inputs[name]
+                upstream.outputs[plug].connect(this.inputs[name])
             for sub_plug_name, sub_plug in input_["sub_plugs"].items():
                 sub_plug_name = sub_plug_name.split(".")[-1]
                 for identifier, plug in sub_plug["connections"].items():
@@ -120,11 +121,11 @@ def get_hash(obj, hash_func=lambda x: sha256(x).hexdigest()):
         return hash_func(obj)
     except (TypeError, ValueError):
         try:
-            js = json.dumps(obj, sort_keys=True)
+            json_string = json.dumps(obj, sort_keys=True)
         except TypeError:  # pragma: no cover
             pass
         else:
-            obj = js
+            obj = json_string
         if isinstance(obj, str):
             return hash_func(obj.encode("utf-8"))
         if sys.version_info.major > 2:  # pragma: no cover
@@ -133,4 +134,4 @@ def get_hash(obj, hash_func=lambda x: sha256(x).hexdigest()):
             except TypeError:
                 return None
         else:
-            return None
+            return None  # pragma: no cover

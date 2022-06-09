@@ -1,11 +1,19 @@
 [![Version](https://img.shields.io/pypi/v/flowpipe.svg)](https://pypi.org/project/flowpipe/)
 [![Build Status](https://travis-ci.org/PaulSchweizer/flowpipe.svg?branch=master)](https://travis-ci.org/PaulSchweizer/flowpipe)
-[![Codacy_Badge_Grade](https://api.codacy.com/project/badge/Grade/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=PaulSchweizer/flowpipe&amp;utm_campaign=Badge_Grade)
-[![Codacy_Badge_Coverage](https://api.codacy.com/project/badge/Coverage/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&utm_medium=referral&utm_content=PaulSchweizer/flowpipe&utm_campaign=Badge_Coverage) [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) [![python 2.7](https://img.shields.io/badge/python-2.7%2B-blue.svg)](https://www.python.org/downloads/) [![python 3.6+](https://img.shields.io/badge/python-3.6%2B-blue.svg)](https://www.python.org/downloads/) [![Documentation Status](https://readthedocs.org/projects/flowpipe/badge/?version=latest)](https://flowpipe.readthedocs.io/en/latest) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![Codacy_Badge_Grade](https://api.codacy.com/project/badge/Grade/6ac650d8580d43dbaf7de96a3171e76f)](https://www.codacy.com/app/paulschweizer/flowpipe?utm_source=github.com&utm_medium=referral&utm_content=PaulSchweizer/flowpipe&utm_campaign=Badge_Grade)
+
+<!-- Pytest Coverage Comment:Begin -->
+
+<a href="https://github.com/PaulSchweizer/flowpipe/blob/main/README.md"><img alt="Coverage" src="https://img.shields.io/badge/Coverage-100%25-brightgreen.svg" /></a><br/><details><summary>Coverage Report </summary><table><tr><th>File</th><th>Stmts</th><th>Miss</th><th>Cover</th></tr><tbody><tr><td><b>TOTAL</b></td><td><b>940</b></td><td><b>0</b></td><td><b>100%</b></td></tr></tbody></table></details>
+
+<!-- Pytest Coverage Comment:End -->
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/flowpipe) [![Documentation Status](https://readthedocs.org/projects/flowpipe/badge/?version=latest)](https://flowpipe.readthedocs.io/en/latest) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 ![Flowpipe Logo](https://raw.githubusercontent.com/PaulSchweizer/flowpipe/master/logo.png)
 
 # Flow-based Programming
+
 A lightweight framework for flow-based programming in python.
 
 ```c
@@ -25,11 +33,12 @@ o type<"Chocolate"> |     |
 ```
 
 Benefits:
-  - Visualize code
-  - Re-usability
-  - Streamlined code design
-  - Built-in concurrency
-  - Represent workflows one to one in the code
+
+- Visualize code
+- Re-usability
+- Streamlined code design
+- Built-in concurrency
+- Represent workflows one to one in the code
 
 # Quick Example
 
@@ -175,6 +184,7 @@ Michelle, Mike are building the roof
 Jane, John are building the walls
 Mike, John, Michelle, Jane and Homeowner are having a great party!
 ```
+
 (Note: for more elaborate evaluation schemes, see [Evaluators](#evaluators))
 
 We now know how to throw a party, so let's invite some people and re-use these skills for a birthday:
@@ -240,7 +250,7 @@ If you are working in the VFX/Animation industry, please check out this extensiv
 
 # Evaluators
 
-If your nodes just need sequential, threaded or multiprocessing evaluation, the `Graph.evaluate()` method will serve you just fine. If you want to take more control over the way your Graph is being evaluated, `Evaluators` are for you.  This can also be used to add, e.g. logging or tracing to node evaluation.
+If your nodes just need sequential, threaded or multiprocessing evaluation, the `Graph.evaluate()` method will serve you just fine. If you want to take more control over the way your Graph is being evaluated, `Evaluators` are for you. This can also be used to add, e.g. logging or tracing to node evaluation.
 
 Evaluators allow you to take control of node evaluation order, or their scheduling.
 See `flowpipe/evaluator.py` to see the `Graph.evaluate()` method's evaluation schemes.
@@ -248,6 +258,7 @@ See `flowpipe/evaluator.py` to see the `Graph.evaluate()` method's evaluation sc
 To use a custom evaluator, subclass `flowpipe.evaluator.Evaluator`, and provide at least an `_evaluate_nodes(self, nodes)` method.
 This method should take a list of nodes and call their respective `node.evalaute()` methods (along with any other task you want to do for each node being evaluated).
 To use a cusom evaluator, create it and call its `Evalator.evaluate()` method with the Graph to evaluate as an argument:
+
 ```py
 from flowpipe.evaluators import LinearEvaluator
 

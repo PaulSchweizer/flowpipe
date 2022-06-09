@@ -6,7 +6,7 @@ import pytest
 
 import flowpipe.graph
 from flowpipe.errors import CycleError
-from flowpipe.evaluator import LinearEvaluator
+from flowpipe.evaluator import Evaluator, LinearEvaluator
 from flowpipe.graph import (
     Graph,
     get_default_graph,
@@ -738,3 +738,14 @@ def test_mode_and_evalutor_are_exclusive(clear_default_graph, branching_graph):
     """Test that passing both mode and evaluator raises an exception."""
     with pytest.raises(ValueError):
         branching_graph.evaluate(mode="linear", evaluator=LinearEvaluator())
+
+
+def test_evaluate_can_skip_clean_nodes():
+    graph = Graph()
+    clean_node = FunctionNodeForTesting(name="n1", graph=graph)
+    dirty_node = FunctionNodeForTesting(name="n2", graph=graph)
+    for plug in clean_node.inputs:
+        clean_node.inputs[plug].is_dirty = False
+    nodes = Evaluator()._nodes_to_evaluate(graph, skip_clean=True)
+    assert len(nodes) == 1
+    assert nodes[0] == dirty_node

@@ -13,7 +13,7 @@ except ImportError:
     from ordereddict import OrderedDict
 
 if sys.version_info.major > 2:  # pragma: no cover
-    basestring = str
+    basestring = str  # pylint: disable=invalid-name
 
 
 class IPlug(object):
@@ -38,7 +38,7 @@ class IPlug(object):
         self.name = name
         self.node = node
         self.connections = []
-        self._sub_plugs = OrderedDict()
+        self.sub_plugs = OrderedDict()
         self._value = None
         self._is_dirty = True
 
@@ -78,8 +78,8 @@ class IPlug(object):
     @property
     def value(self):
         """Access to the value on this Plug."""
-        if self._sub_plugs:
-            return {name: plug.value for name, plug in self._sub_plugs.items()}
+        if self.sub_plugs:
+            return {name: plug.value for name, plug in self.sub_plugs.items()}
         return self._value
 
     @value.setter
@@ -90,13 +90,12 @@ class IPlug(object):
     @property
     def is_dirty(self):
         """Access to the dirty status on this Plug."""
-        if self._sub_plugs:
-            for sub_plug in self._sub_plugs.values():
+        if self.sub_plugs:
+            for sub_plug in self.sub_plugs.values():
                 if sub_plug.is_dirty:
                     return True
             return False
-        else:
-            return self._is_dirty
+        return self._is_dirty
 
     @is_dirty.setter
     def is_dirty(self, status):
@@ -135,7 +134,7 @@ class IPlug(object):
 class OutputPlug(IPlug):
     """Provides data to an InputPlug."""
 
-    def __init__(self, name, node, accepted_plugs=None):
+    def __init__(self, name, node):
         """Initialize the OutputPlug.
 
         Can be connected to an InputPlug.
@@ -201,11 +200,11 @@ class OutputPlug(IPlug):
                 "This is due to the fact that JSON serialization only allows "
                 "strings as keys."
             )
-        if not self._sub_plugs.get(key):
-            self._sub_plugs[key] = SubOutputPlug(
+        if not self.sub_plugs.get(key):
+            self.sub_plugs[key] = SubOutputPlug(
                 key=key, node=self.node, parent_plug=self
             )
-        return self._sub_plugs[key]
+        return self.sub_plugs[key]
 
     def _update_value(self, value):
         """Propagate the dirty state to all connected Plugs as well."""
@@ -221,11 +220,11 @@ class OutputPlug(IPlug):
             connections[connection.node.identifier].append(connection.name)
         return {
             "name": self.name,
-            "value": self.value if not self._sub_plugs else None,
+            "value": self.value if not self.sub_plugs else None,
             "connections": connections,
             "sub_plugs": {
                 name: sub_plug.serialize()
-                for name, sub_plug in self._sub_plugs.items()
+                for name, sub_plug in self.sub_plugs.items()
             },
         }
 
@@ -273,14 +272,14 @@ class InputPlug(IPlug):
                 "This is due to the fact that JSON serialization only allows "
                 "strings as keys."
             )
-        if not self._sub_plugs.get(key):
-            self._sub_plugs[key] = SubInputPlug(
+        if not self.sub_plugs.get(key):
+            self.sub_plugs[key] = SubInputPlug(
                 key=key, node=self.node, parent_plug=self
             )
-        return self._sub_plugs[key]
+        return self.sub_plugs[key]
 
     def _update_value(self, value):
-        if self._sub_plugs:
+        if self.sub_plugs:
             return
         super(InputPlug, self)._update_value(value)
 
@@ -293,11 +292,11 @@ class InputPlug(IPlug):
             ] = self.connections[0].name
         return {
             "name": self.name,
-            "value": self.value if not self._sub_plugs else None,
+            "value": self.value if not self.sub_plugs else None,
             "connections": connections,
             "sub_plugs": {
                 name: sub_plug.serialize()
-                for name, sub_plug in self._sub_plugs.items()
+                for name, sub_plug in self.sub_plugs.items()
             },
         }
 
@@ -315,9 +314,9 @@ class SubPlug(object):
         """Setting the Plug dirty informs its parent plug."""
         self._is_dirty = status
         if status:
-            self.parent_plug.is_dirty = status
+            self.parent_plug.is_dirty = status  # pylint: disable=no-member
 
-    def promote_to_graph(self, name=None):
+    def promote_to_graph(self, name=None):  # pylint: disable=no-self-use
         """Add this plug to the graph of this plug's node.
 
         NOTE: Subplugs can only be added to a graph via their parent plug.
@@ -347,7 +346,7 @@ class SubInputPlug(SubPlug, InputPlug):
         # super().__init__() refers to self.parent_plug, so need to set it here
         self.key = key
         self.parent_plug = parent_plug
-        self.parent_plug._sub_plugs[key] = self
+        self.parent_plug.sub_plugs[key] = self
 
         super(SubInputPlug, self).__init__(
             "{0}.{1}".format(parent_plug.name, key), node
@@ -385,7 +384,7 @@ class SubOutputPlug(SubPlug, OutputPlug):
         # super().__init__() refers to self.parent_plug, so need to set it here
         self.key = key
         self.parent_plug = parent_plug
-        self.parent_plug._sub_plugs[key] = self
+        self.parent_plug.sub_plugs[key] = self
 
         super(SubOutputPlug, self).__init__(
             "{0}.{1}".format(parent_plug.name, key), node

@@ -72,7 +72,7 @@ class Graph(object):
         Returns:
             (list of INode): All nodes, including the nodes from subgraphs
         """
-        nodes = [n for n in self.nodes]
+        nodes = list(self.nodes)
         for subgraph in self.subgraphs.values():
             nodes += subgraph.nodes
         return list(set(nodes))
@@ -167,9 +167,7 @@ class Graph(object):
             self.nodes.append(node)
             node.graph = self
         else:
-            log.warning(
-                'Node "{0}" is already part of this Graph'.format(node.name)
-            )
+            log.warning('Node "%s" is already part of this Graph', node.name)
 
     def delete_node(self, node):
         """Disconnect all plugs and then delete the node object."""
@@ -218,7 +216,7 @@ class Graph(object):
                 "Only plugs of type '{1}' or '{2}' can be promoted.".format(
                     type(plug), InputPlug, OutputPlug
                 )
-            )
+            )  # pragma: no cover
 
     def accepts_connection(self, output_plug, input_plug):
         """Raise exception if new connection would violate integrity of graph.
@@ -299,7 +297,7 @@ class Graph(object):
             evaluator (flowpipe.evaluators.Evaluator): The evaluator to use.
                 For the basic evaluation modes will be picked by 'mode'.
         """
-        log.info('Evaluating Graph "{0}"'.format(self.name))
+        log.info('Evaluating Graph "%s"', self.name)
 
         # map mode keywords to evaluation functions and their arguments
         eval_modes = {
@@ -313,7 +311,7 @@ class Graph(object):
 
         if mode and evaluator:
             raise ValueError("Both 'mode' and 'evaluator' arguments passed.")
-        elif mode:
+        if mode:
             try:
                 eval_cls, eval_args = eval_modes[mode]
             except KeyError:
@@ -339,7 +337,7 @@ class Graph(object):
         """Serialize the graph into a json."""
         return self._serialize()
 
-    def serialize(self):  # pragma: no cover
+    def serialize(self, with_subgraphs=True):  # pragma: no cover
         """Serialize the graph in its grid form.
 
         Deprecated.
@@ -350,7 +348,7 @@ class Graph(object):
             DeprecationWarning,
         )
 
-        return self._serialize()
+        return self._serialize(with_subgraphs)
 
     def _serialize(self, with_subgraphs=True):
         """Serialize the graph in its grid form.
@@ -364,7 +362,7 @@ class Graph(object):
         data["nodes"] = [node.to_json() for node in self.nodes]
         if with_subgraphs:
             data["subgraphs"] = [
-                graph._serialize(with_subgraphs=False)
+                graph.serialize(with_subgraphs=False)
                 for graph in sorted(
                     self.subgraphs.values(), key=lambda g: g.name
                 )
@@ -394,24 +392,24 @@ class Graph(object):
     def node_repr(self):
         """Format to visualize the Graph."""
         canvas_ = canvas.Canvas()
-        x = 0
+        x_pos = 0
 
         evaluation_matrix = self.evaluation_matrix
 
         for row in evaluation_matrix:
-            y = 0
+            y_pos = 0
             x_diff = 0
             for node in row:
-                item_ = item.Item(str(node), [x, y])
+                item_ = item.Item(str(node), [x_pos, y_pos])
                 node.item = item_
                 x_diff = (
                     item_.bbox[2] - item_.bbox[0] + 4
                     if item_.bbox[2] - item_.bbox[0] + 4 > x_diff
                     else x_diff
                 )
-                y += item_.bbox[3] - item_.bbox[1]
+                y_pos += item_.bbox[3] - item_.bbox[1]
                 canvas_.add_item(item_)
-            x += x_diff
+            x_pos += x_diff
 
         # Include the input groups if any have been set
         y_off = 2
@@ -422,10 +420,11 @@ class Graph(object):
                 i = item.Item("o {0}".format(input_group.name), [0, y_off])
                 canvas_.add_item(i)
                 locked_items.append(i)
-                for p in input_group.plugs:
+                for plug in input_group.plugs:
                     y_off += 1
                     i = item.Item(
-                        "`-{0}.{1}".format(p.node.name, p.name), [2, y_off]
+                        "`-{0}.{1}".format(plug.node.name, plug.name),
+                        [2, y_off],
                     )
                     canvas_.add_item(i)
                     locked_items.append(i)
@@ -436,23 +435,21 @@ class Graph(object):
                 i.position[0] += 2
                 i.position[1] += y_off + 1 + int(bool(self.input_groups))
 
-        canvas_.add_item(item.Rectangle(x, canvas_.bbox[3] + 1, [0, 0]), 0)
+        canvas_.add_item(item.Rectangle(x_pos, canvas_.bbox[3] + 1, [0, 0]), 0)
 
         # Crop the name of the graph if it is too long
         name = self.name
-        if len(name) > x - 2:
-            name = name[: x - 2]
         canvas_.add_item(
-            item.Item("{name:^{x}}".format(name=name, x=x), [0, 1]), 0
+            item.Item("{name:^{x}}".format(name=name, x=x_pos), [0, 1]), 0
         )
-        canvas_.add_item(item.Rectangle(x, 3, [0, 0]), 0)
+        canvas_.add_item(item.Rectangle(x_pos, 3, [0, 0]), 0)
 
         if self.input_groups:
-            canvas_.add_item(item.Rectangle(x, y_off + 2, [0, 0]), 0)
+            canvas_.add_item(item.Rectangle(x_pos, y_off + 2, [0, 0]), 0)
 
         for node in self.all_nodes:
-            for i, plug in enumerate(node._sort_plugs(node.all_outputs())):
-                for connection in node._sort_plugs(node.all_outputs())[
+            for i, plug in enumerate(node.sort_plugs(node.all_outputs())):
+                for connection in node.sort_plugs(node.all_outputs())[
                     plug
                 ].connections:
                     dnode = connection.node
@@ -465,7 +462,7 @@ class Graph(object):
                         dnode.item.position[1]
                         + 3
                         + list(
-                            dnode._sort_plugs(dnode.all_inputs()).values()
+                            dnode.sort_plugs(dnode.all_inputs()).values()
                         ).index(connection),
                     ]
                     canvas_.add_item(item.Line(start, end), 0)
@@ -482,8 +479,10 @@ class Graph(object):
             for name in sorted(self.input_groups.keys()):
                 input_group = self.input_groups[name]
                 pretty.append(" [g] {0}:".format(name))
-                for p in input_group.plugs:
-                    pretty.append("  {0}.{1}".format(p.node.name, p.name))
+                for plug in input_group.plugs:
+                    pretty.append(
+                        "  {0}.{1}".format(plug.node.name, plug.name)
+                    )
         for node in self.evaluation_sequence:
             pretty.append(node.list_repr())
         return "\n ".join(pretty)
@@ -502,7 +501,7 @@ def set_default_graph(graph):
     if not isinstance(graph, Graph):
         raise TypeError("Can only set 'Graph' instances as default graph!")
 
-    global default_graph
+    global default_graph  # pylint: disable=global-statement, invalid-name
     default_graph = graph
 
 
