@@ -1,3 +1,4 @@
+"""The setup file only exists to be able to build the docs on readthedocs!"""
 from setuptools import find_packages, setup
 
 with open("README.md") as stream:
