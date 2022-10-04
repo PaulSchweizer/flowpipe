@@ -668,25 +668,38 @@ class FunctionNode(INode):
         if func is not None:
             self.file_location = inspect.getfile(func)
             self.class_name = self.func.__name__
-            arg_spec = getargspec(func)  # pylint: disable=deprecated-method
-            defaults = {}
-            if arg_spec.defaults is not None:
-                defaults = dict(
-                    zip(
-                        arg_spec.args[-len(arg_spec.defaults) :],
-                        arg_spec.defaults,
+            try:
+                sig = inspect.signature(func)
+                forbidden_inputs = []
+                for input_ in sig.parameters:
+                    if input_ in self.RESERVED_INPUT_NAMES:
+                        forbidden_inputs.append(input_)
+                        continue
+                    if input_ != "self":
+                        plug = InputPlug(input_, self)
+                        plug.value = sig.parameters[input_].default
+                    else:
+                        self._use_self = True
+            except AttributeError:  # pragma: no cover
+                arg_spec = getargspec(func)  # pylint: disable=deprecated-method
+                defaults = {}
+                if arg_spec.defaults is not None:
+                    defaults = dict(
+                        zip(
+                            arg_spec.args[-len(arg_spec.defaults) :],
+                            arg_spec.defaults,
+                        )
                     )
-                )
-            forbidden_inputs = []
-            for input_ in arg_spec.args:
-                if input_ in self.RESERVED_INPUT_NAMES:
-                    forbidden_inputs.append(input_)
-                    continue
-                if input_ != "self":
-                    plug = InputPlug(input_, self)
-                    plug.value = defaults.get(input_, None)
-                else:
-                    self._use_self = True
+                forbidden_inputs = []
+                for input_ in arg_spec.args:
+                    if input_ in self.RESERVED_INPUT_NAMES:
+                        forbidden_inputs.append(input_)
+                        continue
+                    if input_ != "self":
+                        plug = InputPlug(input_, self)
+                        plug.value = defaults.get(input_, None)
+                    else:
+                        self._use_self = True
             if forbidden_inputs:
                 raise ValueError(
                     "{0} are reserved names and can not be used as inputs!\n"
