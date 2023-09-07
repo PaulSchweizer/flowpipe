@@ -66,6 +66,16 @@ class IPlug(object):
         )
         self.disconnect(other)
 
+    @property
+    def _sub_plugs(self):
+        """Deprecated but included for backwards compatibility."""
+        warnings.warn(
+            "`_sub_plugs` is deprecated, please use `sub_plugs` instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.sub_plugs
+
     # Extra function to make re-use in subclasses easier
     def _update_value(self, value):
         """Update the internal value."""
