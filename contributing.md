@@ -56,10 +56,11 @@ Currently there is no specific release policy enacted, so please state in your P
 To perform a release as a collaborator, follow this recipe:
 
 1. On the master branch, update the version number in `pyproject.toml` and `docs\conf.py`.
-2. Commit and push that change.
-3. On the github page, navigate to "Releases" and "Draft a new release".
-4. Enter the required info for a new release. _Make sure the version number you give here is the same as in setup.py!_
-5. Click "Publish release", and the CI pipeline will automatically build a new release and push it to PyPi via github actions (see [publish.yml](.github\workflows\publish.yml)).
+2. Tag the commit and push the tag.
+3. Commit and push that change.
+4. On the github page, navigate to "Releases" and "Draft a new release".
+5. Enter the required info for a new release. _Make sure the version number you give here is the same as in setup.py!_
+6. Click "Publish release", and the CI pipeline will automatically build a new release and push it to PyPi via github actions (see [publish.yml](.github\workflows\publish.yml)).
 
 # Next Steps: Become a Collaborator on github
 
