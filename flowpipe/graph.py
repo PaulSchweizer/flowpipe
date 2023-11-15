@@ -16,11 +16,6 @@ from .evaluator import (
 from .plug import InputPlug, InputPlugGroup, OutputPlug
 from .utilities import deserialize_graph
 
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
-
 log = logging.getLogger(__name__)
 
 
@@ -356,7 +351,7 @@ class Graph(object):
         Args:
             with_subgraphs (bool): Set to false to avoid infinite recursion
         """
-        data = OrderedDict(
+        data = dict(
             module=self.__module__, cls=self.__class__.__name__, name=self.name
         )
         data["nodes"] = [node.to_json() for node in self.nodes]

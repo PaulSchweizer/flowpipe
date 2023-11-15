@@ -1,13 +1,6 @@
 """Nodes manipulate incoming data and provide the outgoing data."""
 from __future__ import absolute_import, print_function
 
-from abc import ABCMeta, abstractmethod
-
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
-
 import copy
 import inspect
 import json
@@ -16,6 +9,7 @@ import pickle
 import time
 import uuid
 import warnings
+from abc import ABCMeta, abstractmethod
 
 from .event import Event
 from .graph import get_default_graph
@@ -299,13 +293,13 @@ class INode(object):
             raise RuntimeError(
                 "Cannot serialize a node that was not defined " "in a file"
             )
-        inputs = OrderedDict()
+        inputs = {}
         for plug in self.inputs.values():
             inputs[plug.name] = plug.serialize()
-        outputs = OrderedDict()
+        outputs = {}
         for plug in self.outputs.values():
             outputs[plug.name] = plug.serialize()
-        return OrderedDict(
+        return dict(
             file_location=self.file_location,
             module=self.__module__,
             cls=self.__class__.__name__,
@@ -560,8 +554,8 @@ class INode(object):
 
     @staticmethod
     def sort_plugs(plugs):
-        """Sort the given plugs alphabetically into an OrderedDict."""
-        sorted_plugs = OrderedDict()
+        """Sort the given plugs alphabetically into a dict."""
+        sorted_plugs = {}
         for i in sorted(plugs, key=lambda x: x.lower()):
             sorted_plugs[i] = plugs[i]
         return sorted_plugs

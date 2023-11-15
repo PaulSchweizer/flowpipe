@@ -7,11 +7,6 @@ from abc import abstractmethod
 
 from .utilities import get_hash
 
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
-
 if sys.version_info.major > 2:  # pragma: no cover
     basestring = str  # pylint: disable=invalid-name
 
@@ -38,7 +33,7 @@ class IPlug(object):
         self.name = name
         self.node = node
         self.connections = []
-        self.sub_plugs = OrderedDict()
+        self.sub_plugs = {}
         self._value = None
         self._is_dirty = True
 
