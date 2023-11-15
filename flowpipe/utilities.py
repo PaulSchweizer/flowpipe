@@ -93,7 +93,7 @@ class NodeEncoder(json.JSONEncoder):
     def default(self, o):
         """Encode the object, handling type errors by encoding into sha256."""
         try:
-            return super(NodeEncoder, self).default(o)
+            return super().default(o)
         except TypeError:
             try:
                 return sha256(o).hexdigest()

@@ -26,7 +26,7 @@ except AttributeError:  # pragma: no cover
     getargspec = inspect.getargspec
 
 
-class INode(object):
+class INode:
     """Holds input and output Plugs and a method for computing."""
 
     __metaclass__ = ABCMeta
@@ -55,7 +55,7 @@ class INode(object):
         self.identifier = (
             identifier
             if identifier is not None
-            else "{0}-{1}".format(self.name, uuid.uuid4())
+            else f"{self.name}-{uuid.uuid4()}"
         )
         self.inputs = {}
         self.outputs = {}
@@ -223,20 +223,14 @@ class INode(object):
             for key, plug in self.outputs.items():
                 if key in other.inputs:
                     plug.connect(other.inputs[key])
-                    connections.append(
-                        "Node: {0}, Plug: {1}".format(other.name, key)
-                    )
+                    connections.append(f"Node: {other.name}, Plug: {key}")
                     for sub in plug.sub_plugs:
                         plug[sub].connect(other.inputs[key][sub])
                         connections.append(
-                            "Node: {0}, Plug: {1}, SubPlug: {2}".format(
-                                other.name, key, sub
-                            )
+                            f"Node: {other.name}, Plug: {key}, SubPlug: {sub}"
                         )
             if not connections:
-                raise ValueError(
-                    "{0} has no matching inputs".format(other.name)
-                )
+                raise ValueError(f"{other.name} has no matching inputs")
         elif isinstance(other, (InputPlug, InputPlugGroup)):
             try:
                 if isinstance(other, SubPlug):
@@ -244,19 +238,17 @@ class INode(object):
                     out = self.outputs[out_name][sub_name]
                 else:
                     out = self.outputs[other.name]
-            except KeyError:
-                raise KeyError("No output named {0}".format(other.name))
+            except KeyError as exc:
+                raise KeyError(f"No output named {other.name}") from exc
             else:
                 out.connect(other)
-                connections.append("Plug: {0}".format(other.name))
+                connections.append(f"Plug: {other.name}")
 
                 for sub in out.sub_plugs:
                     out.sub_plugs[sub].connect(other[sub])
-                    connections.append(
-                        "Plug: {0}, Subplug: {1}".format(other.name, sub)
-                    )
+                    connections.append(f"Plug: {other.name}, Subplug: {sub}")
         else:
-            raise TypeError("Cannot connect outputs to {}".format(type(other)))
+            raise TypeError(f"Cannot connect outputs to {type(other)}")
         log.debug(
             "Connected node %s with %s", self.name, "\n".join(connections)
         )
@@ -291,7 +283,7 @@ class INode(object):
         """Perform the serialization to json."""
         if self.file_location is None:  # pragma: no cover
             raise RuntimeError(
-                "Cannot serialize a node that was not defined " "in a file"
+                "Cannot serialize a node that was not defined in a file"
             )
         inputs = {}
         for plug in self.inputs.values():
@@ -299,16 +291,16 @@ class INode(object):
         outputs = {}
         for plug in self.outputs.values():
             outputs[plug.name] = plug.serialize()
-        return dict(
-            file_location=self.file_location,
-            module=self.__module__,
-            cls=self.__class__.__name__,
-            name=self.name,
-            identifier=self.identifier,
-            inputs=inputs,
-            outputs=outputs,
-            metadata=self.metadata,
-        )
+        return {
+            "file_location": self.file_location,
+            "module": self.__module__,
+            "cls": self.__class__.__name__,
+            "name": self.name,
+            "identifier": self.identifier,
+            "inputs": inputs,
+            "outputs": outputs,
+            "metadata": self.metadata,
+        }
 
     @staticmethod
     def from_pickle(data):
@@ -410,23 +402,19 @@ class INode(object):
 
         if self.graph.subgraphs:
             width = max([width, len(self.graph.name) + 7])
-            pretty = "{offset}+{graph_name:-^{width}}+".format(
-                offset=offset, graph_name=self.graph.name, width=width
-            )
+            pretty = f"{offset}+{self.graph.name:-^{width}}+"
         else:
             pretty = offset + "+" + "-" * width + "+"
 
-        pretty += "\n{offset}|{name:^{width}}|".format(
-            offset=offset, name=" " + self.name + " ", width=width
-        )
+        pretty += f"\n{offset}|{self.name:^{width}}|"
         pretty += "\n" + offset + "|" + "-" * width + "|"
 
         def _short_value(plug):
             if plug.value is not None and not plug.sub_plugs:
                 value = str(plug.value)
                 if len(value) > max_value_length:
-                    return "<{0}...>".format(value[: max_value_length - 3])
-                return "<{0}>".format(value)
+                    return f"<{value[: max_value_length - 3]}...>"
+                return f"<{value}>"
             return "<>"
 
         # Inputs
@@ -437,29 +425,18 @@ class INode(object):
                 pretty += "-->"
             else:
                 pretty += offset
-            plug = "{symbol} {dist}{input_}{value}".format(
-                symbol="%" if in_plug.sub_plugs else "o",
-                dist=" " if isinstance(in_plug, SubPlug) else "",
-                input_=input_,
-                value=_short_value(in_plug),
-            )
-            pretty += "{plug:{width}}|".format(plug=plug, width=width + 1)
+            symbol = "%" if in_plug.sub_plugs else "o"
+            dist = " " if isinstance(in_plug, SubPlug) else ""
+            plug = f"{symbol} {dist}{input_}{_short_value(in_plug)}".format()
+            pretty += f"{plug:{width + 1}}|"
 
         # Outputs
         for output in sorted(all_outputs.keys()):
             out_plug = all_outputs[output]
             dist = 2 if isinstance(out_plug, SubPlug) else 1
             value = _short_value(out_plug)
-            pretty += (
-                "\n{offset}|{output:>{width}}{value}{dist}{symbol}".format(
-                    offset=offset,
-                    output=output,
-                    width=width - dist - len(value),
-                    dist=dist * " ",
-                    symbol="%" if out_plug.sub_plugs else "o",
-                    value=value,
-                )
-            )
+            symbol = "%" if out_plug.sub_plugs else "o"
+            pretty += f"\n{offset}|{output:>{width - dist - len(value)}}{value}{dist * ' '}{symbol}"
             if all_outputs[output].connections:
                 pretty += "---"
 
@@ -485,51 +462,32 @@ class INode(object):
         pretty.append(self.name)
         for name, plug in sorted(self.all_inputs().items()):
             if plug.sub_plugs:
-                pretty.append("  [i] {name}".format(name=name))
+                pretty.append(f"  [i] {name}")
                 continue
             if plug.connections:
-                pretty.append(
-                    "{indent}[i] {name} << {node}.{plug}".format(
-                        indent="   " if isinstance(plug, SubPlug) else "  ",
-                        name=name,
-                        node=plug.connections[0].node.name,
-                        plug=plug.connections[0].name,
-                    )
-                )
+                indent = "   " if isinstance(plug, SubPlug) else "  "
+                node_name = plug.connections[0].node.name
+                plug_name = plug.connections[0].name
+                pretty.append(f"{indent}[i] {name} << {node_name}.{plug_name}")
             else:
+                indent = "   " if isinstance(plug, SubPlug) else "  "
                 pretty.append(
-                    "{indent}[i] {name}: {value}".format(
-                        indent="   " if isinstance(plug, SubPlug) else "  ",
-                        name=name,
-                        value=json.dumps(plug.value, cls=NodeEncoder),
-                    )
+                    f"{indent}[i] {name}: {json.dumps(plug.value, cls=NodeEncoder)}"
                 )
         for name, plug in sorted(self.all_outputs().items()):
             if plug.sub_plugs:
-                pretty.append("  [o] {name}".format(name=name))
+                pretty.append(f"  [o] {name}")
                 continue
             if plug.connections:
-                pretty.append(
-                    "{indent}[o] {name} >> {connections}".format(
-                        indent="   " if isinstance(plug, SubPlug) else "  ",
-                        name=name,
-                        connections=", ".join(
-                            [
-                                "{node}.{plug}".format(
-                                    node=c.node.name, plug=c.name
-                                )
-                                for c in plug.connections
-                            ]
-                        ),
-                    )
+                connections = ", ".join(
+                    [f"{c.node.name}.{c.name}" for c in plug.connections]
                 )
+                indent = "   " if isinstance(plug, SubPlug) else "  "
+                pretty.append(f"{indent}[o] {name} >> {connections}")
             else:
+                indent = "   " if isinstance(plug, SubPlug) else "  "
                 pretty.append(
-                    "{indent}[o] {name}: {value}".format(
-                        indent="   " if isinstance(plug, SubPlug) else "  ",
-                        name=name,
-                        value=json.dumps(plug.value, cls=NodeEncoder),
-                    )
+                    f"{indent}[o] {name}: {json.dumps(plug.value, cls=NodeEncoder)}"
                 )
 
         return "\n".join(pretty)
@@ -584,14 +542,14 @@ class FunctionNode(INode):
         identifier=None,
         metadata=None,
         graph=None,
-        **kwargs
+        **kwargs,
     ):
         """The data on the function is used to drive the Node.
         The function itself becomes the compute method.
         The function input args become the InputPlugs.
         Other function attributes, name, __doc__ also transfer to the Node.
         """
-        super(FunctionNode, self).__init__(
+        super().__init__(
             name or getattr(func, "__name__", None),
             identifier,
             metadata,
@@ -610,13 +568,13 @@ class FunctionNode(INode):
         for output in self.outputs.values():
             outputs.append(output.name)
             for key in output.sub_plugs.keys():
-                outputs.append("{0}.{1}".format(output.name, key))
+                outputs.append(f"{output.name}.{key}")
         return self.__class__(
             func=self.func,
             outputs=outputs,
             metadata=metadata,
             graph=graph,
-            **kwargs
+            **kwargs,
         )
 
     def compute(self, *args, **kwargs):
@@ -627,7 +585,7 @@ class FunctionNode(INode):
 
     def _serialize(self):
         """Also serialize the location of the wrapped function."""
-        data = super(FunctionNode, self)._serialize()
+        data = super()._serialize()
         data["func"] = {
             "module": self.func.__module__,
             "name": self.func.__name__,
@@ -683,10 +641,9 @@ class FunctionNode(INode):
                     self._use_self = True
             if forbidden_inputs:
                 raise ValueError(
-                    "{0} are reserved names and can not be used as inputs!\n"
-                    "Reserved names are: {1}".format(
-                        ", ".join(forbidden_inputs), self.RESERVED_INPUT_NAMES
-                    )
+                    f"{', '.join(forbidden_inputs)} are reserved names and "
+                    "can not be used as inputs!\n"
+                    f"Reserved names are: {self.RESERVED_INPUT_NAMES}"
                 )
 
         if outputs is not None:

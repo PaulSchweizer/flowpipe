@@ -7,7 +7,8 @@ skip = ["flowpipe/__init__.py"]
 
 [tool.pylint."MESSAGES CONTROL"]
 disable = [
-    "R0801",
+    "duplicate-code",
+    "no-else-raise",
     "too-many-function-args",
     "too-many-locals",
     "too-many-arguments",
@@ -39,7 +40,6 @@ ascii-canvas = ">=1.3.5"
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.11.0"
-flake8 = "^6.1.0"
 mock = "^5.1.0"
 numpy = "^1.19.2"
 pre-commit = "^3.5.0"
