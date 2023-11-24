@@ -21,6 +21,6 @@ repos:
         pass_filenames: false
       - id: pylint
         name: pylint
-        language: python
+        language: system
         entry: poetry run pylint ./flowpipe
         pass_filenames: false
