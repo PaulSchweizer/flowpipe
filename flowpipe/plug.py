@@ -7,16 +7,11 @@ from abc import abstractmethod
 
 from .utilities import get_hash
 
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
-
 if sys.version_info.major > 2:  # pragma: no cover
     basestring = str  # pylint: disable=invalid-name
 
 
-class IPlug(object):
+class IPlug:
     """The interface for the plugs.
 
     Plugs are associated with a Node and can be connected, disconnected
@@ -38,7 +33,7 @@ class IPlug(object):
         self.name = name
         self.node = node
         self.connections = []
-        self.sub_plugs = OrderedDict()
+        self.sub_plugs = {}
         self._value = None
         self._is_dirty = True
 
@@ -153,7 +148,7 @@ class OutputPlug(IPlug):
             node (INode): The Node holding the Plug.
         """
         self.accepted_plugs = (InputPlug, InputPlugGroup)
-        super(OutputPlug, self).__init__(name, node)
+        super().__init__(name, node)
         if not isinstance(self, SubPlug):
             self.node.outputs[self.name] = self
 
@@ -177,9 +172,7 @@ class OutputPlug(IPlug):
         Set both participating Plugs dirty.
         """
         if not isinstance(plug, self.accepted_plugs):
-            raise TypeError(
-                "Cannot connect {0} to {1}".format(type(self), type(plug))
-            )
+            raise TypeError(f"Cannot connect {type(self)} to {type(plug)}")
         if isinstance(plug, InputPlugGroup):
             for plug_ in plug:
                 self.connect(plug_)
@@ -218,7 +211,7 @@ class OutputPlug(IPlug):
 
     def _update_value(self, value):
         """Propagate the dirty state to all connected Plugs as well."""
-        super(OutputPlug, self)._update_value(value)
+        super()._update_value(value)
         for plug in self.connections:
             plug.value = value
 
@@ -252,7 +245,7 @@ class InputPlug(IPlug):
         """
         self.accepted_plugs = (OutputPlug,)
 
-        super(InputPlug, self).__init__(name, node)
+        super().__init__(name, node)
         self.value = value
         self.is_dirty = True
         if not isinstance(self, SubPlug):
@@ -264,9 +257,7 @@ class InputPlug(IPlug):
         Set both participating Plugs dirty.
         """
         if not isinstance(plug, self.accepted_plugs):
-            raise TypeError(
-                "Cannot connect {0} to {1}".format(type(self), type(plug))
-            )
+            raise TypeError(f"Cannot connect {type(self)} to {type(plug)}")
         plug.connect(self)
 
     def __getitem__(self, key):
@@ -291,7 +282,7 @@ class InputPlug(IPlug):
     def _update_value(self, value):
         if self.sub_plugs:
             return
-        super(InputPlug, self)._update_value(value)
+        super()._update_value(value)
 
     def serialize(self):
         """Serialize the Plug containing all it's connections."""
@@ -311,7 +302,7 @@ class InputPlug(IPlug):
         }
 
 
-class SubPlug(object):
+class SubPlug:
     """Mixin that unifies common properties of subplugs."""
 
     @property
@@ -326,7 +317,7 @@ class SubPlug(object):
         if status:
             self.parent_plug.is_dirty = status  # pylint: disable=no-member
 
-    def promote_to_graph(self, name=None):  # pylint: disable=no-self-use
+    def promote_to_graph(self, name=None):
         """Add this plug to the graph of this plug's node.
 
         NOTE: Subplugs can only be added to a graph via their parent plug.
@@ -358,9 +349,7 @@ class SubInputPlug(SubPlug, InputPlug):
         self.parent_plug = parent_plug
         self.parent_plug.sub_plugs[key] = self
 
-        super(SubInputPlug, self).__init__(
-            "{0}.{1}".format(parent_plug.name, key), node
-        )
+        super().__init__(f"{parent_plug.name}.{key}", node)
         self.value = value
         self.is_dirty = True
 
@@ -396,15 +385,13 @@ class SubOutputPlug(SubPlug, OutputPlug):
         self.parent_plug = parent_plug
         self.parent_plug.sub_plugs[key] = self
 
-        super(SubOutputPlug, self).__init__(
-            "{0}.{1}".format(parent_plug.name, key), node
-        )
+        super().__init__(f"{parent_plug.name}.{key}", node)
         self.value = value
         self.is_dirty = True
 
     def _update_value(self, value):
         """Propagate the dirty state to all connected Plugs as well."""
-        super(SubOutputPlug, self)._update_value(value)
+        super()._update_value(value)
         for plug in self.connections:
             plug.value = value
         parent_value = self.parent_plug.value or {}
@@ -424,7 +411,7 @@ class SubOutputPlug(SubPlug, OutputPlug):
         }
 
 
-class InputPlugGroup(object):
+class InputPlugGroup:
     """Group plugs inside a group into one entry point on the graph."""
 
     def __init__(self, name, graph, plugs=None):

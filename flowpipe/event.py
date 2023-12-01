@@ -7,7 +7,7 @@ import logging
 log = logging.getLogger(__name__)
 
 
-class Event(object):
+class Event:
     """Very simple implementation of an event system.event
 
     The event simply calls the registered functions with the given arguments.

@@ -5,7 +5,7 @@ import pytest
 
 from flowpipe.errors import CycleError
 from flowpipe.graph import Graph, get_default_graph, reset_default_graph
-from flowpipe.node import INode, Node, FunctionNode
+from flowpipe.node import FunctionNode, INode, Node
 from flowpipe.plug import InputPlug, InputPlugGroup, OutputPlug, SubInputPlug
 
 
