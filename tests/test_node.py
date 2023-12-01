@@ -5,7 +5,7 @@ import pytest
 
 from flowpipe.errors import CycleError
 from flowpipe.graph import Graph, get_default_graph, reset_default_graph
-from flowpipe.node import INode, Node
+from flowpipe.node import INode, Node, FunctionNode
 from flowpipe.plug import InputPlug, InputPlugGroup, OutputPlug, SubInputPlug
 
 
@@ -27,12 +27,12 @@ class SquareNode(INode):
 
     def compute(self, in1, compound_in=None):
         """Square the given input and send to the output."""
-        return {"out": in1 ** 2}
+        return {"out": in1**2}
 
 
 @Node(outputs=["out", "compound_out"])
 def SquareFunctionNode(in1, compound_in):
-    return {"out": in1 ** 2}
+    return {"out": in1**2}
 
 
 class SimpleNode(INode):
@@ -110,7 +110,7 @@ def test_evaluate(clear_default_graph):
     assert node.outputs["out"].value is None
     node.inputs["in1"].value = test_input
     node.evaluate()
-    assert test_input ** 2 == node.outputs["out"].value
+    assert test_input**2 == node.outputs["out"].value
 
     @Node(outputs=["compound_out"])
     def CompoundNode(compound_in):
@@ -882,3 +882,16 @@ def test_exception_event(clear_default_graph):
         g.evaluate()
 
     assert en.event_happened
+
+
+def raw_func_to_be_wrapped(dummy):
+    pass
+
+
+def test_using_FunctionNode_without_decorator_serializes_correctly():
+    normal_node = FunctionNode(
+        name="normal node", func=raw_func_to_be_wrapped, outputs=["dummy"]
+    )
+    serialized_node = normal_node.to_json()
+    deserialized_data = INode.from_json(serialized_node).to_json()
+    assert deserialized_data == serialized_node
