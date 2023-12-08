@@ -22,7 +22,7 @@ jobs:
           python -m pip install --upgrade poetry wheel
       - name: Install dependencies
         run: |
-          poetry install
+          poetry install --no-cache
       - name: Run tests without coverage
         if: ${{ matrix.python-version == 2.7 }}
         run: |
