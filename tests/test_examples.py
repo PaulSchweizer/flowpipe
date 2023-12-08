@@ -1,6 +1,19 @@
 import glob
-import imp
+import importlib.machinery
+import importlib.util
 import os
+import sys
+
+
+def load_source(modname, filename):
+    loader = importlib.machinery.SourceFileLoader(modname, filename)
+    spec = importlib.util.spec_from_file_location(
+        modname, filename, loader=loader
+    )
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[module.__name__] = module
+    loader.exec_module(module)
+    return module
 
 
 def test_examples():
@@ -10,4 +23,4 @@ def test_examples():
     )
 
     for example in glob.glob(examples):
-        imp.load_source(os.path.basename(example).replace(".", "_"), example)
+        load_source(os.path.basename(example).replace(".", "_"), example)

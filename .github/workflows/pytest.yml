@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.7", "3.10", "3.x"]
+        python-version: ["3.8", "3.10", "3.x"]
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
@@ -22,7 +22,7 @@ jobs:
           python -m pip install --upgrade poetry wheel
       - name: Install dependencies
         run: |
-          poetry install
+          poetry install --no-cache
       - name: Run tests without coverage
         if: ${{ matrix.python-version == 2.7 }}
         run: |
