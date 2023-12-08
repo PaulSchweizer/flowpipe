@@ -19,13 +19,6 @@ from .utilities import NodeEncoder, deserialize_node, import_class
 log = logging.getLogger(__name__)
 
 
-# Use getfullargspec on py3.x to make type hints work
-try:
-    getargspec = inspect.getfullargspec
-except AttributeError:  # pragma: no cover
-    getargspec = inspect.getargspec
-
-
 class INode:
     """Holds input and output Plugs and a method for computing."""
 
@@ -620,7 +613,9 @@ class FunctionNode(INode):
         if func is not None:
             self.file_location = inspect.getfile(func)
             self.class_name = self.func.__name__
-            arg_spec = getargspec(func)  # pylint: disable=deprecated-method
+            arg_spec = inspect.getfullargspec(
+                func
+            )  # pylint: disable=deprecated-method
             defaults = {}
             if arg_spec.defaults is not None:
                 defaults = dict(

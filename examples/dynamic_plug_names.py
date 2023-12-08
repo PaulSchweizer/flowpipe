@@ -18,6 +18,8 @@ arguments.
 
 from flowpipe import Graph, INode, InputPlug, OutputPlug
 
+print("ddddddddddddddd")
+
 
 def compute_embeddings(image):
     """A mock function for a call to a deep learning model or a web service."""
