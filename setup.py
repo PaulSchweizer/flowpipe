@@ -5,7 +5,7 @@ with open("README.md") as stream:
     long_description = stream.read()
 
 REQUIREMENTS = [
-    "ascii-canvas>=1.2.2",
+    "ascii-canvas>=2.0.0",
 ]
 
 setup(

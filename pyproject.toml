@@ -35,7 +35,7 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.8.1"
+python = ">=3.8.10"
 ascii-canvas = ">=2.0.0"
 
 [tool.poetry.group.dev.dependencies]
