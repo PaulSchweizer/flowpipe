@@ -599,7 +599,7 @@ class FunctionNode(INode):
         self.metadata = data["metadata"]
         self.file_location = data["file_location"]
 
-        # The function could either be a ray function or, if the function is
+        # The function could either be a function or, if the function is
         # wrapped with the @Node decorator, it would already be a Node class.
         node_or_function = import_class(
             data["func"]["module"], data["func"]["name"], data["file_location"]
