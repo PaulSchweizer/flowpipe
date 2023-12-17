@@ -4,6 +4,9 @@ import logging
 import time
 from concurrent import futures
 from multiprocessing import Manager, Process
+from pickle import PicklingError
+
+from .errors import FlowpipeMultiprocessingError
 
 log = logging.getLogger(__name__)
 
@@ -179,7 +182,21 @@ class LegacyMultiprocessingEvaluator(Evaluator):
                     continue
                 if node.name not in processes and upstream_ready(node):
                     # If all deps are ready and no thread is active, create one
-                    nodes_data[node.identifier] = node.to_json()
+                    try:
+                        nodes_data[node.identifier] = node.to_json()
+                    except PicklingError as exc:
+                        raise FlowpipeMultiprocessingError(
+                            "Error pickling/unpickling node.\n"
+                            "This is most likely due to input values that can not "
+                            "be pickled/unpickled properly.\n"
+                            "If any of your input plugs contain flowpipe graphs, "
+                            "that in turn are made up of Nodes created with the "
+                            "@Node decorator, please consider reworking your Nodes. "
+                            "You can either switch to class based nodes by "
+                            "subclassing from Node or invoke the FunctionNode "
+                            "explicitly instead. Refer to: https://github.com/PaulSchweizer/flowpipe/issues/168#issuecomment-1767779623 "  # pylint: disable=line-too-long
+                            "for details."
+                        ) from exc
                     processes[node.name] = Process(
                         target=_evaluate_node_in_process,
                         name=f"flowpipe.{node.graph.name}.{node.name}",

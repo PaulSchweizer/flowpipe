@@ -591,9 +591,27 @@ class FunctionNode(INode):
         self.identifier = data["identifier"]
         self.metadata = data["metadata"]
         self.file_location = data["file_location"]
-        node = import_class(
+
+        # The function could either be a function or, if the function is
+        # wrapped with the @Node decorator, it would already be a Node class.
+        node_or_function = import_class(
             data["func"]["module"], data["func"]["name"], data["file_location"]
-        )(graph=None)
+        )
+        node = None
+        if isinstance(node_or_function, FunctionNode):
+            node = node_or_function
+        else:
+            node = FunctionNode(
+                name=self.name,
+                identifier=self.identifier,
+                metadata=self.metadata,
+                func=node_or_function,
+                outputs=list(data["outputs"].keys()),
+            )
+            node.file_location = self.file_location
+
+        node = node(graph=None)
+
         self._initialize(node.func, data["outputs"].keys(), data["metadata"])
         for name, input_ in data["inputs"].items():
             self.inputs[name].value = input_["value"]
