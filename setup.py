@@ -5,15 +5,12 @@ with open("README.md") as stream:
     long_description = stream.read()
 
 REQUIREMENTS = [
-    "ascii-canvas>=1.2.2",
-    "ordereddict>=1.1",
-    "strip-hints>=0.1.7",
-    'futures; python_version == "2.7"',
+    "ascii-canvas>=2.0.0",
 ]
 
 setup(
     name="flowpipe",
-    version="0.9.0",
+    version="1.0.0",
     author="Paul Schweizer",
     author_email="paulschweizer@gmx.net",
     description="Lightweight flow-based programming framework.",

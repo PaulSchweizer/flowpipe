@@ -1,14 +1,26 @@
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v2.3.0
+  - repo: https://github.com/ambv/black
+    rev: 23.11.0
     hooks:
-    - id: flake8
--   repo: https://github.com/ambv/black
-    rev: 21.12b0
-    hooks:
-    - id: black
--   repo: https://github.com/pycqa/isort
-    rev: 5.10.1
+      - id: black
+  - repo: https://github.com/pycqa/isort
+    rev: 5.12.0
     hooks:
       - id: isort
-        name: isort (python)
+  - repo: https://github.com/python-poetry/poetry
+    rev: 1.7.0
+    hooks:
+      - id: poetry-check
+      - id: poetry-lock
+  - repo: local
+    hooks:
+      - id: unittests
+        name: unittests
+        language: system
+        entry: poetry run pytest ./tests
+        pass_filenames: false
+      - id: pylint
+        name: pylint
+        language: system
+        entry: poetry run pylint ./flowpipe
+        pass_filenames: false

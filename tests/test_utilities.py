@@ -48,7 +48,8 @@ def test_node_encoder():
     recovered_json = json.loads(json_string)
     for k, v in weird_np_array.items():
         assert (
-            v == recovered_json[k]
+            # v could be any type, so for simplicity we cast to str
+            str(v) == str(recovered_json[k])
             or sha256(bytes(v)).hexdigest() == recovered_json[k]
         )
 

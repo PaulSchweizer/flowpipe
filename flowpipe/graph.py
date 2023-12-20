@@ -16,15 +16,10 @@ from .evaluator import (
 from .plug import InputPlug, InputPlugGroup, OutputPlug
 from .utilities import deserialize_graph
 
-try:
-    from collections import OrderedDict
-except ImportError:
-    from ordereddict import OrderedDict
-
 log = logging.getLogger(__name__)
 
 
-class Graph(object):
+class Graph:
     """A graph of Nodes."""
 
     def __init__(self, name=None, nodes=None):
@@ -56,10 +51,10 @@ class Graph(object):
                     return node
 
         raise KeyError(
-            "Graph does not contain a Node named '{0}'. "
+            f"Graph does not contain a Node named '{key}'. "
             "If the node is part of a subgraph of this graph, use this "
-            "form to access the node: '{{subgraph.name}}.{{node.name}}', "
-            "e.g. 'sub.node'".format(key)
+            "form to access the node: '{subgraph.name}.{node.name}', "
+            "e.g. 'sub.node'"
         )
 
     @property
@@ -160,14 +155,14 @@ class Graph(object):
             for existing_node in self.nodes:
                 if existing_node.name == node.name:
                     raise ValueError(
-                        "Can not add Node of name '{0}', a Node with this "
+                        f"Can not add Node of name '{node.name}', a Node with this "
                         "name already exists on this Graph. Node names on "
-                        "a Graph have to be unique.".format(node.name)
+                        "a Graph have to be unique."
                     )
             self.nodes.append(node)
             node.graph = self
         else:
-            log.warning('Node "%s" is already part of this Graph', node.name)
+            log.warning("Node '%s' is already part of this Graph", node.name)
 
     def delete_node(self, node):
         """Disconnect all plugs and then delete the node object."""
@@ -196,8 +191,8 @@ class Graph(object):
                     list(self.inputs.values()).index(plug)
                 ]
                 raise ValueError(
-                    "The given plug '{0}' has already been promoted to this "
-                    "Graph und the key '{1}'".format(plug.name, key)
+                    f"The given plug '{plug.name}' has already been promoted to this "
+                    f"Graph und the key '{key}'"
                 )
         elif isinstance(plug, OutputPlug):
             if plug not in self.outputs.values():
@@ -207,15 +202,13 @@ class Graph(object):
                     list(self.outputs.values()).index(plug)
                 ]
                 raise ValueError(
-                    "The given plug {0} has already been promoted to this "
-                    "Graph und the key '{1}'".format(plug.name, key)
+                    f"The given plug {plug.name} has already been promoted to this "
+                    f"Graph und the key '{key}'"
                 )
         else:
             raise TypeError(
-                "Plugs of type '{0}' can not be promoted directly to a Graph. "
-                "Only plugs of type '{1}' or '{2}' can be promoted.".format(
-                    type(plug), InputPlug, OutputPlug
-                )
+                f"Plugs of type '{type(plug)}' can not be promoted directly to a Graph. "
+                f"Only plugs of type '{InputPlug}' or '{OutputPlug}' can be promoted."
             )  # pragma: no cover
 
     def accepts_connection(self, output_plug, input_plug):
@@ -250,10 +243,10 @@ class Graph(object):
             and in_node.graph not in self.subgraphs.values()
         ):
             raise ValueError(
-                "This node is part of graph '{0}', but a different "
+                f"This node is part of graph '{in_node.graph.name}', but a different "
                 "graph with the same name is already part of this "
                 "graph. Subgraph names on a Graph have to "
-                "be unique".format(in_node.graph.name)
+                "be unique"
             )
 
         return True
@@ -314,8 +307,8 @@ class Graph(object):
         if mode:
             try:
                 eval_cls, eval_args = eval_modes[mode]
-            except KeyError:
-                raise ValueError("Unkown mode: {0}".format(mode))
+            except KeyError as exc:
+                raise ValueError(f"Unkown mode: {mode}") from exc
             evaluator = eval_cls(**eval_args)
 
         evaluator.evaluate(graph=self, skip_clean=skip_clean)
@@ -356,9 +349,11 @@ class Graph(object):
         Args:
             with_subgraphs (bool): Set to false to avoid infinite recursion
         """
-        data = OrderedDict(
-            module=self.__module__, cls=self.__class__.__name__, name=self.name
-        )
+        data = {
+            "module": self.__module__,
+            "cls": self.__class__.__name__,
+            "name": self.name,
+        }
         data["nodes"] = [node.to_json() for node in self.nodes]
         if with_subgraphs:
             data["subgraphs"] = [
@@ -417,13 +412,13 @@ class Graph(object):
         if self.input_groups:
             for input_group in self.input_groups.values():
                 y_off += 1
-                i = item.Item("o {0}".format(input_group.name), [0, y_off])
+                i = item.Item(f"o {input_group.name}", [0, y_off])
                 canvas_.add_item(i)
                 locked_items.append(i)
                 for plug in input_group.plugs:
                     y_off += 1
                     i = item.Item(
-                        "`-{0}.{1}".format(plug.node.name, plug.name),
+                        f"`-{plug.node.name}.{plug.name}",
                         [2, y_off],
                     )
                     canvas_.add_item(i)
@@ -439,9 +434,7 @@ class Graph(object):
 
         # Crop the name of the graph if it is too long
         name = self.name
-        canvas_.add_item(
-            item.Item("{name:^{x}}".format(name=name, x=x_pos), [0, 1]), 0
-        )
+        canvas_.add_item(item.Item(f"{name:^{x_pos}}", [0, 1]), 0)
         canvas_.add_item(item.Rectangle(x_pos, 3, [0, 0]), 0)
 
         if self.input_groups:
@@ -473,16 +466,13 @@ class Graph(object):
         """List representation of the graph showing Nodes and connections."""
         pretty = []
         pretty.append(self.name)
-
         if self.input_groups:
             pretty.append("[Input Groups]")
             for name in sorted(self.input_groups.keys()):
                 input_group = self.input_groups[name]
-                pretty.append(" [g] {0}:".format(name))
+                pretty.append(f" [g] {name}:")
                 for plug in input_group.plugs:
-                    pretty.append(
-                        "  {0}.{1}".format(plug.node.name, plug.name)
-                    )
+                    pretty.append(f"  {plug.node.name}.{plug.name}")
         for node in self.evaluation_sequence:
             pretty.append(node.list_repr())
         return "\n ".join(pretty)
