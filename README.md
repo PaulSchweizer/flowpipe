@@ -6,7 +6,7 @@
 
 <!-- Pytest Coverage Comment:End -->
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/flowpipe) [![Documentation Status](https://readthedocs.org/projects/flowpipe/badge/?version=latest)](https://flowpipe.readthedocs.io/en/latest) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/PaulSchweizer/flowpipe/blob/master/LICENSE) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/flowpipe) [![Documentation Status](https://readthedocs.org/projects/flowpipe/badge/?version=latest)](https://flowpipe.readthedocs.io/en/latest) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 ![Flowpipe Logo](https://raw.githubusercontent.com/PaulSchweizer/flowpipe/master/logo.png)
 
@@ -225,26 +225,26 @@ Jane, Michelle, Mike and John are having a great party!
 There are more examples for common use cases of flowpipe:
 
 The code for these examples:
-[house_and_birthday.py](examples/house_and_birthday.py)!
+[house_and_birthday.py](https://github.com/PaulSchweizer/flowpipe/blob/master/examples/house_and_birthday.py)!
 
 Another simple example:
-[world_clock.py](examples/world_clock.py)!
+[world_clock.py](https://github.com/PaulSchweizer/flowpipe/blob/master/examples/world_clock.py)!
 
 How to make use of nested subgraphs:
-[nested_graphs.py](examples/nested_graphs.py)!
+[nested_graphs.py](https://github.com/PaulSchweizer/flowpipe/blob/master/examples/nested_graphs.py)!
 
 Using the command pattern with flowpipe successfully:
-[workflow_design_pattern.py](examples/workflow_design_pattern.py)!
+[workflow_design_pattern.py](https://github.com/PaulSchweizer/flowpipe/blob/master/examples/workflow_design_pattern.py)!
 
 Use flowpipe on a remote cluster of machines, commonly refered to as a "render farm" in the VFX/Animation industry:
-[vfx_render_farm_conversion.py](examples/vfx_render_farm_conversion.py)!
+[vfx_render_farm_conversion.py](https://github.com/PaulSchweizer/flowpipe/blob/master/examples/vfx_render_farm_conversion.py)!
 
 An example graph showcasing a common workflow encountered in the VFX/Animation industry:
-[vfx_rendering.py](examples/vfx_rendering.py)!
+[vfx_rendering.py](https://github.com/PaulSchweizer/flowpipe/blob/master/examples/vfx_rendering.py)!
 
 ## VFX Pipeline
 
-If you are working in the VFX/Animation industry, please check out this extensive guide on how to use [flowpipe in a vfx pipeline](flowpipe-for-vfx-pipelines.md)!
+If you are working in the VFX/Animation industry, please check out this extensive guide on how to use [flowpipe in a vfx pipeline](https://github.com/PaulSchweizer/flowpipe/blob/master/flowpipe-for-vfx-pipelines.md)!
 
 # Evaluators
 
