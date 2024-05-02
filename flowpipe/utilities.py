@@ -27,6 +27,7 @@ def import_class(module, cls_name, file_location=None):
             "module", loader, origin=file_location
         )
         module = importlib.util.module_from_spec(spec)
+        loader.exec_module(module)
         cls = getattr(module, cls_name)
     return cls
 
