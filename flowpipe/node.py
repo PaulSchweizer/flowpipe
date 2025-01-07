@@ -14,7 +14,12 @@ from abc import ABCMeta, abstractmethod
 from .event import Event
 from .graph import get_default_graph
 from .plug import InputPlug, InputPlugGroup, OutputPlug, SubOutputPlug, SubPlug
-from .utilities import NodeEncoder, deserialize_node, import_class, sanitize_string_input
+from .utilities import (
+    NodeEncoder,
+    deserialize_node,
+    import_class,
+    sanitize_string_input,
+)
 
 log = logging.getLogger(__name__)
 

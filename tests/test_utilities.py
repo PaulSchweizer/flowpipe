@@ -82,3 +82,14 @@ def test_get_hash():
 
     x = WeirdObject()
     assert util.get_hash(x) is None
+
+
+def test_sanitize_string():
+    """
+    Given a string with curly braces inside
+    Return a string with the curly braces escaped
+    """
+    test_string = "This is a {test} string"
+    expected_string = "This is a {{test}} string"
+    sanitized_string = util.sanitize_string_input(test_string)
+    assert sanitized_string == expected_string
