@@ -19,7 +19,7 @@ disable = [
 
 [tool.poetry]
 name = "Flowpipe"
-version = "1.0.1"
+version = "1.0.2"
 description = "A lightweight framework for flow-based programming in python."
 authors = ["Paul Schweizer <paulschweizer@gmx.net>"]
 license = "MIT"

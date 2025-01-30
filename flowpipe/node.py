@@ -437,7 +437,10 @@ class INode:
             value_out_plug = _short_value(out_plug)
             value_out_plug = sanitize_string_input(value_out_plug)
             symbol = "%" if out_plug.sub_plugs else "o"
-            pretty += f"\n{offset}|{output:>{width - dist - len(value_out_plug)}}{value_out_plug}{dist * ' '}{symbol}"
+            pretty += (
+                f"\n{offset}|{output:>{width - dist - len(value_out_plug)}}"
+                f"{value_out_plug}{dist * ' '}{symbol}"
+            )
             if all_outputs[output].connections:
                 pretty += "---"
 
