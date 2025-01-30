@@ -35,6 +35,11 @@ def SquareFunctionNode(in1, compound_in):
     return {"out": in1**2}
 
 
+@Node(outputs=["out"])
+def DictOutNode(in1):
+    return {"out": {"result": True}}
+
+
 class SimpleNode(INode):
     """A simple node."""
 
@@ -252,6 +257,28 @@ Node2
   [o] compound_out
    [o] compound_out.1: 0
   [o] out: "value longer than max"'''
+    )
+
+
+def test_string_representation_dict(clear_default_graph):
+    """
+    Given two connected nodes where one returns a dict as an output, print the node with the in connection
+    Should return a safe truncated string representation
+    """
+
+    node_a = DictOutNode(name="NodeA")
+    node_b = DictOutNode(name="NodeB")
+    node_a.outputs["out"] >> node_b.inputs["in1"]
+    node_a.evaluate()
+    assert (
+        str(node_b)
+        == """\
+   +--------------------+
+   |       NodeB        |
+   |--------------------|
+-->o in1<{'resul...>    |
+   |              out<> o
+   +--------------------+"""
     )
 
 

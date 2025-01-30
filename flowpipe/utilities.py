@@ -136,3 +136,13 @@ def get_hash(obj, hash_func=lambda x: sha256(x).hexdigest()):
                 return None
         else:
             return None  # pragma: no cover
+
+def sanitize_string_input(input_str):
+    """
+    Escapes dangerous "{" for f strings. Call it before running format
+    Args:
+        input_str (str): string to be sanitized
+    Returns:
+        (str): Sanitized string
+    """
+    return input_str.replace("{","{{").replace("}","}}")

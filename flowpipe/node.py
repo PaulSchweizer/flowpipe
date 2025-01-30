@@ -14,7 +14,12 @@ from abc import ABCMeta, abstractmethod
 from .event import Event
 from .graph import get_default_graph
 from .plug import InputPlug, InputPlugGroup, OutputPlug, SubOutputPlug, SubPlug
-from .utilities import NodeEncoder, deserialize_node, import_class
+from .utilities import (
+    NodeEncoder,
+    deserialize_node,
+    import_class,
+    sanitize_string_input,
+)
 
 log = logging.getLogger(__name__)
 
@@ -420,16 +425,19 @@ class INode:
                 pretty += offset
             symbol = "%" if in_plug.sub_plugs else "o"
             dist = " " if isinstance(in_plug, SubPlug) else ""
-            plug = f"{symbol} {dist}{input_}{_short_value(in_plug)}".format()
+            value_in_plug = _short_value(in_plug)
+            value_in_plug = sanitize_string_input(value_in_plug)
+            plug = f"{symbol} {dist}{input_}{value_in_plug}".format()
             pretty += f"{plug:{width + 1}}|"
 
         # Outputs
         for output in sorted(all_outputs.keys()):
             out_plug = all_outputs[output]
             dist = 2 if isinstance(out_plug, SubPlug) else 1
-            value = _short_value(out_plug)
+            value_out_plug = _short_value(out_plug)
+            value_out_plug = sanitize_string_input(value_out_plug)
             symbol = "%" if out_plug.sub_plugs else "o"
-            pretty += f"\n{offset}|{output:>{width - dist - len(value)}}{value}{dist * ' '}{symbol}"
+            pretty += f"\n{offset}|{output:>{width - dist - len(value_out_plug)}}{value_out_plug}{dist * ' '}{symbol}"
             if all_outputs[output].connections:
                 pretty += "---"
 
