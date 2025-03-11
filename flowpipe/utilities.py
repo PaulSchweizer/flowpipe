@@ -19,6 +19,8 @@ def import_class(module, cls_name, file_location=None):
         module = importlib.import_module(module)
     except NameError:  # pragma: no cover
         module = __import__(module, globals(), locals(), ["object"], -1)
+    except ModuleNotFoundError:  # pragma: no cover
+        pass  # this exception will be ignored to force the Source File load further down
     try:
         cls = getattr(module, cls_name)
     except AttributeError:  # pragma: no cover

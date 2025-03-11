@@ -5,9 +5,11 @@ import re
 import sys
 from hashlib import sha256
 
+import mock
 import numpy as np
 
 import flowpipe.utilities as util
+from flowpipe import INode
 
 
 class WeirdObject(object):
@@ -93,3 +95,15 @@ def test_sanitize_string():
     expected_string = "This is a {{test}} string"
     sanitized_string = util.sanitize_string_input(test_string)
     assert sanitized_string == expected_string
+
+
+class NodeInTest(INode):
+    """"""
+
+
+@mock.patch("importlib.import_module", side_effect=ModuleNotFoundError)
+def test_import_class_from_current_file(_):
+    cls = util.import_class(
+        "test_utilities", "NodeInTest", file_location=__file__
+    )
+    assert cls.__name__ == NodeInTest.__name__
