@@ -1,15 +1,10 @@
 """Plugs are ins and outs for Nodes through which they exchange data."""
 from __future__ import print_function
 
-import sys
 import warnings
 from abc import abstractmethod
 
 from .utilities import get_hash
-
-if sys.version_info.major > 2:  # pragma: no cover
-    basestring = str  # pylint: disable=invalid-name
-
 
 class IPlug:
     """The interface for the plugs.
@@ -197,7 +192,7 @@ class OutputPlug(IPlug):
         Args:
             key (str): The name of the sub plug
         """
-        if not isinstance(key, basestring):
+        if not isinstance(key, str):
             raise TypeError(
                 "Only strings are allowed as sub-plug keys! "
                 "This is due to the fact that JSON serialization only allows "
@@ -267,7 +262,7 @@ class InputPlug(IPlug):
         Args:
             key (str): The name of the sub plug
         """
-        if not isinstance(key, basestring):
+        if not isinstance(key, str):
             raise TypeError(
                 "Only strings are allowed as sub-plug keys! "
                 "This is due to the fact that JSON serialization only allows "
@@ -440,8 +435,7 @@ class InputPlugGroup:
 
     def __iter__(self):
         """Convenience to iterate over the plugs in this group."""
-        for plug in self.plugs:
-            yield plug
+        yield from self.plugs
 
     def __rshift__(self, other):
         """Syntactic sugar for the connect() method."""
