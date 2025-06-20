@@ -253,6 +253,7 @@ class Graph:
 
     def evaluate(
         self,
+        *,
         mode="linear",
         skip_clean=False,
         submission_delay=0.1,
