@@ -540,6 +540,7 @@ class FunctionNode(INode):
 
     def __init__(
         self,
+        *,
         func=None,
         outputs=None,
         name=None,
@@ -695,6 +696,6 @@ def Node(*args, **kwargs):  # pylint: disable=invalid-name
     cls = kwargs.pop("cls", FunctionNode)
 
     def node(func):
-        return cls(func, *args, **kwargs)
+        return cls(func=func, *args, **kwargs)
 
     return node
