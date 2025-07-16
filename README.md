@@ -264,3 +264,13 @@ from flowpipe.evaluators import LinearEvaluator
 lin_eval = LinearEvaluator()
 lin_eval.evaluate(graph)
 ```
+# Reference Projects
+
+[flowpipe-editor](https://github.com/jonassorgenfrei/flowpipe-editor) a Qt based visualizer for flowpipe graphs
+<br>
+[flowpipe-celery-adapter](https://github.com/PaulSchweizer/flowpipe-celery-adapter) Easily evaluate Flowpipe Graphs in Celery
+<br>
+[flowpipe_editor](https://github.com/PaulSchweizer/flowpipe_editor) PySide2 based proof of concept for a visual editor for flowpipe
+<br>
+[flowpipe-webeditor](https://github.com/vvzen/flowpipe-webeditor) Web Node Editor experiments for flowpipe, using FabricJS and HTML5 canvas 
+
