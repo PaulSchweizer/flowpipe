@@ -1,4 +1,5 @@
 """A Graph of Nodes."""
+
 from __future__ import absolute_import, print_function
 
 import logging
@@ -477,6 +478,20 @@ class Graph:
         for node in self.evaluation_sequence:
             pretty.append(node.list_repr())
         return "\n ".join(pretty)
+
+    def get_entry_nodes(self):
+        """Get all entry nodes of the graph.
+
+        An entry node is a node that has no upstream nodes.
+        """
+        return [node for node in self.all_nodes if not node.upstream_nodes]
+
+    def get_exit_nodes(self):
+        """Get all exit nodes of the graph.
+
+        An exit node is a node that has no downstream nodes.
+        """
+        return [node for node in self.all_nodes if not node.downstream_nodes]
 
 
 default_graph = Graph(name="default")

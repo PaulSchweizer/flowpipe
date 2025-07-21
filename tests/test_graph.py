@@ -749,3 +749,31 @@ def test_evaluate_can_skip_clean_nodes():
     nodes = Evaluator()._nodes_to_evaluate(graph, skip_clean=True)
     assert len(nodes) == 1
     assert nodes[0] == dirty_node
+
+
+def test_get_entry_nodes():
+    """Test that get_entry_nodes returns all entry nodes in the graph."""
+    graph = Graph()
+    entry_node_1 = FunctionNodeForTesting(name="n1", graph=graph)
+    entry_node_2 = FunctionNodeForTesting(name="n2", graph=graph)
+    exit_node_2 = FunctionNodeForTesting(name="n3", graph=graph)
+
+    entry_node_1.outputs["out"].connect(exit_node_2.inputs["in_1"])
+    entry_node_2.outputs["out"].connect(exit_node_2.inputs["in_2"])
+
+    assert len(graph.get_entry_nodes()) == 2
+    assert entry_node_1 in graph.get_entry_nodes()
+    assert entry_node_2 in graph.get_entry_nodes()
+
+def test_get_exit_nodes():
+    """Test that get_entry_nodes returns all entry nodes in the graph."""
+    graph = Graph()
+    entry_node_1 = FunctionNodeForTesting(name="n1", graph=graph)
+    entry_node_2 = FunctionNodeForTesting(name="n2", graph=graph)
+    exit_node_2 = FunctionNodeForTesting(name="n3", graph=graph)
+
+    entry_node_1.outputs["out"].connect(exit_node_2.inputs["in_1"])
+    entry_node_2.outputs["out"].connect(exit_node_2.inputs["in_2"])
+
+    assert len(graph.get_exit_nodes()) == 1
+    assert exit_node_2 in graph.get_exit_nodes()
