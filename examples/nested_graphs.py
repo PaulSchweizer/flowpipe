@@ -29,18 +29,18 @@ cleanup_filename.outputs["file"].connect(change_lineendings.inputs["file"])
 # o file<>         |     +--->o file<>                     |     +--->o file<>         |
 # |           file o-----+    |                       file o-----+    |           file o
 # +----------------+          +----------------------------+          +----------------+
-udpate_db_from_file = Graph(name="udpate_db_from_file")
-find_file = MyNode(name="Find File", graph=udpate_db_from_file)
+update_db_from_file = Graph(name="update_db_from_file")
+find_file = MyNode(name="Find File", graph=update_db_from_file)
 values_from_file = MyNode(
-    name="Read Values from File", graph=udpate_db_from_file
+    name="Read Values from File", graph=update_db_from_file
 )
-update_db = MyNode(name="Update DB", graph=udpate_db_from_file)
+update_db = MyNode(name="Update DB", graph=update_db_from_file)
 find_file.outputs["file"].connect(values_from_file.inputs["file"])
 values_from_file.outputs["file"].connect(update_db.inputs["file"])
 
 
 # The second graph however relies on clean input files so the first graph can
-# be used within the second "udpate db" graph.
+# be used within the second "update db" graph.
 # For this purpose, graphs can promote input and output plugs from their nodes
 # to the graph level, making other graphs aware of them:
 fix_file["Cleanup Filename"].inputs["file"].promote_to_graph(
@@ -53,13 +53,13 @@ fix_file["Change Lineendings"].outputs["file"].promote_to_graph(
 # Now the update_db graph can connect nodes to the fix_file graph
 find_file.outputs["file"].connect(fix_file.inputs["file_to_clean"])
 fix_file.outputs["clean_file"].connect(
-    udpate_db_from_file["Read Values from File"].inputs["file"]
+    update_db_from_file["Read Values from File"].inputs["file"]
 )
 
 
 # The result now looks like this:
 #
-# +---udpate_db_from_file----+          +-------fix_file--------+          +--------fix_file---------+          +----udpate_db_from_file-----+          +---udpate_db_from_file----+
+# +---update_db_from_file----+          +-------fix_file--------+          +--------fix_file---------+          +----update_db_from_file-----+          +---update_db_from_file----+
 # |        Find File         |          |   Cleanup Filename    |          |   Change Lineendings    |          |   Read Values from File    |          |        Update DB         |
 # |--------------------------|          |-----------------------|          |-------------------------|          |----------------------------|          |--------------------------|
 # o file<>                   |     +--->o file<>                |     +--->o file<>                  |     +--->o file<>                     |     +--->o file<>                   |
@@ -69,5 +69,5 @@ print(fix_file)
 
 
 # Subgraphs can be accessed by their name from any participating graph
-assert udpate_db_from_file.subgraphs["fix_file"] is fix_file
-assert fix_file.subgraphs["udpate_db_from_file"] is udpate_db_from_file
+assert update_db_from_file.subgraphs["fix_file"] is fix_file
+assert fix_file.subgraphs["update_db_from_file"] is update_db_from_file

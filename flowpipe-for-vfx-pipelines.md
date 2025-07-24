@@ -13,7 +13,7 @@ Flowpipe helps by providing this very simple framework. Developers will be able 
 
 **Planning and Coordination**
 
-Thinking about the seolution to a problem in a graph-like fashion is a helpful approach in a lot of situations.
+Thinking about the solution to a problem in a graph-like fashion is a helpful approach in a lot of situations.
 Since flowpipe naturally supports this approach, the planning phase can oftentimes be mapped more or less directly to a flowpipe graph. This helps to reason about the implementation, not only with other developers but also with non-technical people!
 
 **Render Farm**
@@ -70,7 +70,7 @@ There are three basic utilities required for this approach:
 
 1. Convert a Graph to an equivalent farm job
 2. Evaluate a Node on the farm
-3. Handling the data transferral between nodes on the farm
+3. Handling the data transfer between nodes on the farm
 
 Any farm specific settings are stored in the metadata of the nodes and/or directly provided on job creation.
 
