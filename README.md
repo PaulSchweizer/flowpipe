@@ -242,6 +242,9 @@ Use flowpipe on a remote cluster of machines, commonly refered to as a "render f
 An example graph showcasing a common workflow encountered in the VFX/Animation industry:
 [vfx_rendering.py](examples/vfx_rendering.py)!
 
+An example showing how to create your own custom evaluator for flowpipe graphs.
+[custom_evaluator.py](examples/custom_evaluator.py)!
+
 ## VFX Pipeline
 
 If you are working in the VFX/Animation industry, please check out this extensive guide on how to use [flowpipe in a vfx pipeline](flowpipe-for-vfx-pipelines.md)!
