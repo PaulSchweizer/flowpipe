@@ -245,6 +245,9 @@ An example graph showcasing a common workflow encountered in the VFX/Animation i
 An example graph showcasing how to use plugs on graph level.
 [graph_plugs.py](examples/graph_plugs.py)!
 
+An example showing how to create your own custom evaluator for flowpipe graphs.
+[custom_evaluator.py](examples/custom_evaluator.py)!
+
 ## VFX Pipeline
 
 If you are working in the VFX/Animation industry, please check out this extensive guide on how to use [flowpipe in a vfx pipeline](flowpipe-for-vfx-pipelines.md)!
@@ -267,3 +270,8 @@ from flowpipe.evaluators import LinearEvaluator
 lin_eval = LinearEvaluator()
 lin_eval.evaluate(graph)
 ```
+# Reference Projects
+
+[flowpipe-editor](https://github.com/jonassorgenfrei/flowpipe-editor) a Qt based visualizer for flowpipe graphs
+
+[flowpipe-celery-adapter](https://github.com/PaulSchweizer/flowpipe-celery-adapter) Easily evaluate Flowpipe Graphs in Celery
