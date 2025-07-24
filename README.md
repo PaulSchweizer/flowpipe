@@ -267,3 +267,8 @@ from flowpipe.evaluators import LinearEvaluator
 lin_eval = LinearEvaluator()
 lin_eval.evaluate(graph)
 ```
+# Reference Projects
+
+[flowpipe-editor](https://github.com/jonassorgenfrei/flowpipe-editor) a Qt based visualizer for flowpipe graphs
+
+[flowpipe-celery-adapter](https://github.com/PaulSchweizer/flowpipe-celery-adapter) Easily evaluate Flowpipe Graphs in Celery
