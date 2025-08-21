@@ -38,6 +38,10 @@ Benefits:
 - Built-in concurrency
 - Represent workflows one to one in the code
 
+[![Flowpipe - VFX Production Proven Flow-based Programming](http://img.youtube.com/vi/pbroOzT42F8/0.jpg)](http://www.youtube.com/watch?v=pbroOzT42F8 "Flowpipe - VFX Production Proven Flow-based Programming")
+<br>
+Flowpipe Presentation Open Source Days 2025
+
 # Quick Example
 
 Consider this simple example on how to represent the construction of a house with Flowpipe:
