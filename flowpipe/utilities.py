@@ -1,29 +1,52 @@
 """Utilities for serializing and importing Nodes."""
+
+from __future__ import annotations
+
 try:
     import importlib
+    import importlib.machinery
+    import importlib.util
 except ImportError:
     pass
+
 import json
 import sys
+from collections.abc import Callable
 from hashlib import sha256
+from typing import TYPE_CHECKING, Any, Type
+
+if TYPE_CHECKING:  # pragma: no cover
+    from .graph import Graph
+    from .node import INode
 
 
-def import_class(module, cls_name, file_location=None):
+def import_class(
+    module_name: str, cls_name: str, file_location: str | None = None
+) -> Type[Any]:
     """Import and return the given class from the given module.
 
     File location can be given to import the class from a location that
     is not accessible through the PYTHONPATH.
-    This works from python 2.6 to python 3.
     """
+    module = None
+
     try:
-        module = importlib.import_module(module)
-    except NameError:  # pragma: no cover
-        module = __import__(module, globals(), locals(), ["object"], -1)
-    except ModuleNotFoundError:  # pragma: no cover
-        pass  # this exception will be ignored to force the Source File load further down
+        module = importlib.import_module(module_name)
+    except ModuleNotFoundError as exc:
+        if not file_location:
+            raise AttributeError(
+                f"Module {module_name} not found, and no file location was given to import it from."
+            ) from exc
+
     try:
         cls = getattr(module, cls_name)
-    except AttributeError:  # pragma: no cover
+    except AttributeError as exc:
+        if not file_location:
+            raise AttributeError(
+                f"Module {module_name} has no class {cls_name}, "
+                "and no file location was given to import it from."
+            ) from exc
+
         loader = importlib.machinery.SourceFileLoader("module", file_location)
         spec = importlib.machinery.ModuleSpec(
             "module", loader, origin=file_location
@@ -34,7 +57,7 @@ def import_class(module, cls_name, file_location=None):
     return cls
 
 
-def deserialize_node(data):
+def deserialize_node(data: dict) -> INode:
     """De-serialize a node from the given json data."""
     node = import_class(data["module"], data["cls"], data["file_location"])(
         graph=None
@@ -43,7 +66,7 @@ def deserialize_node(data):
     return node
 
 
-def deserialize_graph(data):
+def deserialize_graph(data: dict) -> Graph:
     """De-serialize from the given json data."""
     graph = import_class(data["module"], data["cls"])()
     graph.name = data["name"]
@@ -93,7 +116,7 @@ class NodeEncoder(json.JSONEncoder):
     encoded instead.
     """
 
-    def default(self, o):
+    def default(self, o: Any) -> Any:
         """Encode the object, handling type errors by encoding into sha256."""
         try:
             return super().default(o)
@@ -106,7 +129,9 @@ class NodeEncoder(json.JSONEncoder):
                 return sha256(bytes(o)).hexdigest()
 
 
-def get_hash(obj, hash_func=lambda x: sha256(x).hexdigest()):
+def get_hash(
+    obj: Any, hash_func: Callable = lambda x: sha256(x).hexdigest()
+) -> str | None:
     """Safely get the hash of an object.
 
     This function tries to compute the hash as safely as possible, dealing with
@@ -140,7 +165,7 @@ def get_hash(obj, hash_func=lambda x: sha256(x).hexdigest()):
             return None  # pragma: no cover
 
 
-def sanitize_string_input(input_str):
+def sanitize_string_input(input_str: str) -> str:
     """
     Escapes dangerous "{" for f strings. Call it before running format
     Args:
