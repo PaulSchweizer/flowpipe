@@ -12,6 +12,10 @@ dependencies = ['ascii-canvas>=2.0.0']
 repository = "https://github.com/PaulSchweizer/flowpipe"
 documentation = "https://flowpipe.readthedocs.io/en/latest/"
 
+[build-system]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
+
 [tool.black]
 line-length = 79
 
@@ -43,11 +47,11 @@ classifiers = [
 requires-poetry = '>=2.0'
 version = "0.0.0"
 
-[tool.poetry.plugins."poetry.plugin"]
-"dynamic-versioning" = "poetry_dynamic_versioning.plugin"
-
 [tool.poetry-dynamic-versioning]
 enable = true
+
+[tool.poetry.requires-plugins]
+poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.11.0"
@@ -59,7 +63,3 @@ pytest-cov = "^4.1.0"
 pytest = "^7.4.2"
 isort = { version = "^5.12.0", extras = ["pyproject"] }
 mypy = "^1.6.1"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
