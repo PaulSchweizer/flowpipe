@@ -48,7 +48,7 @@ enable = true
 [tool.poetry.group.dev.dependencies]
 black = "^23.11.0"
 mock = "^5.1.0"
-numpy = "^1.26.2"
+numpy = ">=1.26.2,<3.0.0"
 pre-commit = "^3.5.0"
 pylint = "^3.0.1"
 pytest-cov = "^4.1.0"
