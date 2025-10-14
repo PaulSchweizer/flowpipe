@@ -1,6 +1,17 @@
 name: Mypy
 
-on: [push, pull_request]
+name: Pylint
+
+on:
+  push:
+    branches:
+      - "master"
+      - "main"
+  pull_request:
+    branches:
+      - "master"
+      - "main"
+  workflow_dispatch:
 
 jobs:
   mypy:
