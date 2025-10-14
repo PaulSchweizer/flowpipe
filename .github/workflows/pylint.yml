@@ -16,7 +16,7 @@ jobs:
     name: Pylint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v5
       - uses: actions/setup-python@v2
       - name: Install Poetry
         run: |
