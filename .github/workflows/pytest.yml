@@ -1,15 +1,27 @@
-# .github/workflows/app.yaml
+---
 name: Pytest
 
-on: [push]
+on:
+  push:
+    branches:
+      - "master"
+      - "main"
+  pull_request:
+    branches:
+      - "master"
+      - "main"
+  workflow_dispatch:
+
 
 jobs:
   tests:
+    permissions:
+      pull-requests: write  # permission required for pytest-coverage to leave a comment
     name: Tests
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.8", "3.10", "3.x"]
+        python-version: ["3.9", "3.10", "3.11", "3.x"]
     steps:
       - name: Check out repository code
         uses: actions/checkout@v2
@@ -23,27 +35,25 @@ jobs:
       - name: Install dependencies
         run: |
           poetry install --no-cache
-      - name: Run tests without coverage
-        if: ${{ matrix.python-version == 2.7 }}
-        run: |
-          poetry run pytest tests
       - name: Run tests with coverage
-        if: ${{ matrix.python-version == 3.7 }}
         run: |
           poetry run pytest tests --cov-report=term-missing:skip-covered --cov-report=xml --cov=flowpipe | tee pytest-coverage.txt
+
+      # Generate coverage comment only once on python 3.x
       - name: Pytest coverage comment
-        uses: MishaKav/pytest-coverage-comment@main
-        if: ${{ matrix.python-version == 3.7 }}
+        if: github.event_name == 'pull_request' && matrix.python-version == '3.x'
+        uses: MishaKav/pytest-coverage-comment@1bdbba85fb74a2fdc1ec66383acec1091610f82b  # v1.1.57
         id: coverageComment
         with:
-          hide-comment: ${{ github.ref == 'refs/heads/master' }}
           pytest-coverage-path: ./pytest-coverage.txt
+
+      # Update README only once on python 3.x and only on push to master
       - name: Update Readme with Coverage Html
-        if: ${{ github.ref == 'refs/heads/master' && matrix.python-version == 3.7 }}
+        if: github.event_name == 'push' && matrix.python-version == '3.x'
         run: |
           sed -i '/<!-- Pytest Coverage Comment:Begin -->/,/<!-- Pytest Coverage Comment:End -->/c\<!-- Pytest Coverage Comment:Begin -->\n\${{ steps.coverageComment.outputs.coverageHtml }}\n${{ steps.coverageComment.outputs.summaryReport }}\n<!-- Pytest Coverage Comment:End -->' ./README.md
       - name: Commit & Push changes to Readme
-        if: ${{ github.ref == 'refs/heads/master' && matrix.python-version == 3.7 }}
+        if: github.event_name == 'push' && matrix.python-version == '3.x'
         uses: actions-js/push@master
         with:
           message: Update coverage on Readme
