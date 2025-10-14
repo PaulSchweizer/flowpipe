@@ -1,10 +1,17 @@
 """Plugs are ins and outs for Nodes through which they exchange data."""
-from __future__ import print_function
+
+from __future__ import annotations, print_function
 
 import warnings
 from abc import abstractmethod
+from typing import TYPE_CHECKING, Any
 
 from .utilities import get_hash
+
+if TYPE_CHECKING:  # pragma: no cover
+    from .graph import Graph
+    from .node import INode
+
 
 class IPlug:
     """The interface for the plugs.
@@ -13,7 +20,7 @@ class IPlug:
     and hold a value, that can be accesses by the associated Node.
     """
 
-    def __init__(self, name, node):
+    def __init__(self, name: str, node: INode):
         """Initialize the Interface.
 
         Args:
@@ -27,12 +34,12 @@ class IPlug:
             )
         self.name = name
         self.node = node
-        self.connections = []
-        self.sub_plugs = {}
+        self.connections: list = []
+        self.sub_plugs: dict[str, OutputPlug | InputPlug] = {}
         self._value = None
         self._is_dirty = True
 
-    def __rshift__(self, other):
+    def __rshift__(self, other) -> None:
         """Create a connection to the given IPlug.
 
         Args:
@@ -43,7 +50,7 @@ class IPlug:
         )
         self.connect(other)
 
-    def __lshift__(self, other):
+    def __lshift__(self, other: IPlug) -> None:
         """Break a connection to the given IPlug.
 
         Args:
@@ -57,7 +64,7 @@ class IPlug:
         self.disconnect(other)
 
     @property
-    def _sub_plugs(self):
+    def _sub_plugs(self) -> dict[str, OutputPlug | InputPlug]:
         """Deprecated but included for backwards compatibility."""
         warnings.warn(
             "`_sub_plugs` is deprecated, please use `sub_plugs` instead.",
@@ -67,7 +74,7 @@ class IPlug:
         return self.sub_plugs
 
     # Extra function to make re-use in subclasses easier
-    def _update_value(self, value):
+    def _update_value(self, value: Any) -> None:
         """Update the internal value."""
         old_hash = get_hash(self._value)
         new_hash = get_hash(value)
@@ -76,19 +83,19 @@ class IPlug:
             self.is_dirty = True
 
     @property
-    def value(self):
+    def value(self) -> Any:
         """Access to the value on this Plug."""
         if self.sub_plugs:
             return {name: plug.value for name, plug in self.sub_plugs.items()}
         return self._value
 
     @value.setter
-    def value(self, value):
+    def value(self, value: Any) -> None:
         """Set the Plug dirty when the value is being changed."""
         self._update_value(value)
 
     @property
-    def is_dirty(self):
+    def is_dirty(self) -> bool:
         """Access to the dirty status on this Plug."""
         if self.sub_plugs:
             for sub_plug in self.sub_plugs.values():
@@ -98,18 +105,18 @@ class IPlug:
         return self._is_dirty
 
     @is_dirty.setter
-    def is_dirty(self, status):
+    def is_dirty(self, status: bool) -> None:
         """Set the Plug dirty informs the node this Plug belongs to."""
         self._is_dirty = status
         if status:
             self.node.on_input_plug_set_dirty()
 
     @abstractmethod
-    def connect(self, plug):  # pragma: no cover
+    def connect(self, plug) -> None:  # pragma: no cover
         """Has to be implemented in the subclass."""
         raise NotImplementedError("The subclass has to define connect()")
 
-    def disconnect(self, plug):
+    def disconnect(self, plug: IPlug) -> None:
         """Break the connection to the given Plug."""
         if isinstance(plug, InputPlugGroup):
             for plug_ in plug:
@@ -122,7 +129,7 @@ class IPlug:
             plug.connections.pop(plug.connections.index(self))
             plug.is_dirty = True
 
-    def promote_to_graph(self, name=None):
+    def promote_to_graph(self, name: str | None = None) -> None:
         """Add this plug to the graph of this plug's node.
 
         Args:
@@ -134,7 +141,7 @@ class IPlug:
 class OutputPlug(IPlug):
     """Provides data to an InputPlug."""
 
-    def __init__(self, name, node):
+    def __init__(self, name: str, node: INode):
         """Initialize the OutputPlug.
 
         Can be connected to an InputPlug.
@@ -147,7 +154,7 @@ class OutputPlug(IPlug):
         if not isinstance(self, SubPlug):
             self.node.outputs[self.name] = self
 
-    def __rshift__(self, other):
+    def __rshift__(self, other: INode | InputPlugGroup | InputPlug) -> None:
         """Syntactic sugar for the connect() method.
 
         If `other` is a INode with an input matching this plug's name, connect.
@@ -161,7 +168,7 @@ class OutputPlug(IPlug):
             target = other
         self.connect(target)
 
-    def connect(self, plug):
+    def connect(self, plug: InputPlug | InputPlugGroup) -> None:
         """Connect this Plug to the given InputPlug.
 
         Set both participating Plugs dirty.
@@ -185,7 +192,7 @@ class OutputPlug(IPlug):
                 plug.connections = [self]
                 plug.is_dirty = True
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str):
         """Retrieve a sub plug by key.
 
         If it does not exist yet, it is created automatically!
@@ -204,15 +211,15 @@ class OutputPlug(IPlug):
             )
         return self.sub_plugs[key]
 
-    def _update_value(self, value):
+    def _update_value(self, value: Any) -> None:
         """Propagate the dirty state to all connected Plugs as well."""
         super()._update_value(value)
         for plug in self.connections:
             plug.value = value
 
-    def serialize(self):
+    def serialize(self) -> dict:
         """Serialize the Plug containing all it's connections."""
-        connections = {}
+        connections: dict = {}
         for connection in self.connections:
             connections.setdefault(connection.node.identifier, [])
             connections[connection.node.identifier].append(connection.name)
@@ -230,7 +237,7 @@ class OutputPlug(IPlug):
 class InputPlug(IPlug):
     """Receives data from an OutputPlug."""
 
-    def __init__(self, name, node, value=None):
+    def __init__(self, name: str, node: INode, value: Any = None):
         """Initialize the InputPlug.
 
         Can be connected to an OutputPlug.
@@ -246,7 +253,7 @@ class InputPlug(IPlug):
         if not isinstance(self, SubPlug):
             self.node.inputs[self.name] = self
 
-    def connect(self, plug):
+    def connect(self, plug: OutputPlug) -> None:
         """Connect this Plug to the given OutputPlug.
 
         Set both participating Plugs dirty.
@@ -255,7 +262,7 @@ class InputPlug(IPlug):
             raise TypeError(f"Cannot connect {type(self)} to {type(plug)}")
         plug.connect(self)
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str):
         """Retrieve a sub plug by key.
 
         If it does not exist yet, it is created automatically!
@@ -274,18 +281,18 @@ class InputPlug(IPlug):
             )
         return self.sub_plugs[key]
 
-    def _update_value(self, value):
+    def _update_value(self, value: Any) -> None:
         if self.sub_plugs:
             return
         super()._update_value(value)
 
-    def serialize(self):
+    def serialize(self) -> dict:
         """Serialize the Plug containing all it's connections."""
         connections = {}
         if self.connections:
-            connections[
-                self.connections[0].node.identifier
-            ] = self.connections[0].name
+            connections[self.connections[0].node.identifier] = (
+                self.connections[0].name
+            )
         return {
             "name": self.name,
             "value": self.value if not self.sub_plugs else None,
@@ -306,13 +313,14 @@ class SubPlug:
         return self._is_dirty
 
     @is_dirty.setter
-    def is_dirty(self, status):
+    def is_dirty(self, status: bool) -> None:
         """Setting the Plug dirty informs its parent plug."""
         self._is_dirty = status
         if status:
-            self.parent_plug.is_dirty = status  # pylint: disable=no-member
+            # pylint: disable=no-member
+            self.parent_plug.is_dirty = status  # type: ignore
 
-    def promote_to_graph(self, name=None):
+    def promote_to_graph(self, name: str | None = None) -> None:
         """Add this plug to the graph of this plug's node.
 
         NOTE: Subplugs can only be added to a graph via their parent plug.
@@ -329,7 +337,9 @@ class SubPlug:
 class SubInputPlug(SubPlug, InputPlug):
     """Held by a parent input plug to form a compound plug."""
 
-    def __init__(self, key, node, parent_plug, value=None):
+    def __init__(
+        self, key: str, node: INode, parent_plug: InputPlug, value: Any = None
+    ):
         """Initialize the plug.
 
         Can be connected to an OutputPlug.
@@ -337,7 +347,7 @@ class SubInputPlug(SubPlug, InputPlug):
             key (str): The key will be used to form the name of the Plug:
                 {parent_plug.name}.{key}.
             node (INode): The Node holding the Plug.
-            parent_plug (InputPlug): The parent plug holding this Plug.
+            parent_plug (OuInputPlugtputPlug): The parent plug holding this Plug.
         """
         # super().__init__() refers to self.parent_plug, so need to set it here
         self.key = key
@@ -348,13 +358,13 @@ class SubInputPlug(SubPlug, InputPlug):
         self.value = value
         self.is_dirty = True
 
-    def serialize(self):
+    def serialize(self) -> dict:
         """Serialize the Plug containing all it's connections."""
         connections = {}
         if self.connections:
-            connections[
-                self.connections[0].node.identifier
-            ] = self.connections[0].name
+            connections[self.connections[0].node.identifier] = (
+                self.connections[0].name
+            )
         return {
             "name": self.name,
             "value": self.value,
@@ -365,7 +375,9 @@ class SubInputPlug(SubPlug, InputPlug):
 class SubOutputPlug(SubPlug, OutputPlug):
     """Held by a parent output plug to form a compound plug."""
 
-    def __init__(self, key, node, parent_plug, value=None):
+    def __init__(
+        self, key: str, node: INode, parent_plug: OutputPlug, value: Any = None
+    ):
         """Initialize the plug.
 
         Can be connected to an InputPlug.
@@ -373,7 +385,7 @@ class SubOutputPlug(SubPlug, OutputPlug):
             key (str): The key will be used to form the name of the Plug:
                 {parent_plug.name}.{key}.
             node (INode): The Node holding the Plug.
-            parent_plug (InputPlug): The parent plug holding this Plug.
+            parent_plug (OutputPlug): The parent plug holding this Plug.
         """
         # super().__init__() refers to self.parent_plug, so need to set it here
         self.key = key
@@ -384,7 +396,7 @@ class SubOutputPlug(SubPlug, OutputPlug):
         self.value = value
         self.is_dirty = True
 
-    def _update_value(self, value):
+    def _update_value(self, value: Any) -> None:
         """Propagate the dirty state to all connected Plugs as well."""
         super()._update_value(value)
         for plug in self.connections:
@@ -393,9 +405,9 @@ class SubOutputPlug(SubPlug, OutputPlug):
         parent_value[self.key] = value
         self.parent_plug.value = parent_value
 
-    def serialize(self):
+    def serialize(self) -> dict:
         """Serialize the Plug containing all it's connections."""
-        connections = {}
+        connections: dict = {}
         for connection in self.connections:
             connections.setdefault(connection.node.identifier, [])
             connections[connection.node.identifier].append(connection.name)
@@ -409,7 +421,9 @@ class SubOutputPlug(SubPlug, OutputPlug):
 class InputPlugGroup:
     """Group plugs inside a group into one entry point on the graph."""
 
-    def __init__(self, name, graph, plugs=None):
+    def __init__(
+        self, name: str, graph: Graph, plugs: list[InputPlug] | None = None
+    ):
         """Initialize the group and assigning it to the `Graph.input_groups`.
 
         Can be connected to an OutputPlug.
@@ -423,12 +437,12 @@ class InputPlugGroup:
         self.plugs = plugs or []
         self.graph.inputs[self.name] = self
 
-    def connect(self, plug):
+    def connect(self, plug: OutputPlug) -> None:
         """Connect all plugs in this group to the given plug."""
         for input_plug in self.plugs:
             plug.connect(input_plug)
 
-    def disconnect(self, plug):
+    def disconnect(self, plug: OutputPlug) -> None:
         """Disconnect all plugs in this group from the given plug."""
         for input_plug in self.plugs:
             plug.disconnect(input_plug)
@@ -437,16 +451,16 @@ class InputPlugGroup:
         """Convenience to iterate over the plugs in this group."""
         yield from self.plugs
 
-    def __rshift__(self, other):
+    def __rshift__(self, other: OutputPlug) -> None:
         """Syntactic sugar for the connect() method."""
         self.connect(other)
 
-    def __lshift__(self, other):
+    def __lshift__(self, other: OutputPlug) -> None:
         """Syntactic sugar for the disconnect() method."""
         self.disconnect(other)
 
     @property
-    def value(self):
+    def value(self) -> Any:
         """Getting the value of an InputPlugGroup is not supported.
 
         The value property is implemented nonetheless, in order to allow for
@@ -457,7 +471,7 @@ class InputPlugGroup:
         )
 
     @value.setter
-    def value(self, new_value):
+    def value(self, new_value: Any) -> None:
         """Set the value for all grouped plugs."""
         for plug in self.plugs:
             plug.value = new_value
