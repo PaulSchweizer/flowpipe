@@ -1,7 +1,5 @@
 name: Mypy
 
-name: Pylint
-
 on:
   push:
     branches:
