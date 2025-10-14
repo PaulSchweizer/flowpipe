@@ -12,11 +12,8 @@ on:
       - "main"
   workflow_dispatch:
 
-
 jobs:
   tests:
-    permissions:
-      pull-requests: write  # permission required for pytest-coverage to leave a comment
     name: Tests
     runs-on: ubuntu-latest
     strategy:
@@ -37,11 +34,4 @@ jobs:
           poetry install --no-cache
       - name: Run tests with coverage
         run: |
-          poetry run pytest tests --cov-report=term-missing:skip-covered --cov-report=xml --cov=flowpipe | tee pytest-coverage.txt
-
-      # Generate coverage comment only once on python 3.x
-      - name: Pytest coverage comment
-        if: github.event_name == 'pull_request' && matrix.python-version == '3.x'
-        uses: MishaKav/pytest-coverage-comment@1bdbba85fb74a2fdc1ec66383acec1091610f82b  # v1.1.57
-        with:
-          pytest-coverage-path: ./pytest-coverage.txt
+          poetry run pytest --cov-report=term-missing:skip-covered --cov=flowpipe tests/
