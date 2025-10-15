@@ -1,3 +1,21 @@
+[project]
+name = "Flowpipe"
+description = "A lightweight framework for flow-based programming in python."
+license = "MIT"
+dynamic = ["version", "classifiers"]
+readme = "README.md"
+authors = [{ name = "Paul Schweizer", email = "paulschweizer@gmx.net" }]
+requires-python = '>=3.9'
+dependencies = ['ascii-canvas>=2.0.0']
+
+[project.urls]
+repository = "https://github.com/PaulSchweizer/flowpipe"
+documentation = "https://flowpipe.readthedocs.io/en/latest/"
+
+[build-system]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
+build-backend = "poetry_dynamic_versioning.backend"
+
 [tool.black]
 line-length = 79
 
@@ -18,14 +36,6 @@ disable = [
 ]
 
 [tool.poetry]
-name = "Flowpipe"
-version = "0.0.0"
-description = "A lightweight framework for flow-based programming in python."
-authors = ["Paul Schweizer <paulschweizer@gmx.net>"]
-license = "MIT"
-readme = "README.md"
-repository = "https://github.com/PaulSchweizer/flowpipe"
-documentation = "https://flowpipe.readthedocs.io/en/latest/"
 classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3.7",
@@ -34,16 +44,14 @@ classifiers = [
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
 ]
-
-[tool.poetry.dependencies]
-python = ">=3.9"
-ascii-canvas = ">=2.0.0"
-
-[tool.poetry.plugins."poetry.plugin"]
-"dynamic-versioning" = "poetry_dynamic_versioning.plugin"
+requires-poetry = '>=2.0'
+version = "0.0.0"
 
 [tool.poetry-dynamic-versioning]
 enable = true
+
+[tool.poetry.requires-plugins]
+poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
 
 [tool.poetry.group.dev.dependencies]
 black = "^23.11.0"
@@ -55,7 +63,3 @@ pytest-cov = "^4.1.0"
 pytest = "^7.4.2"
 isort = { version = "^5.12.0", extras = ["pyproject"] }
 mypy = "^1.6.1"
-
-[build-system]
-requires = ["poetry-core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
