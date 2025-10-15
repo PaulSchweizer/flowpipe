@@ -24,7 +24,7 @@ jobs:
         python-version: ["3.9", "3.10", "3.11", "3.x"]
     steps:
       - name: Check out repository code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v5
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v2
         with:
