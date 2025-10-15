@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: actions/setup-python@v2
+      - uses: actions/setup-python@v6
       - name: Install Poetry
         run: |
           python -m pip install --upgrade poetry wheel
