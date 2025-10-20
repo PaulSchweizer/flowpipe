@@ -1,20 +1,26 @@
 """A Graph of Nodes."""
-from __future__ import absolute_import, print_function
+
+from __future__ import absolute_import, annotations, print_function
 
 import logging
 import pickle
 import warnings
+from typing import TYPE_CHECKING, Any, Dict, Tuple, Type
 
-from ascii_canvas import canvas, item
+from ascii_canvas import canvas, item  # type: ignore
 
 from .errors import CycleError
 from .evaluator import (
+    Evaluator,
     LegacyMultiprocessingEvaluator,
     LinearEvaluator,
     ThreadedEvaluator,
 )
-from .plug import InputPlug, InputPlugGroup, OutputPlug
+from .plug import InputPlug, InputPlugGroup, IPlug, OutputPlug
 from .utilities import deserialize_graph
+
+if TYPE_CHECKING:  # pragma: no cover
+    from .node import INode
 
 log = logging.getLogger(__name__)
 
@@ -22,22 +28,24 @@ log = logging.getLogger(__name__)
 class Graph:
     """A graph of Nodes."""
 
-    def __init__(self, name=None, nodes=None):
+    def __init__(
+        self, name: str | None = None, nodes: list[INode] | None = None
+    ):
         """Initialize the list of Nodes, inputs and outpus."""
         self.name = name or self.__class__.__name__
         self.nodes = nodes or []
-        self.inputs = {}
-        self.outputs = {}
+        self.inputs: dict[str, InputPlug | InputPlugGroup] = {}
+        self.outputs: dict[str, OutputPlug] = {}
 
-    def __unicode__(self):
+    def __unicode__(self) -> str:
         """Display the Graph."""
         return self.node_repr()
 
-    def __str__(self):
+    def __str__(self) -> str:
         """Show all input and output Plugs."""
         return self.__unicode__().encode("utf-8").decode()
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> INode:
         """Grant access to Nodes via their name."""
         for node in self.nodes:
             if node.name == key:
@@ -58,7 +66,7 @@ class Graph:
         )
 
     @property
-    def all_nodes(self):
+    def all_nodes(self) -> list[INode]:
         """Expand the graph with all its subgraphs into a flat list of nodes.
 
         Please note that in this expanded list, the node names are no longer
@@ -73,7 +81,7 @@ class Graph:
         return list(set(nodes))
 
     @property
-    def subgraphs(self):
+    def subgraphs(self) -> dict[str, Graph]:
         """All other graphs that the nodes of this graph are connected to.
 
         Returns:
@@ -90,7 +98,7 @@ class Graph:
         return subgraphs
 
     @property
-    def evaluation_matrix(self):
+    def evaluation_matrix(self) -> list[list[INode]]:
         """Sort nodes into a 2D matrix based on their dependency.
 
         Rows affect each other and have to be evaluated in sequence.
@@ -128,7 +136,7 @@ class Graph:
         return [sorted(level, key=lambda node: node.name) for level in matrix]
 
     @property
-    def evaluation_sequence(self):
+    def evaluation_sequence(self) -> list[INode]:
         """Sort Nodes into a sequential, flat execution order.
 
         Returns:
@@ -138,7 +146,7 @@ class Graph:
         return [node for row in self.evaluation_matrix for node in row]
 
     @property
-    def input_groups(self):
+    def input_groups(self) -> dict[str, InputPlugGroup]:
         """Return all inputs that are actually input groups."""
         return {
             k: v
@@ -146,7 +154,7 @@ class Graph:
             if isinstance(v, InputPlugGroup)
         }
 
-    def add_node(self, node):
+    def add_node(self, node: INode) -> None:
         """Add given Node to the Graph.
 
         Nodes on a Graph have to have unique names.
@@ -164,22 +172,22 @@ class Graph:
         else:
             log.warning("Node '%s' is already part of this Graph", node.name)
 
-    def delete_node(self, node):
+    def delete_node(self, node: INode) -> None:
         """Disconnect all plugs and then delete the node object."""
         if node in self.nodes:
-            for plug in node.all_inputs().values():
-                for connection in plug.connections:
-                    plug.disconnect(connection)
-            for plug in node.all_outputs().values():
-                for connection in plug.connections:
-                    plug.disconnect(connection)
+            for in_plug in node.all_inputs().values():
+                for connection in in_plug.connections:
+                    in_plug.disconnect(connection)
+            for out_plug in node.all_outputs().values():
+                for connection in out_plug.connections:
+                    out_plug.disconnect(connection)
             del self.nodes[self.nodes.index(node)]
 
-    def add_plug(self, plug, name=None):
+    def add_plug(self, plug: IPlug, name: str | None = None) -> None:
         """Promote the given plug this graph.
 
         Args:
-            plug (flowpipe.plug.IPlug): The plug to promote to this graph
+            plug (IPlug): The plug to promote to this graph
             name (str): Optionally use the given name instead of the name of
                 the given plug
         """
@@ -211,7 +219,9 @@ class Graph:
                 f"Only plugs of type '{InputPlug}' or '{OutputPlug}' can be promoted."
             )  # pragma: no cover
 
-    def accepts_connection(self, output_plug, input_plug):
+    def accepts_connection(
+        self, output_plug: OutputPlug, input_plug: InputPlug
+    ) -> bool:
         """Raise exception if new connection would violate integrity of graph.
 
         Args:
@@ -254,13 +264,13 @@ class Graph:
     def evaluate(
         self,
         *,
-        mode="linear",
-        skip_clean=False,
-        submission_delay=0.1,
-        max_workers=None,
-        data_persistence=True,
-        evaluator=None,
-    ):
+        mode: str = "linear",
+        skip_clean: bool = False,
+        submission_delay: float = 0.1,
+        max_workers: int | None = None,
+        data_persistence: bool = True,
+        evaluator: Evaluator | None = None,
+    ) -> None:
         """Evaluate all Nodes in the graph.
 
         Sorts the nodes in the graph into a resolution order and evaluates the
@@ -294,7 +304,7 @@ class Graph:
         log.info('Evaluating Graph "%s"', self.name)
 
         # map mode keywords to evaluation functions and their arguments
-        eval_modes = {
+        eval_modes: Dict[str, Tuple[Type[Evaluator], Dict[str, Any]]] = {
             "linear": (LinearEvaluator, {}),
             "threading": (ThreadedEvaluator, {"max_workers": max_workers}),
             "multiprocessing": (
@@ -312,6 +322,9 @@ class Graph:
                 raise ValueError(f"Unkown mode: {mode}") from exc
             evaluator = eval_cls(**eval_args)
 
+        if not evaluator:
+            raise ValueError("No evaluation mode or evaluator specified.")
+
         evaluator.evaluate(graph=self, skip_clean=skip_clean)
 
         if not data_persistence:
@@ -323,15 +336,17 @@ class Graph:
                     if output_plug.connections:
                         output_plug.value = None
 
-    def to_pickle(self):
+    def to_pickle(self) -> bytes:
         """Serialize the graph into a pickle."""
         return pickle.dumps(self)
 
-    def to_json(self):
+    def to_json(self) -> dict:
         """Serialize the graph into a json."""
         return self._serialize()
 
-    def serialize(self, with_subgraphs=True):  # pragma: no cover
+    def serialize(
+        self, with_subgraphs: bool = True
+    ) -> dict:  # pragma: no cover
         """Serialize the graph in its grid form.
 
         Deprecated.
@@ -344,13 +359,13 @@ class Graph:
 
         return self._serialize(with_subgraphs)
 
-    def _serialize(self, with_subgraphs=True):
+    def _serialize(self, with_subgraphs: bool = True) -> dict:
         """Serialize the graph in its grid form.
 
         Args:
             with_subgraphs (bool): Set to false to avoid infinite recursion
         """
-        data = {
+        data: dict = {
             "module": self.__module__,
             "cls": self.__class__.__name__,
             "name": self.name,
@@ -366,17 +381,17 @@ class Graph:
         return data
 
     @staticmethod
-    def from_pickle(data):
+    def from_pickle(data: bytes) -> Graph:
         """De-serialize from the given pickle data."""
         return pickle.loads(data)
 
     @staticmethod
-    def from_json(data):
+    def from_json(data: dict) -> Graph:
         """De-serialize from the given json data."""
         return deserialize_graph(data)
 
     @staticmethod
-    def deserialize(data):  # pragma: no cover
+    def deserialize(data: dict) -> Graph:  # pragma: no cover
         """De-serialize from the given json data."""
         warnings.warn(
             "Graph.deserialize is deprecated. Instead, use one of "
@@ -385,19 +400,22 @@ class Graph:
         )
         return deserialize_graph(data)
 
-    def node_repr(self):
+    def node_repr(self) -> str:
         """Format to visualize the Graph."""
         canvas_ = canvas.Canvas()
         x_pos = 0
 
         evaluation_matrix = self.evaluation_matrix
 
+        lookup = {}
+
         for row in evaluation_matrix:
             y_pos = 0
             x_diff = 0
             for node in row:
                 item_ = item.Item(str(node), [x_pos, y_pos])
-                node.item = item_
+                lookup[node] = item_
+
                 x_diff = (
                     item_.bbox[2] - item_.bbox[0] + 4
                     if item_.bbox[2] - item_.bbox[0] + 4 > x_diff
@@ -448,12 +466,15 @@ class Graph:
                 ].connections:
                     dnode = connection.node
                     start = [
-                        node.item.position[0] + node.item.bbox[2],
-                        node.item.position[1] + 3 + len(node.all_inputs()) + i,
+                        lookup[node].position[0] + lookup[node].bbox[2],
+                        lookup[node].position[1]
+                        + 3
+                        + len(node.all_inputs())
+                        + i,
                     ]
                     end = [
-                        dnode.item.position[0],
-                        dnode.item.position[1]
+                        lookup[dnode].position[0],
+                        lookup[dnode].position[1]
                         + 3
                         + list(
                             dnode.sort_plugs(dnode.all_inputs()).values()
@@ -463,7 +484,7 @@ class Graph:
 
         return canvas_.render()
 
-    def list_repr(self):
+    def list_repr(self) -> str:
         """List representation of the graph showing Nodes and connections."""
         pretty = []
         pretty.append(self.name)
@@ -482,12 +503,12 @@ class Graph:
 default_graph = Graph(name="default")
 
 
-def get_default_graph():
+def get_default_graph() -> Graph:
     """Retrieve the default graph."""
     return default_graph
 
 
-def set_default_graph(graph):
+def set_default_graph(graph: Graph) -> None:
     """Set a graph as the default graph."""
     if not isinstance(graph, Graph):
         raise TypeError("Can only set 'Graph' instances as default graph!")
@@ -496,6 +517,6 @@ def set_default_graph(graph):
     default_graph = graph
 
 
-def reset_default_graph():
+def reset_default_graph() -> None:
     """Reset the default graph to an empty graph."""
     set_default_graph(Graph(name="default"))
