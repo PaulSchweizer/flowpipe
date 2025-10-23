@@ -23,7 +23,7 @@ jobs:
           python -m pip install --upgrade poetry wheel
       - name: Install dependencies
         run: |
-          poetry install
+          poetry install --no-cache
       - name: Analysing the code with pylint
         run: |
           poetry run pylint ./flowpipe
