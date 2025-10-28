@@ -35,6 +35,9 @@ disable = [
     "too-many-public-methods",
 ]
 
+[tool.pylint.main]
+py-version = "3.9"
+
 [tool.poetry]
 classifiers = [
     "Programming Language :: Python",
