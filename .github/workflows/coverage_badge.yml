@@ -35,7 +35,7 @@ jobs:
 
       - name: Coverage comment
         id: coverage
-        uses: MishaKav/pytest-coverage-comment@1bdbba85fb74a2fdc1ec66383acec1091610f82b  # v1.1.57
+        uses: MishaKav/pytest-coverage-comment@dda025d84b1dd831193ed9cd5b1d7e33c79efa9b  # v1.1.59
         with:
           pytest-coverage-path: ./pytest-coverage.txt
           junitxml-path: ./pytest.xml
