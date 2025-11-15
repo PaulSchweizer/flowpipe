@@ -8,6 +8,7 @@ from pickle import PicklingError
 
 from .errors import FlowpipeMultiprocessingError
 
+
 log = logging.getLogger(__name__)
 
 
@@ -243,12 +244,12 @@ def _evaluate_node_in_process(identifier, nodes_data):
         data["outputs"][name]["value"] = plug.value
         for sub_name, sub_plug in plug.sub_plugs.items():
             if sub_name not in data["outputs"][name]["sub_plugs"]:
-                data["outputs"][name]["sub_plugs"][
-                    sub_name
-                ] = sub_plug.serialize()
-            data["outputs"][name]["sub_plugs"][sub_name][
-                "value"
-            ] = sub_plug.value
+                data["outputs"][name]["sub_plugs"][sub_name] = (
+                    sub_plug.serialize()
+                )
+            data["outputs"][name]["sub_plugs"][sub_name]["value"] = (
+                sub_plug.value
+            )
 
     nodes_data[identifier] = data
 

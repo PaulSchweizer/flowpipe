@@ -2,12 +2,14 @@
 
 This guide expects that your render farm can handle dependencies between tasks.
 """
+
 import json
 import logging
 import os
 from tempfile import gettempdir
 
 from flowpipe import Graph, INode, Node
+
 
 # -----------------------------------------------------------------------------
 #

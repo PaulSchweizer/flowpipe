@@ -1,4 +1,5 @@
 """Utilities for serializing and importing Nodes."""
+
 try:
     import importlib
 except ImportError:

@@ -13,8 +13,9 @@
 +-------------------------------------------------+
 """
 
-from flowpipe import Evaluator, Graph, Node
 import json
+
+from flowpipe import Evaluator, Graph, Node
 
 
 class CustomEvaluator(Evaluator):

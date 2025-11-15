@@ -16,12 +16,18 @@ documentation = "https://flowpipe.readthedocs.io/en/latest/"
 requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
 build-backend = "poetry_dynamic_versioning.backend"
 
-[tool.black]
+[tool.ruff]
 line-length = 79
+target-version = "py39"
+src = ["flowpipe", "tests"]
 
-[tool.isort]
-profile = "black"
-skip = ["flowpipe/__init__.py"]
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["flowpipe"]
+lines-after-imports = 2
 
 [tool.pylint."MESSAGES CONTROL"]
 disable = [
@@ -57,12 +63,11 @@ enable = true
 poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
 
 [tool.poetry.group.dev.dependencies]
-black = "^25.9.0"
 mock = "^5.1.0"
 numpy = "^1.26.2"
 pre-commit = "^3.5.0"
 pylint = "^3.0.1"
 pytest-cov = "^4.1.0"
 pytest = "^7.4.2"
-isort = { version = "^5.12.0", extras = ["pyproject"] }
 mypy = "^1.6.1"
+ruff = "^0.7.0"

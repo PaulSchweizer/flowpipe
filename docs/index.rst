@@ -14,6 +14,8 @@ Code Documentation
    source/flowpipe
 
    examples/examples.rst
+   ruff-formatting
+   release-notes
 
 Indices and tables
 ==================
