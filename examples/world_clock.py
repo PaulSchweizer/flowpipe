@@ -24,6 +24,7 @@ A graph implementation of a world clock for demonstrational purposes:
                               |      converted_time o-----+
                               +---------------------+
 """
+
 from datetime import datetime
 from time import time
 

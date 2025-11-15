@@ -1,0 +1,77 @@
+openapi: 3.0.0
+info:
+  title: Flowpipe Tooling Contract
+  version: 1.0.0
+  description: >
+    Conceptual API describing how contributors and CI invoke Ruff through the standard
+    tooling stack. Although these actions are executed via CLI/pre-commit, modeling them as
+    API-like contracts clarifies required inputs/outputs.
+servers:
+  - url: local
+    description: Developer workstation or CI runner
+paths:
+  /formatting/dry-run:
+    post:
+      summary: Simulate Ruff formatting without committing changes
+      description: >
+        Runs `pre-commit run --all-files` with Ruff hooks configured to auto-fix issues but
+        report remaining violations. Used by developers prior to commit.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                files:
+                  type: array
+                  items:
+                    type: string
+                  description: Subset of files to check; omitted for all files.
+                autofix:
+                  type: boolean
+                  default: true
+                  description: Whether Ruff is allowed to apply fixes automatically.
+      responses:
+        "200":
+          description: Ruff completed successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  reformatted:
+                    type: array
+                    items:
+                      type: string
+                    description: Files rewritten by Ruff format/import passes.
+                  remaining_issues:
+                    type: integer
+                    description: Count of outstanding violations.
+        "422":
+          description: Invalid configuration or unsupported Ruff version
+  /formatting/apply:
+    post:
+      summary: Enforce Ruff results in CI
+      description: >
+        CI jobs call this conceptual endpoint by executing `pre-commit run --all-files` or the
+        equivalent tox stage. Any Ruff failure blocks the pipeline.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                branch:
+                  type: string
+                  description: Git branch under validation.
+                python_version:
+                  type: string
+                  description: Interpreter version used for Ruff (>=3.8).
+      responses:
+        "204":
+          description: Formatting and lint checks passed with zero issues
+        "409":
+          description: Ruff reported violations; CI should fail the job
+components: {}

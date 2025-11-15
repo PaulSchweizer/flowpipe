@@ -83,12 +83,13 @@ def UpdateDatabase(id_, images):
     """Update the database entries of the given asset with the given data."""
     return {"status": True}
 
+
 def complex_cg_render(frames, batch_size):
     graph = Graph(name="Rendering")
 
     slapcomp = CreateSlapComp(graph=graph, template="nuke_template.nk")
     update_database = UpdateDatabase(graph=graph, id_=123456)
-    
+
     camera_creation = CreateCamera(graph=graph)
     scene_creation = MayaSceneGeneration(graph=graph)
 

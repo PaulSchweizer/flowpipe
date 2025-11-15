@@ -1,4 +1,5 @@
 """Nested graphs are supported in flowpipe."""
+
 from flowpipe import Graph, Node
 
 

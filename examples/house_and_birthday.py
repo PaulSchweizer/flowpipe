@@ -35,6 +35,7 @@ o amount<4>         |     +--->o attendees<>         |
 +-------------------+
 
 """
+
 from flowpipe import Graph, INode, InputPlug, Node, OutputPlug
 
 

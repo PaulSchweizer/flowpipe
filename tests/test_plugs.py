@@ -326,11 +326,11 @@ def test_compound_plugs_can_only_be_strings_or_unicodes(clear_default_graph):
     with pytest.raises(TypeError):
         node.outputs["compound_out"][0].value = 0
 
-    node.inputs["compound_in"][u"unicode"].value = "unicode"
-    node.outputs["compound_out"][u"unicode"].value = "unicode"
+    node.inputs["compound_in"]["unicode"].value = "unicode"
+    node.outputs["compound_out"]["unicode"].value = "unicode"
 
-    assert node.inputs["compound_in"][u"unicode"].value == "unicode"
-    assert node.outputs["compound_out"][u"unicode"].value == "unicode"
+    assert node.inputs["compound_in"]["unicode"].value == "unicode"
+    assert node.outputs["compound_out"]["unicode"].value == "unicode"
 
 
 def test_compound_input_plugs_are_accessible_by_index(clear_default_graph):

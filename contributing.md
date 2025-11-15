@@ -46,7 +46,7 @@ The tests have to pass on travis (py2.7 and py3.6).
 
 ## Coding styleguide
 
-- We use [black](https://github.com/ambv/black)
+- We use [Ruff](https://github.com/astral-sh/ruff) for formatting and linting. Install the hooks once with `pre-commit install` and run `pre-commit run --all-files` before pushing so CI sees the same fixes.
 - For docstrings please use the [google style](https://github.com/google/styleguide/blob/gh-pages/pyguide.md#38-comments-and-docstrings)
 
 ## Release to PyPi (Collaborators only)

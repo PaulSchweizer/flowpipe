@@ -14,6 +14,7 @@ pipeline, for example:
 The Workflow builds a Graph and initializes it with user provided settings as
 well as data taken from other sources (database, filesystem).
 """
+
 import getpass
 
 from flowpipe import Graph, Node
