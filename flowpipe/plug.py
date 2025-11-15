@@ -1,10 +1,12 @@
 """Plugs are ins and outs for Nodes through which they exchange data."""
+
 from __future__ import print_function
 
 import warnings
 from abc import abstractmethod
 
 from .utilities import get_hash
+
 
 class IPlug:
     """The interface for the plugs.
@@ -283,9 +285,9 @@ class InputPlug(IPlug):
         """Serialize the Plug containing all it's connections."""
         connections = {}
         if self.connections:
-            connections[
-                self.connections[0].node.identifier
-            ] = self.connections[0].name
+            connections[self.connections[0].node.identifier] = (
+                self.connections[0].name
+            )
         return {
             "name": self.name,
             "value": self.value if not self.sub_plugs else None,
@@ -352,9 +354,9 @@ class SubInputPlug(SubPlug, InputPlug):
         """Serialize the Plug containing all it's connections."""
         connections = {}
         if self.connections:
-            connections[
-                self.connections[0].node.identifier
-            ] = self.connections[0].name
+            connections[self.connections[0].node.identifier] = (
+                self.connections[0].name
+            )
         return {
             "name": self.name,
             "value": self.value,

@@ -1,4 +1,5 @@
 """A Graph of Nodes."""
+
 from __future__ import absolute_import, print_function
 
 import logging
@@ -15,6 +16,7 @@ from .evaluator import (
 )
 from .plug import InputPlug, InputPlugGroup, OutputPlug
 from .utilities import deserialize_graph
+
 
 log = logging.getLogger(__name__)
 

@@ -1,4 +1,5 @@
 """Nodes manipulate incoming data and provide the outgoing data."""
+
 from __future__ import absolute_import, print_function
 
 import copy
@@ -20,6 +21,7 @@ from .utilities import (
     import_class,
     sanitize_string_input,
 )
+
 
 log = logging.getLogger(__name__)
 
@@ -145,9 +147,9 @@ class INode:
                     downstream_nodes[downstream.identifier] = downstream
                     for downstream2 in downstream.downstream_nodes:
                         if downstream2.identifier not in downstream_nodes:
-                            downstream_nodes[
-                                downstream2.identifier
-                            ] = downstream2
+                            downstream_nodes[downstream2.identifier] = (
+                                downstream2
+                            )
         return list(downstream_nodes.values())
 
     def evaluate(self):
@@ -643,9 +645,7 @@ class FunctionNode(INode):
         if func is not None:
             self.file_location = inspect.getfile(func)
             self.class_name = self.func.__name__
-            arg_spec = inspect.getfullargspec(
-                func
-            )  # pylint: disable=deprecated-method
+            arg_spec = inspect.getfullargspec(func)  # pylint: disable=deprecated-method
             defaults = {}
             if arg_spec.defaults is not None:
                 defaults = dict(

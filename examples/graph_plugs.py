@@ -31,7 +31,7 @@ o value                                          |
 +------------------------------------------------+
 """
 
-from flowpipe import Graph, INode, InputPlug, OutputPlug, InputPlugGroup
+from flowpipe import Graph, INode, InputPlug, InputPlugGroup, OutputPlug
 
 
 class AddNode(INode):

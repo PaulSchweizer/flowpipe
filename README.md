@@ -4,7 +4,7 @@
 <a href="https://github.com/PaulSchweizer/flowpipe/blob/main/README.md"><img alt="Coverage" src="https://img.shields.io/badge/Coverage-98%25-brightgreen.svg" /></a><details><summary>Coverage Report </summary><table><tr><th>File</th><th>Stmts</th><th>Miss</th><th>Cover</th><th>Missing</th></tr><tbody><tr><td colspan="5"><b>flowpipe</b></td></tr><tr><td>&nbsp; &nbsp;<a href="https://github.com/PaulSchweizer/flowpipe/blob/main/flowpipe/__init__.py">__init__.py</a></td><td>4</td><td>0</td><td>100%</td><td>&nbsp;</td></tr><tr><td>&nbsp; &nbsp;<a href="https://github.com/PaulSchweizer/flowpipe/blob/main/flowpipe/errors.py">errors.py</a></td><td>2</td><td>0</td><td>100%</td><td>&nbsp;</td></tr><tr><td>&nbsp; &nbsp;<a href="https://github.com/PaulSchweizer/flowpipe/blob/main/flowpipe/evaluator.py">evaluator.py</a></td><td>109</td><td>21</td><td>81%</td><td><a href="https://github.com/PaulSchweizer/flowpipe/blob/main/flowpipe/evaluator.py#L187-L188">187&ndash;188</a>, <a href="https://github.com/PaulSchweizer/flowpipe/blob/main/flowpipe/evaluator.py#L224-L253">224&ndash;253</a></td></tr><tr><td>&nbsp; &nbsp;<a href="https://github.com/PaulSchweizer/flowpipe/blob/main/flowpipe/event.py">event.py</a></td><td>22</td><td>0</td><td>100%</td><td>&nbsp;</td></tr><tr><td>&nbsp; &nbsp;<a href="https://github.com/PaulSchweizer/flowpipe/blob/main/flowpipe/graph.py">graph.py</a></td><td>211</td><td>0</td><td>100%</td><td>&nbsp;</td></tr><tr><td>&nbsp; &nbsp;<a href="https://github.com/PaulSchweizer/flowpipe/blob/main/flowpipe/node.py">node.py</a></td><td>355</td><td>0</td><td>100%</td><td>&nbsp;</td></tr><tr><td>&nbsp; &nbsp;<a href="https://github.com/PaulSchweizer/flowpipe/blob/main/flowpipe/plug.py">plug.py</a></td><td>208</td><td>2</td><td>99%</td><td><a href="https://github.com/PaulSchweizer/flowpipe/blob/main/flowpipe/plug.py#L62-L67">62&ndash;67</a></td></tr><tr><td>&nbsp; &nbsp;<a href="https://github.com/PaulSchweizer/flowpipe/blob/main/flowpipe/utilities.py">utilities.py</a></td><td>71</td><td>0</td><td>100%</td><td>&nbsp;</td></tr><tr><td><b>TOTAL</b></td><td><b>982</b></td><td><b>23</b></td><td><b>98%</b></td><td>&nbsp;</td></tr></tbody></table></details>
 <!-- Pytest Coverage Comment:End -->
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/flowpipe) [![Documentation Status](https://readthedocs.org/projects/flowpipe/badge/?version=latest)](https://flowpipe.readthedocs.io/en/latest) [![Black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE) ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/flowpipe) [![Documentation Status](https://readthedocs.org/projects/flowpipe/badge/?version=latest)](https://flowpipe.readthedocs.io/en/latest) [![Ruff](https://img.shields.io/badge/linting-ruff-00a3ff.svg?logo=ruff&logoColor=white)](https://github.com/astral-sh/ruff)
 
 ![Flowpipe Logo](https://raw.githubusercontent.com/PaulSchweizer/flowpipe/master/logo.png)
 
@@ -39,6 +39,20 @@ Benefits:
 [![Flowpipe - VFX Production Proven Flow-based Programming](http://img.youtube.com/vi/pbroOzT42F8/0.jpg)](http://www.youtube.com/watch?v=pbroOzT42F8 "Flowpipe - VFX Production Proven Flow-based Programming")
 <br>
 Flowpipe Presentation Open Source Days 2025
+
+# Development workflow
+
+Flowpipe uses [Ruff](https://github.com/astral-sh/ruff) for both formatting and linting. To
+match the automation used in CI:
+
+1. `pip install -U pre-commit ruff`
+2. `pre-commit install`
+3. `pre-commit run --all-files`
+
+Only Ruff hooks run in this workflow, so contributors and CI observe identical formatting and
+import ordering rules.
+
+For detailed migration notes and upcoming changes, read [docs/release-notes.md](docs/release-notes.md).
 
 # Quick Example
 
