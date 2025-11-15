@@ -21,4 +21,7 @@ jobs:
           python-version: "3.11"
       - uses: pre-commit/action@v3.0.1
         with:
-          extra_args: --all-files ruff ruff-format
+          extra_args: --all-files ruff
+      - uses: pre-commit/action@v3.0.1
+        with:
+          extra_args: --all-files ruff-format
