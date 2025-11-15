@@ -21,6 +21,7 @@ repos:
         name: unittests
         language: system
         entry: poetry run pytest ./tests
+        files: ^(flowpipe/|tests/|examples/)
         pass_filenames: false
       - id: pylint
         name: pylint

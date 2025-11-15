@@ -3,6 +3,7 @@ import time
 from flowpipe.graph import Graph
 from flowpipe.node import Node
 
+
 # A value lower than 1 does not make a difference since starting the different
 # processes eats up time
 SLEEP_TIME = 3
