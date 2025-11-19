@@ -90,13 +90,9 @@ class INode:
         self.graph.add_node(self)
         self.stats: dict = {}
 
-    def __unicode__(self) -> str:
-        """Show all input and output Plugs."""
-        return self.node_repr()
-
     def __str__(self) -> str:
         """Show all input and output Plugs."""
-        return self.__unicode__().encode("utf-8").decode()
+        return self.node_repr()
 
     @property
     def is_dirty(self) -> bool:
