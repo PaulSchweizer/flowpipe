@@ -1,0 +1,52 @@
+name: Update Coverage Badge
+on:
+  push:
+    branches:
+      - "master"
+      - "main"
+  workflow_dispatch:
+
+jobs:
+  update-badge:
+    runs-on: ubuntu-latest
+    permissions:
+      # Give the default GITHUB_TOKEN write permission to commit and push the
+      # added or changed files to the repository.
+      contents: write
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.x"
+
+      - name: Install Poetry
+        run: |
+          python -m pip install --upgrade poetry wheel
+
+      - name: Install dependencies
+        run: |
+          poetry install
+
+      - name: Run tests
+        run: |
+          poetry run pytest --junitxml=pytest.xml --cov-report=term-missing --cov=flowpipe tests/ | tee pytest-coverage.txt
+
+      - name: Coverage comment
+        id: coverage
+        uses: MishaKav/pytest-coverage-comment@1bdbba85fb74a2fdc1ec66383acec1091610f82b  # v1.1.57
+        with:
+          pytest-coverage-path: ./pytest-coverage.txt
+          junitxml-path: ./pytest.xml
+          hide-comment: true
+
+      - name: Update README
+        run: |
+          sed -i '/<!-- Pytest Coverage Comment:Begin -->/,/<!-- Pytest Coverage Comment:End -->/c\<!-- Pytest Coverage Comment:Begin -->\n${{ steps.coverage.outputs.coverageHtml }}\n<!-- Pytest Coverage Comment:End -->' ./README.md
+
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@28e16e81777b558cc906c8750092100bbb34c5e3  # v7.0.0
+        with:
+          commit_message: 'docs: update coverage badge'
+          file_pattern: README.md
