@@ -601,7 +601,7 @@ class FunctionNode(INode, Generic[P]):
         identifier: str | None = None,
         metadata: dict[str, Any] | None = None,
         graph: Graph | DefaultGraph | None = "default",
-        **input_plug_values: P.kwargs,
+        **input_plug_values: Any,
     ) -> FunctionNode[P]:
         """Create and return an instance of the Node."""
         metadata_payload: dict[str, Any] = copy.deepcopy(self.metadata)
@@ -625,7 +625,7 @@ class FunctionNode(INode, Generic[P]):
             ),
         )
 
-    def compute(self, *args, **kwargs):
+    def compute(self, *args: P.args, **kwargs: P.kwargs):
         """Call and return the wrapped function."""
         if self._use_self:
             return self.func(self, *args, **kwargs)
