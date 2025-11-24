@@ -11,17 +11,33 @@ import time
 import uuid
 import warnings
 from abc import ABCMeta, abstractmethod
-from typing import (
-    Any,
-    Callable,
-    Generic,
-    Literal,
-    ParamSpec,
-    Sequence,
-    Type,
-    TypeVar,
-    cast,
-)
+
+try:
+    # Python 3.10+
+    from typing import (
+        Any,
+        Callable,
+        Generic,
+        Literal,
+        ParamSpec,
+        Sequence,
+        Type,
+        TypeVar,
+        cast,
+    )
+except ImportError:
+    # Python 3.9 fallback
+    from typing import (
+        Any,
+        Callable,
+        Generic,
+        Literal,
+        Sequence,
+        Type,
+        TypeVar,
+        cast,
+    )
+    from typing_extensions import ParamSpec
 
 from .event import Event
 from .graph import Graph, get_default_graph
@@ -167,9 +183,9 @@ class INode:
                     downstream_nodes[downstream.identifier] = downstream
                     for downstream2 in downstream.downstream_nodes:
                         if downstream2.identifier not in downstream_nodes:
-                            downstream_nodes[
-                                downstream2.identifier
-                            ] = downstream2
+                            downstream_nodes[downstream2.identifier] = (
+                                downstream2
+                            )
         return list(downstream_nodes.values())
 
     def evaluate(self) -> dict[str, Any] | None:
@@ -545,7 +561,7 @@ class INode:
         return all_outputs
 
     @staticmethod
-    def sort_plugs(plugs) -> dict:
+    def sort_plugs(plugs: dict[str, OutputPlug]) -> dict[str, OutputPlug]:
         """Sort the given plugs alphabetically into a dict."""
         sorted_plugs = {}
         for i in sorted(plugs, key=lambda x: x.lower()):
