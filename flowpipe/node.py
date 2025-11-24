@@ -11,8 +11,17 @@ import time
 import uuid
 import warnings
 from abc import ABCMeta, abstractmethod
-from collections.abc import Callable
-from typing import Any
+from typing import (
+    Any,
+    Callable,
+    Generic,
+    Literal,
+    ParamSpec,
+    Sequence,
+    Type,
+    TypeVar,
+    cast,
+)
 
 from .event import Event
 from .graph import Graph, get_default_graph
@@ -25,6 +34,11 @@ from .utilities import (
 )
 
 log = logging.getLogger(__name__)
+
+DefaultGraph = Literal["default"]
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 class INode:
@@ -44,7 +58,7 @@ class INode:
         name: str | None = None,
         identifier: str | None = None,
         metadata: dict | None = None,
-        graph: Graph | str | None = "default",
+        graph: Graph | DefaultGraph | None = "default",
     ):
         """Initialize the input and output dictionaries and the name.
 
@@ -81,20 +95,16 @@ class INode:
 
         if isinstance(graph, Graph):
             self.graph = graph
-
-        if graph is not None:
-            if graph == "default":
-                graph = get_default_graph()
-            graph.add_node(self)  # type: ignore
+        elif graph == "default":
+            self.graph = get_default_graph()
+        else:
+            self.graph = Graph()
+        self.graph.add_node(self)
         self.stats: dict = {}
-
-    def __unicode__(self) -> str:
-        """Show all input and output Plugs."""
-        return self.node_repr()
 
     def __str__(self) -> str:
         """Show all input and output Plugs."""
-        return self.__unicode__().encode("utf-8").decode()
+        return self.node_repr()
 
     @property
     def is_dirty(self) -> bool:
@@ -157,12 +167,12 @@ class INode:
                     downstream_nodes[downstream.identifier] = downstream
                     for downstream2 in downstream.downstream_nodes:
                         if downstream2.identifier not in downstream_nodes:
-                            downstream_nodes[downstream2.identifier] = (
-                                downstream2
-                            )
+                            downstream_nodes[
+                                downstream2.identifier
+                            ] = downstream2
         return list(downstream_nodes.values())
 
-    def evaluate(self) -> dict:
+    def evaluate(self) -> dict[str, Any] | None:
         """Compute this Node, log it and clean the input Plugs.
 
         Also push a stat report in the following form containing the Node,
@@ -206,7 +216,9 @@ class INode:
         return outputs
 
     @abstractmethod
-    def compute(self, *args, **kwargs):  # pragma: no cover
+    def compute(
+        self, *args, **kwargs
+    ) -> dict[str, Any] | None:  # pragma: no cover
         """Implement the data manipulation in the subclass.
 
         Return a dictionary with the outputs from this function.
@@ -414,7 +426,7 @@ class INode:
             + 7
         )
 
-        if self.graph.subgraphs:
+        if self.graph is not None and self.graph.subgraphs:
             width = max([width, len(self.graph.name) + 7])
             pretty = f"{offset}+{self.graph.name:-^{width}}+"
         else:
@@ -541,7 +553,7 @@ class INode:
         return sorted_plugs
 
 
-class FunctionNode(INode):
+class FunctionNode(INode, Generic[P]):
     """Wrap a function into a Node."""
 
     # Some names have to stay reserved as they are used to construct the Node
@@ -559,12 +571,12 @@ class FunctionNode(INode):
     def __init__(
         self,
         *,
-        func: Callable | None = None,
+        func: Callable[P, dict[str, Any] | None] | None = None,
         outputs=None,
         name: str | None = None,
         identifier: str | None = None,
         metadata: dict | None = None,
-        graph: Graph | None = None,
+        graph: Graph | DefaultGraph | None = None,
         **kwargs,
     ):
         """The data on the function is used to drive the Node.
@@ -582,22 +594,35 @@ class FunctionNode(INode):
         for plug, value in kwargs.items():
             self.inputs[plug].value = value
 
-    def __call__(self, **kwargs):
+    def __call__(
+        self,
+        *,
+        name: str | None = None,
+        identifier: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        graph: Graph | DefaultGraph | None = "default",
+        **input_plug_values: P.kwargs,
+    ) -> FunctionNode[P]:
         """Create and return an instance of the Node."""
-        metadata = copy.deepcopy(self.metadata)
-        metadata.update(kwargs.pop("metadata", {}))
-        graph = kwargs.pop("graph", "default")
+        metadata_payload: dict[str, Any] = copy.deepcopy(self.metadata)
+        if metadata:
+            metadata_payload.update(metadata)
         outputs = []
         for output in self.outputs.values():
             outputs.append(output.name)
             for key in output.sub_plugs.keys():
                 outputs.append(f"{output.name}.{key}")
-        return self.__class__(
-            func=self.func,
-            outputs=outputs,
-            metadata=metadata,
-            graph=graph,
-            **kwargs,
+        return cast(
+            FunctionNode[P],
+            self.__class__(
+                func=self.func,
+                outputs=outputs,
+                name=name,
+                identifier=identifier,
+                metadata=metadata_payload,
+                graph=graph,
+                **input_plug_values,
+            ),
         )
 
     def compute(self, *args, **kwargs):
@@ -627,9 +652,8 @@ class FunctionNode(INode):
         node_or_function = import_class(
             data["func"]["module"], data["func"]["name"], data["file_location"]
         )
-        node = None
         if isinstance(node_or_function, FunctionNode):
-            node = node_or_function
+            node: FunctionNode[Any] = node_or_function
         else:
             node = FunctionNode(
                 name=self.name,
@@ -639,13 +663,6 @@ class FunctionNode(INode):
                 outputs=list(data["outputs"].keys()),
             )
             node.file_location = self.file_location
-
-        if not node:
-            raise RuntimeError(
-                f"Could not import function "
-                f"{data['func']['module']}.{data['func']['name']} "
-                f"from {data['file_location']}"
-            )
 
         node_instance: FunctionNode = node(graph=None)
 
@@ -720,12 +737,27 @@ class FunctionNode(INode):
         )
 
 
-# pylint: disable=invalid-name
-def Node(*args, **kwargs) -> Any:
+def Node(  # pylint: disable=invalid-name
+    *args: Any,
+    cls: Type[FunctionNode] = FunctionNode,
+    outputs: Sequence[str] | None = None,
+    name: str | None = None,
+    identifier: str | None = None,
+    metadata: dict[str, Any] | None = None,
+    graph: Graph | DefaultGraph | None = None,
+    **plug_defaults: Any,
+) -> Callable[[Callable[P, dict[str, Any] | None]], FunctionNode]:
     """Wrap the given function into a Node."""
-    cls = kwargs.pop("cls", FunctionNode)
+    node_kwargs: dict[str, Any] = {
+        "outputs": outputs,
+        "name": name,
+        "identifier": identifier,
+        "metadata": metadata,
+        "graph": graph,
+        **plug_defaults,
+    }
 
-    def node(func: Callable) -> FunctionNode:
-        return cls(func=func, *args, **kwargs)
+    def node(func: Callable[..., Any]) -> FunctionNode:
+        return cast(FunctionNode, cls(func=func, *args, **node_kwargs))
 
     return node

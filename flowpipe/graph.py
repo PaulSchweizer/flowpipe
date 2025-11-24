@@ -5,7 +5,7 @@ from __future__ import absolute_import, annotations, print_function
 import logging
 import pickle
 import warnings
-from typing import TYPE_CHECKING, Any, Dict, Tuple, Type
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 from ascii_canvas import canvas, item  # type: ignore
 
@@ -24,6 +24,11 @@ if TYPE_CHECKING:  # pragma: no cover
 
 log = logging.getLogger(__name__)
 
+SerializedGraph = dict[str, Any]
+
+EvalMode = Literal["linear", "threading", "multiprocessing"]
+EvalModeConfig = tuple[type[Evaluator], dict[str, Any]]
+
 
 class Graph:
     """A graph of Nodes."""
@@ -33,17 +38,13 @@ class Graph:
     ):
         """Initialize the list of Nodes, inputs and outpus."""
         self.name = name or self.__class__.__name__
-        self.nodes = nodes or []
+        self.nodes: list[INode] = nodes or []
         self.inputs: dict[str, InputPlug | InputPlugGroup] = {}
         self.outputs: dict[str, OutputPlug] = {}
 
-    def __unicode__(self) -> str:
-        """Display the Graph."""
-        return self.node_repr()
-
     def __str__(self) -> str:
         """Show all input and output Plugs."""
-        return self.__unicode__().encode("utf-8").decode()
+        return self.node_repr()
 
     def __getitem__(self, key: str) -> INode:
         """Grant access to Nodes via their name."""
@@ -87,7 +88,7 @@ class Graph:
         Returns:
             A dict in the form of ``{graph.name: graph}``
         """
-        subgraphs = {}
+        subgraphs: dict[str, Graph] = {}
         for node in self.nodes:
             for downstream in node.downstream_nodes:
                 if downstream.graph is not self:
@@ -110,14 +111,18 @@ class Graph:
             (list of list of INode): Each sub list represents a row.
         """
         # Inspired by Kahn's algorithm
-        nodes_to_sort = set(self.all_nodes)
-        matrix = []
+        nodes_to_sort: set[INode] = set(self.all_nodes)
+        matrix: list[set[INode]] = []
 
         # cache since this is called often
-        parents = {node: node.parents for node in nodes_to_sort}
+        parents: dict[INode, set[INode]] = {
+            node: node.parents for node in nodes_to_sort
+        }
 
-        sorted_nodes = set()
-        next_level = {node for node in nodes_to_sort if not parents[node]}
+        sorted_nodes: set[INode] = set()
+        next_level: set[INode] = {
+            node for node in nodes_to_sort if not parents[node]
+        }
 
         while next_level:
             matrix.append(next_level)
@@ -264,7 +269,7 @@ class Graph:
     def evaluate(
         self,
         *,
-        mode: str = "linear",
+        mode: EvalMode | None = "linear",
         skip_clean: bool = False,
         submission_delay: float = 0.1,
         max_workers: int | None = None,
@@ -304,7 +309,7 @@ class Graph:
         log.info('Evaluating Graph "%s"', self.name)
 
         # map mode keywords to evaluation functions and their arguments
-        eval_modes: Dict[str, Tuple[Type[Evaluator], Dict[str, Any]]] = {
+        eval_modes: dict[EvalMode, EvalModeConfig] = {
             "linear": (LinearEvaluator, {}),
             "threading": (ThreadedEvaluator, {"max_workers": max_workers}),
             "multiprocessing": (
@@ -340,13 +345,13 @@ class Graph:
         """Serialize the graph into a pickle."""
         return pickle.dumps(self)
 
-    def to_json(self) -> dict:
+    def to_json(self) -> SerializedGraph:
         """Serialize the graph into a json."""
         return self._serialize()
 
     def serialize(
         self, with_subgraphs: bool = True
-    ) -> dict:  # pragma: no cover
+    ) -> SerializedGraph:  # pragma: no cover
         """Serialize the graph in its grid form.
 
         Deprecated.
@@ -359,13 +364,13 @@ class Graph:
 
         return self._serialize(with_subgraphs)
 
-    def _serialize(self, with_subgraphs: bool = True) -> dict:
+    def _serialize(self, with_subgraphs: bool = True) -> SerializedGraph:
         """Serialize the graph in its grid form.
 
         Args:
             with_subgraphs (bool): Set to false to avoid infinite recursion
         """
-        data: dict = {
+        data: SerializedGraph = {
             "module": self.__module__,
             "cls": self.__class__.__name__,
             "name": self.name,
@@ -383,15 +388,15 @@ class Graph:
     @staticmethod
     def from_pickle(data: bytes) -> Graph:
         """De-serialize from the given pickle data."""
-        return pickle.loads(data)
+        return cast(Graph, pickle.loads(data))
 
     @staticmethod
-    def from_json(data: dict) -> Graph:
+    def from_json(data: SerializedGraph) -> Graph:
         """De-serialize from the given json data."""
         return deserialize_graph(data)
 
     @staticmethod
-    def deserialize(data: dict) -> Graph:  # pragma: no cover
+    def deserialize(data: SerializedGraph) -> Graph:  # pragma: no cover
         """De-serialize from the given json data."""
         warnings.warn(
             "Graph.deserialize is deprecated. Instead, use one of "
@@ -407,7 +412,7 @@ class Graph:
 
         evaluation_matrix = self.evaluation_matrix
 
-        lookup = {}
+        lookup: dict[INode, item.Item] = {}
 
         for row in evaluation_matrix:
             y_pos = 0
@@ -427,7 +432,7 @@ class Graph:
 
         # Include the input groups if any have been set
         y_off = 2
-        locked_items = []
+        locked_items: list[item.Item] = []
         if self.input_groups:
             for input_group in self.input_groups.values():
                 y_off += 1
@@ -486,7 +491,7 @@ class Graph:
 
     def list_repr(self) -> str:
         """List representation of the graph showing Nodes and connections."""
-        pretty = []
+        pretty: list[str] = []
         pretty.append(self.name)
         if self.input_groups:
             pretty.append("[Input Groups]")
