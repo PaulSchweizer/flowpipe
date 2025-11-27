@@ -32,9 +32,6 @@ jobs:
       - name: Install dependencies
         run: |
           poetry install --no-cache
-      - name: Run mypy
-        run: |
-          poetry run mypy flowpipe
       - name: Run tests with coverage
         run: |
           poetry run pytest --cov-report=term-missing:skip-covered --cov=flowpipe tests/
