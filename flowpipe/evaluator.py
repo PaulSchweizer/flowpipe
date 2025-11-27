@@ -1,12 +1,19 @@
 """Classes to evaluate flowpipe Graphs in various ways."""
 
+from __future__ import annotations
+
 import logging
 import time
 from concurrent import futures
 from multiprocessing import Manager, Process
 from pickle import PicklingError
+from typing import TYPE_CHECKING
 
 from .errors import FlowpipeMultiprocessingError
+
+if TYPE_CHECKING:  # pragma: no cover
+    from .graph import Graph
+    from .node import INode
 
 log = logging.getLogger(__name__)
 
@@ -15,7 +22,7 @@ class Evaluator:
     """An engine to evaluate a Graph."""
 
     @staticmethod
-    def _evaluation_sequence(graph):
+    def _evaluation_sequence(graph: Graph) -> list[INode]:
         """Sort Nodes into a sequential, flat execution order.
 
         Replicated here for flexibility; defaults to Graph's implementation.
@@ -27,18 +34,20 @@ class Evaluator:
         """
         return graph.evaluation_sequence
 
-    def _nodes_to_evaluate(self, graph, skip_clean):
+    def _nodes_to_evaluate(
+        self, graph: Graph, skip_clean: bool
+    ) -> list[INode]:
         """Get the nodes to evaluate, in order."""
         nodes = self._evaluation_sequence(graph)
         if skip_clean:
             nodes = [n for n in nodes if n.is_dirty]
         return nodes
 
-    def _evaluate_nodes(self, nodes):
+    def _evaluate_nodes(self, nodes: list[INode]) -> None:
         """Perform the actual node evaluation."""
         raise NotImplementedError  # pragma: no cover
 
-    def evaluate(self, graph, skip_clean=False):
+    def evaluate(self, graph: Graph, skip_clean: bool = False) -> None:
         """Evaluate the graph.
 
         Args:
@@ -55,7 +64,7 @@ class Evaluator:
 class LinearEvaluator(Evaluator):
     """Evaluate the graph linearly in a single thread."""
 
-    def _evaluate_nodes(self, nodes):
+    def _evaluate_nodes(self, nodes: list[INode]) -> None:
         """Evaluate the graph linearly in a single thread.
 
         Args:
@@ -69,18 +78,17 @@ class LinearEvaluator(Evaluator):
 class ThreadedEvaluator(Evaluator):
     """Evaluate each node in a separate thread."""
 
-    def __init__(self, max_workers=None):
+    def __init__(self, max_workers: int | None = None):
         """Intialize with the graph and how many threads to use.
 
         Args:
-            graph (flowpipe.Graph): The graph to evaluate.
             max_workers (int): The number of threads to use in parallel,
                 defaults to the futures.ThreadPoolExecutor default.
 
         """
         self.max_workers = max_workers
 
-    def _evaluate_nodes(self, nodes):
+    def _evaluate_nodes(self, nodes: list[INode]) -> None:
         """Evaluate each node in a separate thread.
 
         Args:
@@ -90,11 +98,11 @@ class ThreadedEvaluator(Evaluator):
         # create copy to prevent side effects
         nodes_to_evaluate = list(nodes)
 
-        def node_runner(node):
+        def node_runner(node: INode) -> INode:
             node.evaluate()
             return node
 
-        running_futures = {}
+        running_futures: dict = {}
         with futures.ThreadPoolExecutor(max_workers=self.max_workers) as tpe:
             while nodes_to_evaluate or running_futures:
                 log.debug(
@@ -148,7 +156,7 @@ class ThreadedEvaluator(Evaluator):
 class LegacyMultiprocessingEvaluator(Evaluator):
     """Evaluate nodes in separate processes."""
 
-    def __init__(self, submission_delay=0.1):
+    def __init__(self, submission_delay: float = 0.1):
         """Initialize with the graph and the delay between launching nodes.
 
         Args:
@@ -158,14 +166,14 @@ class LegacyMultiprocessingEvaluator(Evaluator):
         """
         self.submission_delay = submission_delay
 
-    def _evaluate_nodes(self, nodes):
+    def _evaluate_nodes(self, nodes: list[INode]):
         # create copy to prevent side effects
         nodes_to_evaluate = list(nodes)
         manager = Manager()
         nodes_data = manager.dict()
-        processes = {}
+        processes: dict[str, Process] = {}
 
-        def upstream_ready(node):
+        def upstream_ready(node: INode) -> bool:
             """Check whether all upstream nodes have been evaluated."""
             for upstream in node.upstream_nodes:
                 if upstream in nodes_to_evaluate:
@@ -208,7 +216,7 @@ class LegacyMultiprocessingEvaluator(Evaluator):
             time.sleep(self.submission_delay)
 
 
-def _evaluate_node_in_process(identifier, nodes_data):
+def _evaluate_node_in_process(identifier: str, nodes_data: dict):
     """Evaluate a node when multiprocessing.
 
     1. Deserializing the node from the given nodes_data dict
@@ -253,7 +261,7 @@ def _evaluate_node_in_process(identifier, nodes_data):
     nodes_data[identifier] = data
 
 
-def _update_node(node, data):
+def _update_node(node: INode, data: dict):
     """Apply the plug values of the data dict to the node object."""
     for name, input_plug in data["inputs"].items():
         node.inputs[name].value = input_plug["value"]

@@ -1,5 +1,6 @@
 """Nodes manipulate incoming data and provide the outgoing data."""
-from __future__ import absolute_import, print_function
+
+from __future__ import absolute_import, annotations, print_function
 
 import copy
 import inspect
@@ -10,9 +11,12 @@ import time
 import uuid
 import warnings
 from abc import ABCMeta, abstractmethod
+from typing import Any, Callable, Generic, Literal, Sequence, Type, TypeVar, cast
+
+from typing_extensions import ParamSpec
 
 from .event import Event
-from .graph import get_default_graph
+from .graph import Graph, get_default_graph
 from .plug import InputPlug, InputPlugGroup, OutputPlug, SubOutputPlug, SubPlug
 from .utilities import (
     NodeEncoder,
@@ -22,6 +26,11 @@ from .utilities import (
 )
 
 log = logging.getLogger(__name__)
+
+DefaultGraph = Literal["default"]
+
+P = ParamSpec("P")
+R = TypeVar("R")
 
 
 class INode:
@@ -37,12 +46,18 @@ class INode:
     ]
 
     def __init__(
-        self, name=None, identifier=None, metadata=None, graph="default"
+        self,
+        name: str | None = None,
+        identifier: str | None = None,
+        metadata: dict | None = None,
+        graph: Graph | DefaultGraph | None = "default",
     ):
         """Initialize the input and output dictionaries and the name.
 
         Args:
             name (str): If not provided, the class name is used.
+            identifier (str): If not provided, a unique identifier is generated.
+            metadata (dict): Arbitrary metadata to store with the Node.
             graph (Graph): The graph to add the node to.
                 If set to 'default', the Node is added to the default graph.
                 If set to None, the Node is not added to any grpah.
@@ -55,12 +70,12 @@ class INode:
             if identifier is not None
             else f"{self.name}-{uuid.uuid4()}"
         )
-        self.inputs = {}
-        self.outputs = {}
-        self.metadata = metadata or {}
+        self.inputs: dict[str, InputPlug] = {}
+        self.outputs: dict[str, OutputPlug] = {}
+        self.metadata: dict = metadata or {}
         self.omit = False
         try:
-            self.file_location = inspect.getfile(self.__class__)
+            self.file_location: str | None = inspect.getfile(self.__class__)
         except TypeError as error:  # pragma: no cover
             # Excluded from tests, as this is a hard-to test fringe case
             if all(s in str(error) for s in ("__main__", "built-in class")):
@@ -69,23 +84,22 @@ class INode:
             else:
                 raise
         self.class_name = self.__class__.__name__
-        self.graph = graph
-        if graph is not None:
-            if graph == "default":
-                graph = get_default_graph()
-            graph.add_node(self)
-        self.stats = {}
 
-    def __unicode__(self):
+        if isinstance(graph, Graph):
+            self.graph = graph
+        elif graph == "default":
+            self.graph = get_default_graph()
+        else:
+            self.graph = Graph()
+        self.graph.add_node(self)
+        self.stats: dict = {}
+
+    def __str__(self) -> str:
         """Show all input and output Plugs."""
         return self.node_repr()
 
-    def __str__(self):
-        """Show all input and output Plugs."""
-        return self.__unicode__().encode("utf-8").decode()
-
     @property
-    def is_dirty(self):
+    def is_dirty(self) -> bool:
         """Whether any of the input Plug data has changed and is dirty."""
         for input_ in self.inputs.values():
             if input_.is_dirty:
@@ -93,7 +107,7 @@ class INode:
         return False
 
     @property
-    def parents(self):
+    def parents(self) -> set[INode]:
         """Nodes connected directly to inputs of this Node."""
         parents = set()
         for input_ in self.inputs.values():
@@ -105,7 +119,7 @@ class INode:
         return parents
 
     @property
-    def upstream_nodes(self):
+    def upstream_nodes(self) -> list[INode]:
         """Nodes connected directly or indirectly to inputs of this Node."""
         upstream_nodes = {}
         for input_ in self.inputs.values():
@@ -121,7 +135,7 @@ class INode:
         return list(upstream_nodes.values())
 
     @property
-    def children(self):
+    def children(self) -> set[INode]:
         """Nodes connected directly to outputs of this Node."""
         children = set()
         for output in self.outputs.values():
@@ -145,12 +159,12 @@ class INode:
                     downstream_nodes[downstream.identifier] = downstream
                     for downstream2 in downstream.downstream_nodes:
                         if downstream2.identifier not in downstream_nodes:
-                            downstream_nodes[
-                                downstream2.identifier
-                            ] = downstream2
+                            downstream_nodes[downstream2.identifier] = (
+                                downstream2
+                            )
         return list(downstream_nodes.values())
 
-    def evaluate(self):
+    def evaluate(self) -> dict[str, Any] | None:
         """Compute this Node, log it and clean the input Plugs.
 
         Also push a stat report in the following form containing the Node,
@@ -194,18 +208,21 @@ class INode:
         return outputs
 
     @abstractmethod
-    def compute(self, *args, **kwargs):  # pragma: no cover
+    def compute(
+        self, *args, **kwargs
+    ) -> dict[str, Any] | None:  # pragma: no cover
         """Implement the data manipulation in the subclass.
 
         Return a dictionary with the outputs from this function.
         """
         raise NotImplementedError("Compute must be overwritten")
 
-    def __rshift__(self, other):
+    def __rshift__(self, other: INode | InputPlug | InputPlugGroup) -> None:
         """Syntactic sugar for connecting this node by output names."""
         self.connect(other)
 
-    def connect(self, other):
+    # pylint: disable=too-many-branches
+    def connect(self, other: INode | InputPlug | InputPlugGroup) -> None:
         """Connect this node's outputs to another plug's input by name.
 
         If other is an InputPlug, connect the output with matching name.
@@ -242,30 +259,33 @@ class INode:
                 out.connect(other)
                 connections.append(f"Plug: {other.name}")
 
-                for sub in out.sub_plugs:
-                    out.sub_plugs[sub].connect(other[sub])
-                    connections.append(f"Plug: {other.name}, Subplug: {sub}")
+                if isinstance(other, InputPlug):
+                    for sub in out.sub_plugs:
+                        out.sub_plugs[sub].connect(other[sub])
+                        connections.append(
+                            f"Plug: {other.name}, Subplug: {sub}"
+                        )
         else:
             raise TypeError(f"Cannot connect outputs to {type(other)}")
         log.debug(
             "Connected node %s with %s", self.name, "\n".join(connections)
         )
 
-    def on_input_plug_set_dirty(self):
+    def on_input_plug_set_dirty(self) -> None:
         """Propagate the dirty state to the connected downstream nodes."""
         for output_plug in self.outputs.values():
             for connected_plug in output_plug.connections:
                 connected_plug.is_dirty = True
 
-    def to_pickle(self):
+    def to_pickle(self) -> bytes:  # pragma: no cover
         """Serialize the node into a pickle."""
         return pickle.dumps(self)
 
-    def to_json(self):
+    def to_json(self) -> dict:
         """Serialize the node to json."""
         return self._serialize()
 
-    def serialize(self):  # pragma: no cover
+    def serialize(self) -> dict:
         """Serialize the node to json.
 
         Deprecated and kept for backwards compatibility.
@@ -277,18 +297,18 @@ class INode:
         )
         return self._serialize()
 
-    def _serialize(self):
+    def _serialize(self) -> dict:
         """Perform the serialization to json."""
         if self.file_location is None:  # pragma: no cover
             raise RuntimeError(
                 "Cannot serialize a node that was not defined in a file"
             )
         inputs = {}
-        for plug in self.inputs.values():
-            inputs[plug.name] = plug.serialize()
+        for in_plug in self.inputs.values():
+            inputs[in_plug.name] = in_plug.serialize()
         outputs = {}
-        for plug in self.outputs.values():
-            outputs[plug.name] = plug.serialize()
+        for out_plug in self.outputs.values():
+            outputs[out_plug.name] = out_plug.serialize()
         return {
             "file_location": self.file_location,
             "module": self.__module__,
@@ -301,17 +321,17 @@ class INode:
         }
 
     @staticmethod
-    def from_pickle(data):
+    def from_pickle(data: bytes) -> INode:
         """De-serialize from the given pickle data."""
         return pickle.loads(data)
 
     @staticmethod
-    def from_json(data):
+    def from_json(data: dict) -> INode:
         """De-serialize from the given json data."""
         return deserialize_node(data)
 
     @staticmethod
-    def deserialize(data):  # pragma: no cover
+    def deserialize(data: dict) -> INode:  # pragma: no cover
         """De-serialize from the given json data."""
         warnings.warn(
             "Node.deserialize is deprecated. Instead, use one of "
@@ -320,7 +340,7 @@ class INode:
         )
         return deserialize_node(data)
 
-    def post_deserialize(self, data):
+    def post_deserialize(self, data: dict) -> None:
         """Perform more data operations after initial serialization."""
         self.name = data["name"]
         self.identifier = data["identifier"]
@@ -335,7 +355,7 @@ class INode:
             for sub_name, sub_plug in output["sub_plugs"].items():
                 self.outputs[name][sub_name].value = sub_plug["value"]
 
-    def node_repr(self):
+    def node_repr(self) -> str:
         """The node formated into a string looking like a node.
 
         ::
@@ -398,7 +418,7 @@ class INode:
             + 7
         )
 
-        if self.graph.subgraphs:
+        if self.graph is not None and self.graph.subgraphs:
             width = max([width, len(self.graph.name) + 7])
             pretty = f"{offset}+{self.graph.name:-^{width}}+"
         else:
@@ -424,22 +444,22 @@ class INode:
             else:
                 pretty += offset
             symbol = "%" if in_plug.sub_plugs else "o"
-            dist = " " if isinstance(in_plug, SubPlug) else ""
+            in_dist = " " if isinstance(in_plug, SubPlug) else ""
             value_in_plug = _short_value(in_plug)
             value_in_plug = sanitize_string_input(value_in_plug)
-            plug = f"{symbol} {dist}{input_}{value_in_plug}".format()
+            plug = f"{symbol} {in_dist}{input_}{value_in_plug}".format()
             pretty += f"{plug:{width + 1}}|"
 
         # Outputs
         for output in sorted(all_outputs.keys()):
             out_plug = all_outputs[output]
-            dist = 2 if isinstance(out_plug, SubPlug) else 1
+            out_dist = 2 if isinstance(out_plug, SubPlug) else 1
             value_out_plug = _short_value(out_plug)
             value_out_plug = sanitize_string_input(value_out_plug)
             symbol = "%" if out_plug.sub_plugs else "o"
             pretty += (
-                f"\n{offset}|{output:>{width - dist - len(value_out_plug)}}"
-                f"{value_out_plug}{dist * ' '}{symbol}"
+                f"\n{offset}|{output:>{width - out_dist - len(value_out_plug)}}"
+                f"{value_out_plug}{out_dist * ' '}{symbol}"
             )
             if all_outputs[output].connections:
                 pretty += "---"
@@ -447,7 +467,7 @@ class INode:
         pretty += "\n" + offset + "+" + "-" * width + "+"
         return pretty
 
-    def list_repr(self):
+    def list_repr(self) -> str:
         """List representation of the node showing inputs and their values.
 
         ::
@@ -464,58 +484,60 @@ class INode:
         """
         pretty = []
         pretty.append(self.name)
-        for name, plug in sorted(self.all_inputs().items()):
-            if plug.sub_plugs:
+        for name, in_plug in sorted(self.all_inputs().items()):
+            if in_plug.sub_plugs:
                 pretty.append(f"  [i] {name}")
                 continue
-            if plug.connections:
-                indent = "   " if isinstance(plug, SubPlug) else "  "
-                node_name = plug.connections[0].node.name
-                plug_name = plug.connections[0].name
+            if in_plug.connections:
+                indent = "   " if isinstance(in_plug, SubPlug) else "  "
+                node_name = in_plug.connections[0].node.name
+                plug_name = in_plug.connections[0].name
                 pretty.append(f"{indent}[i] {name} << {node_name}.{plug_name}")
             else:
-                indent = "   " if isinstance(plug, SubPlug) else "  "
+                indent = "   " if isinstance(in_plug, SubPlug) else "  "
                 pretty.append(
-                    f"{indent}[i] {name}: {json.dumps(plug.value, cls=NodeEncoder)}"
+                    f"{indent}[i] {name}: {json.dumps(in_plug.value, cls=NodeEncoder)}"
                 )
-        for name, plug in sorted(self.all_outputs().items()):
-            if plug.sub_plugs:
+        for name, out_plug in sorted(self.all_outputs().items()):
+            if out_plug.sub_plugs:
                 pretty.append(f"  [o] {name}")
                 continue
-            if plug.connections:
+            if out_plug.connections:
                 connections = ", ".join(
-                    [f"{c.node.name}.{c.name}" for c in plug.connections]
+                    [f"{c.node.name}.{c.name}" for c in out_plug.connections]
                 )
-                indent = "   " if isinstance(plug, SubPlug) else "  "
+                indent = "   " if isinstance(out_plug, SubPlug) else "  "
                 pretty.append(f"{indent}[o] {name} >> {connections}")
             else:
-                indent = "   " if isinstance(plug, SubPlug) else "  "
+                indent = "   " if isinstance(out_plug, SubPlug) else "  "
                 pretty.append(
-                    f"{indent}[o] {name}: {json.dumps(plug.value, cls=NodeEncoder)}"
+                    f"{indent}[o] {name}: {json.dumps(out_plug.value, cls=NodeEncoder)}"
                 )
 
         return "\n".join(pretty)
 
-    def all_inputs(self):
+    def all_inputs(self) -> dict[str, InputPlug]:
         """Collate all input plugs and their sub_plugs into one dictionary."""
         all_inputs = {}
         for plug in self.inputs.values():
             all_inputs[plug.name] = plug
             for sub in plug.sub_plugs.values():
-                all_inputs[sub.name] = sub
+                if isinstance(sub, InputPlug):
+                    all_inputs[sub.name] = sub
         return all_inputs
 
-    def all_outputs(self):
+    def all_outputs(self) -> dict[str, OutputPlug]:
         """Collate all output plugs and their sub_plugs into one dictionary."""
         all_outputs = {}
         for plug in self.outputs.values():
             all_outputs[plug.name] = plug
             for sub in plug.sub_plugs.values():
-                all_outputs[sub.name] = sub
+                if isinstance(sub, OutputPlug):
+                    all_outputs[sub.name] = sub
         return all_outputs
 
     @staticmethod
-    def sort_plugs(plugs):
+    def sort_plugs(plugs: dict[str, OutputPlug]) -> dict:
         """Sort the given plugs alphabetically into a dict."""
         sorted_plugs = {}
         for i in sorted(plugs, key=lambda x: x.lower()):
@@ -523,7 +545,7 @@ class INode:
         return sorted_plugs
 
 
-class FunctionNode(INode):
+class FunctionNode(INode, Generic[P]):
     """Wrap a function into a Node."""
 
     # Some names have to stay reserved as they are used to construct the Node
@@ -541,12 +563,12 @@ class FunctionNode(INode):
     def __init__(
         self,
         *,
-        func=None,
+        func: Callable[P, dict[str, Any] | None] | None = None,
         outputs=None,
-        name=None,
-        identifier=None,
-        metadata=None,
-        graph=None,
+        name: str | None = None,
+        identifier: str | None = None,
+        metadata: dict | None = None,
+        graph: Graph | DefaultGraph | None = None,
         **kwargs,
     ):
         """The data on the function is used to drive the Node.
@@ -560,35 +582,48 @@ class FunctionNode(INode):
             metadata,
             graph,
         )
-        self._initialize(func, outputs or [], metadata)
+        self._initialize(func, outputs or [], metadata)  # type: ignore
         for plug, value in kwargs.items():
             self.inputs[plug].value = value
 
-    def __call__(self, **kwargs):
+    def __call__(
+        self,
+        *,
+        name: str | None = None,
+        identifier: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        graph: Graph | DefaultGraph | None = "default",
+        **input_plug_values: Any,
+    ) -> FunctionNode[P]:
         """Create and return an instance of the Node."""
-        metadata = copy.deepcopy(self.metadata)
-        metadata.update(kwargs.pop("metadata", {}))
-        graph = kwargs.pop("graph", "default")
+        metadata_payload: dict[str, Any] = copy.deepcopy(self.metadata)
+        if metadata:
+            metadata_payload.update(metadata)
         outputs = []
         for output in self.outputs.values():
             outputs.append(output.name)
             for key in output.sub_plugs.keys():
                 outputs.append(f"{output.name}.{key}")
-        return self.__class__(
-            func=self.func,
-            outputs=outputs,
-            metadata=metadata,
-            graph=graph,
-            **kwargs,
+        return cast(
+            FunctionNode[P],
+            self.__class__(
+                func=self.func,
+                outputs=outputs,
+                name=name,
+                identifier=identifier,
+                metadata=metadata_payload,
+                graph=graph,
+                **input_plug_values,
+            ),
         )
 
-    def compute(self, *args, **kwargs):
+    def compute(self, *args: P.args, **kwargs: P.kwargs):
         """Call and return the wrapped function."""
         if self._use_self:
             return self.func(self, *args, **kwargs)
         return self.func(*args, **kwargs)
 
-    def _serialize(self):
+    def _serialize(self) -> dict:
         """Also serialize the location of the wrapped function."""
         data = super()._serialize()
         data["func"] = {
@@ -597,7 +632,7 @@ class FunctionNode(INode):
         }
         return data
 
-    def post_deserialize(self, data):
+    def post_deserialize(self, data: dict) -> None:
         """Apply the function back to the node."""
         self.name = data["name"]
         self.identifier = data["identifier"]
@@ -609,9 +644,8 @@ class FunctionNode(INode):
         node_or_function = import_class(
             data["func"]["module"], data["func"]["name"], data["file_location"]
         )
-        node = None
         if isinstance(node_or_function, FunctionNode):
-            node = node_or_function
+            node: FunctionNode[Any] = node_or_function
         else:
             node = FunctionNode(
                 name=self.name,
@@ -622,9 +656,11 @@ class FunctionNode(INode):
             )
             node.file_location = self.file_location
 
-        node = node(graph=None)
+        node_instance: FunctionNode = node(graph=None)
 
-        self._initialize(node.func, data["outputs"].keys(), data["metadata"])
+        self._initialize(
+            node_instance.func, data["outputs"].keys(), data["metadata"]
+        )
         for name, input_ in data["inputs"].items():
             self.inputs[name].value = input_["value"]
             for sub_name, sub_plug in input_["sub_plugs"].items():
@@ -634,7 +670,9 @@ class FunctionNode(INode):
             for sub_name, sub_plug in output["sub_plugs"].items():
                 self.outputs[name][sub_name].value = sub_plug["value"]
 
-    def _initialize(self, func, outputs, metadata):
+    def _initialize(
+        self, func: Callable, outputs: list[str], metadata: dict
+    ) -> None:
         """Use the function and the list of outputs to setup the Node."""
         self.func = func
         self.__doc__ = func.__doc__
@@ -683,7 +721,7 @@ class FunctionNode(INode):
                     if self.outputs.get(output) is None:
                         OutputPlug(output, self)
 
-    def to_pickle(self):  # pragma: no cover
+    def to_pickle(self) -> bytes:  # pragma: no cover
         """Pickle the node. -- DOES NOT WORK FOR FunctionNode."""
         raise NotImplementedError(
             "Pickling is not implemented for FunctionNode. "
@@ -691,11 +729,27 @@ class FunctionNode(INode):
         )
 
 
-def Node(*args, **kwargs):  # pylint: disable=invalid-name
+def Node(  # pylint: disable=invalid-name
+    *args: Any,
+    cls: Type[FunctionNode] = FunctionNode,
+    outputs: Sequence[str] | None = None,
+    name: str | None = None,
+    identifier: str | None = None,
+    metadata: dict[str, Any] | None = None,
+    graph: Graph | DefaultGraph | None = None,
+    **plug_defaults: Any,
+) -> Callable[[Callable[P, dict[str, Any] | None]], FunctionNode]:
     """Wrap the given function into a Node."""
-    cls = kwargs.pop("cls", FunctionNode)
+    node_kwargs: dict[str, Any] = {
+        "outputs": outputs,
+        "name": name,
+        "identifier": identifier,
+        "metadata": metadata,
+        "graph": graph,
+        **plug_defaults,
+    }
 
-    def node(func):
-        return cls(func=func, *args, **kwargs)
+    def node(func: Callable[..., Any]) -> FunctionNode:
+        return cast(FunctionNode, cls(func=func, *args, **node_kwargs))
 
     return node
