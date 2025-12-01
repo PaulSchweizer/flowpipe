@@ -58,7 +58,7 @@ poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
 [tool.poetry.group.dev.dependencies]
 black = "^25.9.0"
 mock = "^5.1.0"
-numpy = "^1.26.2"
+numpy = "^2.0.2"
 pre-commit = "^3.5.0"
 pylint = "^3.0.1"
 pytest-cov = "^4.1.0"
