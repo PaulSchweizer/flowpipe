@@ -107,6 +107,8 @@ class IPlug:
     @is_dirty.setter
     def is_dirty(self, status: bool) -> None:
         """Set the Plug dirty informs the node this Plug belongs to."""
+        if self._is_dirty == status:
+            return
         self._is_dirty = status
         if status:
             self.node.on_input_plug_set_dirty()
