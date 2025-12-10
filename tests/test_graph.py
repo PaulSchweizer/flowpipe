@@ -2,6 +2,7 @@ from __future__ import print_function
 
 import time
 
+import mock
 import pytest
 
 import flowpipe.graph
@@ -749,3 +750,29 @@ def test_evaluate_can_skip_clean_nodes():
     nodes = Evaluator()._nodes_to_evaluate(graph, skip_clean=True)
     assert len(nodes) == 1
     assert nodes[0] == dirty_node
+
+
+def test_is_dirty_only_gets_updated_if_is_dirty_status_actually_changes(
+    clear_default_graph,
+):
+    graph = Graph(name="test_passing_evaluator")
+
+    @Node(outputs=["result"])
+    def AddNode(number1, number2):
+        return {"result": number1 + number2}
+
+    with mock.patch.object(
+        INode,
+        "on_input_plug_set_dirty",
+        wraps=INode.on_input_plug_set_dirty,
+        autospec=True,
+    ) as set_dirty_spy:
+        n1 = AddNode(name="AddNode1", graph=graph, number1=1, number2=1)
+        n2 = AddNode(name="AddNode2", graph=graph, number2=1)
+        n3 = AddNode(name="AddNode3", graph=graph, number2=1)
+
+        n1.outputs["result"] >> n2.inputs["number1"]
+        n1.outputs["result"] >> n3.inputs["number1"]
+
+        graph.evaluate(mode=None, evaluator=LinearEvaluator())
+        assert set_dirty_spy.call_count == 0
