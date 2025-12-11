@@ -118,7 +118,7 @@ class INode:
                     parents.add(conn.node)
         return parents
 
-    def _invalidate_connection_caches(self) -> None:
+    def invalidate_connection_caches(self) -> None:
         """Invalidate connection caches for this node and all connected nodes."""
         # Clear this node's caches
         self._upstream_nodes_cache.clear()

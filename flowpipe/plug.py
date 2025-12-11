@@ -131,8 +131,8 @@ class IPlug:
             plug.connections.pop(plug.connections.index(self))
             plug.is_dirty = True
         # Invalidate connection caches for both nodes
-        self.node._invalidate_connection_caches()
-        plug.node._invalidate_connection_caches()
+        self.node.invalidate_connection_caches()
+        plug.node.invalidate_connection_caches()
 
     def promote_to_graph(self, name: str | None = None) -> None:
         """Add this plug to the graph of this plug's node.
@@ -197,8 +197,8 @@ class OutputPlug(IPlug):
                 plug.connections = [self]
                 plug.is_dirty = True
             # Invalidate connection caches for both nodes
-            self.node._invalidate_connection_caches()
-            plug.node._invalidate_connection_caches()
+            self.node.invalidate_connection_caches()
+            plug.node.invalidate_connection_caches()
 
     def __getitem__(self, key: str):
         """Retrieve a sub plug by key.
