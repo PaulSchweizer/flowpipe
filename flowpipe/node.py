@@ -66,7 +66,9 @@ class INode:
 
         self.name = name if name is not None else self.__class__.__name__
         self.identifier = (
-            identifier if identifier is not None else f"{self.name}-{uuid.uuid4()}"
+            identifier
+            if identifier is not None
+            else f"{self.name}-{uuid.uuid4()}"
         )
         self.inputs: dict[str, InputPlug] = {}
         self.outputs: dict[str, OutputPlug] = {}
@@ -91,8 +93,8 @@ class INode:
             self.graph = Graph()
         self.graph.add_node(self)
         self.stats: dict = {}
-        self._upstream_nodes_cache: dict[str, INode] = {}
-        self._downstream_nodes_cache: dict[str, INode] = {}
+        self.upstream_nodes_cache: dict[str, INode] = {}
+        self.downstream_nodes_cache: dict[str, INode] = {}
 
     def __str__(self) -> str:
         """Show all input and output Plugs."""
@@ -121,23 +123,23 @@ class INode:
     def invalidate_connection_caches(self) -> None:
         """Invalidate connection caches for this node and all connected nodes."""
         # Clear this node's caches
-        self._upstream_nodes_cache.clear()
-        self._downstream_nodes_cache.clear()
+        self.upstream_nodes_cache.clear()
+        self.downstream_nodes_cache.clear()
 
         # Clear upstream nodes' downstream caches
         for parent in self.parents:
-            parent._downstream_nodes_cache.clear()
+            parent.downstream_nodes_cache.clear()
 
         # Clear downstream nodes' upstream caches
         for child in self.children:
-            child._upstream_nodes_cache.clear()
+            child.upstream_nodes_cache.clear()
 
     @property
     def upstream_nodes(self) -> list[INode]:
         """Nodes connected directly or indirectly to inputs of this Node."""
         # Return cached result if available
-        if self._upstream_nodes_cache:
-            return list(self._upstream_nodes_cache.values())
+        if self.upstream_nodes_cache:
+            return list(self.upstream_nodes_cache.values())
 
         # Build and cache the result
         upstream_nodes = {}
@@ -153,7 +155,7 @@ class INode:
                             upstream_nodes[upstream2.identifier] = upstream2
 
         # Store in cache
-        self._upstream_nodes_cache = upstream_nodes
+        self.upstream_nodes_cache = upstream_nodes
         return list(upstream_nodes.values())
 
     @property
@@ -172,8 +174,8 @@ class INode:
     def downstream_nodes(self):
         """Nodes connected directly or indirectly to outputs of this Node."""
         # Return cached result if available
-        if self._downstream_nodes_cache:
-            return list(self._downstream_nodes_cache.values())
+        if self.downstream_nodes_cache:
+            return list(self.downstream_nodes_cache.values())
 
         # Build and cache the result
         downstream_nodes = {}
@@ -186,10 +188,12 @@ class INode:
                     downstream_nodes[downstream.identifier] = downstream
                     for downstream2 in downstream.downstream_nodes:
                         if downstream2.identifier not in downstream_nodes:
-                            downstream_nodes[downstream2.identifier] = downstream2
+                            downstream_nodes[
+                                downstream2.identifier
+                            ] = downstream2
 
         # Store in cache
-        self._downstream_nodes_cache = downstream_nodes
+        self.downstream_nodes_cache = downstream_nodes
         return list(downstream_nodes.values())
 
     def evaluate(self) -> dict[str, Any] | None:
@@ -236,7 +240,9 @@ class INode:
         return outputs
 
     @abstractmethod
-    def compute(self, *args, **kwargs) -> dict[str, Any] | None:  # pragma: no cover
+    def compute(
+        self, *args, **kwargs
+    ) -> dict[str, Any] | None:  # pragma: no cover
         """Implement the data manipulation in the subclass.
 
         Return a dictionary with the outputs from this function.
@@ -288,10 +294,14 @@ class INode:
                 if isinstance(other, InputPlug):
                     for sub in out.sub_plugs:
                         out.sub_plugs[sub].connect(other[sub])
-                        connections.append(f"Plug: {other.name}, Subplug: {sub}")
+                        connections.append(
+                            f"Plug: {other.name}, Subplug: {sub}"
+                        )
         else:
             raise TypeError(f"Cannot connect outputs to {type(other)}")
-        log.debug("Connected node %s with %s", self.name, "\n".join(connections))
+        log.debug(
+            "Connected node %s with %s", self.name, "\n".join(connections)
+        )
 
     def on_input_plug_set_dirty(self) -> None:
         """Propagate the dirty state to the connected downstream nodes."""
@@ -322,7 +332,9 @@ class INode:
     def _serialize(self) -> dict:
         """Perform the serialization to json."""
         if self.file_location is None:  # pragma: no cover
-            raise RuntimeError("Cannot serialize a node that was not defined in a file")
+            raise RuntimeError(
+                "Cannot serialize a node that was not defined in a file"
+            )
         inputs = {}
         for in_plug in self.inputs.values():
             inputs[in_plug.name] = in_plug.serialize()
@@ -678,7 +690,9 @@ class FunctionNode(INode, Generic[P]):
 
         node_instance: FunctionNode = node(graph=None)
 
-        self._initialize(node_instance.func, data["outputs"].keys(), data["metadata"])
+        self._initialize(
+            node_instance.func, data["outputs"].keys(), data["metadata"]
+        )
         for name, input_ in data["inputs"].items():
             self.inputs[name].value = input_["value"]
             for sub_name, sub_plug in input_["sub_plugs"].items():
@@ -688,7 +702,9 @@ class FunctionNode(INode, Generic[P]):
             for sub_name, sub_plug in output["sub_plugs"].items():
                 self.outputs[name][sub_name].value = sub_plug["value"]
 
-    def _initialize(self, func: Callable, outputs: list[str], metadata: dict) -> None:
+    def _initialize(
+        self, func: Callable, outputs: list[str], metadata: dict
+    ) -> None:
         """Use the function and the list of outputs to setup the Node."""
         self.func = func
         self.__doc__ = func.__doc__
@@ -697,7 +713,9 @@ class FunctionNode(INode, Generic[P]):
         if func is not None:
             self.file_location = inspect.getfile(func)
             self.class_name = self.func.__name__
-            arg_spec = inspect.getfullargspec(func)  # pylint: disable=deprecated-method
+            arg_spec = inspect.getfullargspec(
+                func
+            )  # pylint: disable=deprecated-method
             defaults = {}
             if arg_spec.defaults is not None:
                 defaults = dict(
