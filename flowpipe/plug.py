@@ -130,6 +130,9 @@ class IPlug:
         if self in plug.connections:
             plug.connections.pop(plug.connections.index(self))
             plug.is_dirty = True
+        # Invalidate connection caches for both nodes
+        self.node._invalidate_connection_caches()
+        plug.node._invalidate_connection_caches()
 
     def promote_to_graph(self, name: str | None = None) -> None:
         """Add this plug to the graph of this plug's node.
@@ -193,6 +196,9 @@ class OutputPlug(IPlug):
             if self not in plug.connections:
                 plug.connections = [self]
                 plug.is_dirty = True
+            # Invalidate connection caches for both nodes
+            self.node._invalidate_connection_caches()
+            plug.node._invalidate_connection_caches()
 
     def __getitem__(self, key: str):
         """Retrieve a sub plug by key.
@@ -230,8 +236,7 @@ class OutputPlug(IPlug):
             "value": self.value if not self.sub_plugs else None,
             "connections": connections,
             "sub_plugs": {
-                name: sub_plug.serialize()
-                for name, sub_plug in self.sub_plugs.items()
+                name: sub_plug.serialize() for name, sub_plug in self.sub_plugs.items()
             },
         }
 
@@ -292,16 +297,13 @@ class InputPlug(IPlug):
         """Serialize the Plug containing all it's connections."""
         connections = {}
         if self.connections:
-            connections[self.connections[0].node.identifier] = (
-                self.connections[0].name
-            )
+            connections[self.connections[0].node.identifier] = self.connections[0].name
         return {
             "name": self.name,
             "value": self.value if not self.sub_plugs else None,
             "connections": connections,
             "sub_plugs": {
-                name: sub_plug.serialize()
-                for name, sub_plug in self.sub_plugs.items()
+                name: sub_plug.serialize() for name, sub_plug in self.sub_plugs.items()
             },
         }
 
@@ -331,9 +333,7 @@ class SubPlug:
             name (str): Optionally provide a different name for the Plug
         """
         # prevent adding SubPlug to the graph witout their parents
-        raise TypeError(
-            "Cannot add SubPlug to graph! Add the parent plug instead."
-        )
+        raise TypeError("Cannot add SubPlug to graph! Add the parent plug instead.")
 
 
 class SubInputPlug(SubPlug, InputPlug):
@@ -364,9 +364,7 @@ class SubInputPlug(SubPlug, InputPlug):
         """Serialize the Plug containing all it's connections."""
         connections = {}
         if self.connections:
-            connections[self.connections[0].node.identifier] = (
-                self.connections[0].name
-            )
+            connections[self.connections[0].node.identifier] = self.connections[0].name
         return {
             "name": self.name,
             "value": self.value,
@@ -423,9 +421,7 @@ class SubOutputPlug(SubPlug, OutputPlug):
 class InputPlugGroup:
     """Group plugs inside a group into one entry point on the graph."""
 
-    def __init__(
-        self, name: str, graph: Graph, plugs: list[InputPlug] | None = None
-    ):
+    def __init__(self, name: str, graph: Graph, plugs: list[InputPlug] | None = None):
         """Initialize the group and assigning it to the `Graph.input_groups`.
 
         Can be connected to an OutputPlug.
@@ -468,9 +464,7 @@ class InputPlugGroup:
         The value property is implemented nonetheless, in order to allow for
         convenient setting of the value of all plugs in the InputPlugGroup.
         """
-        raise AttributeError(
-            "Getting the value of an InputPlugGroup is not supported"
-        )
+        raise AttributeError("Getting the value of an InputPlugGroup is not supported")
 
     @value.setter
     def value(self, new_value: Any) -> None:
