@@ -93,6 +93,8 @@ class INode:
             self.graph = Graph()
         self.graph.add_node(self)
         self.stats: dict = {}
+        self.upstream_nodes_cache: dict[str, INode] = {}
+        self.downstream_nodes_cache: dict[str, INode] = {}
 
     def __str__(self) -> str:
         """Show all input and output Plugs."""
@@ -118,9 +120,28 @@ class INode:
                     parents.add(conn.node)
         return parents
 
+    def invalidate_connection_caches(self) -> None:
+        """Invalidate connection caches for this node and all connected nodes."""
+        # Clear this node's caches
+        self.upstream_nodes_cache.clear()
+        self.downstream_nodes_cache.clear()
+
+        # Clear upstream nodes' downstream caches
+        for parent in self.parents:
+            parent.downstream_nodes_cache.clear()
+
+        # Clear downstream nodes' upstream caches
+        for child in self.children:
+            child.upstream_nodes_cache.clear()
+
     @property
     def upstream_nodes(self) -> list[INode]:
         """Nodes connected directly or indirectly to inputs of this Node."""
+        # Return cached result if available
+        if self.upstream_nodes_cache:
+            return list(self.upstream_nodes_cache.values())
+
+        # Build and cache the result
         upstream_nodes = {}
         for input_ in self.inputs.values():
             upstreams = [c.node for c in input_.connections]
@@ -132,6 +153,9 @@ class INode:
                     for upstream2 in upstream.upstream_nodes:
                         if upstream2.identifier not in upstream_nodes:
                             upstream_nodes[upstream2.identifier] = upstream2
+
+        # Store in cache
+        self.upstream_nodes_cache = upstream_nodes
         return list(upstream_nodes.values())
 
     @property
@@ -149,6 +173,11 @@ class INode:
     @property
     def downstream_nodes(self):
         """Nodes connected directly or indirectly to outputs of this Node."""
+        # Return cached result if available
+        if self.downstream_nodes_cache:
+            return list(self.downstream_nodes_cache.values())
+
+        # Build and cache the result
         downstream_nodes = {}
         for output in self.outputs.values():
             downstreams = [c.node for c in output.connections]
@@ -159,9 +188,12 @@ class INode:
                     downstream_nodes[downstream.identifier] = downstream
                     for downstream2 in downstream.downstream_nodes:
                         if downstream2.identifier not in downstream_nodes:
-                            downstream_nodes[downstream2.identifier] = (
-                                downstream2
-                            )
+                            downstream_nodes[
+                                downstream2.identifier
+                            ] = downstream2
+
+        # Store in cache
+        self.downstream_nodes_cache = downstream_nodes
         return list(downstream_nodes.values())
 
     def evaluate(self) -> dict[str, Any] | None:
