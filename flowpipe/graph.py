@@ -14,6 +14,7 @@ from .evaluator import (
     Evaluator,
     LegacyMultiprocessingEvaluator,
     LinearEvaluator,
+    NodeEventCallback,
     ThreadedEvaluator,
 )
 from .plug import InputPlug, InputPlugGroup, IPlug, OutputPlug
@@ -275,6 +276,7 @@ class Graph:
         max_workers: int | None = None,
         data_persistence: bool = True,
         evaluator: Evaluator | None = None,
+        on_node_event: NodeEventCallback | None = None,
     ) -> None:
         """Evaluate all Nodes in the graph.
 
@@ -305,6 +307,8 @@ class Graph:
                 reference count of objects.
             evaluator (flowpipe.evaluators.Evaluator): The evaluator to use.
                 For the basic evaluation modes will be picked by 'mode'.
+            on_node_event (callable): Optional callback invoked for node
+                lifecycle events: started, finished, failed.
         """
         log.info('Evaluating Graph "%s"', self.name)
 
@@ -330,7 +334,11 @@ class Graph:
         if not evaluator:
             raise ValueError("No evaluation mode or evaluator specified.")
 
-        evaluator.evaluate(graph=self, skip_clean=skip_clean)
+        evaluator.evaluate(
+            graph=self,
+            skip_clean=skip_clean,
+            on_node_event=on_node_event,
+        )
 
         if not data_persistence:
             for node in self.nodes:

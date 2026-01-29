@@ -13,8 +13,9 @@
 +-------------------------------------------------+
 """
 
-from flowpipe import Evaluator, Graph, Node
 import json
+
+from flowpipe import Evaluator, Graph, Node
 
 
 class CustomEvaluator(Evaluator):
@@ -24,12 +25,21 @@ class CustomEvaluator(Evaluator):
     `_evaluate_nodes` method.
     """
 
-    def _evaluate_nodes(self, nodes):
+    def _evaluate_nodes(self, nodes, on_node_event=None):
         """Perform the actual node evaluation."""
         for node in nodes:
-            print(f"Evaluating node: {node.name}")
-            print(f"With Metadata: {json.dumps(node.metadata, indent=2)}")
-            node.evaluate()
+            if on_node_event:
+                on_node_event(node, "started", None)
+            try:
+                print(f"Evaluating node: {node.name}")
+                print(f"With Metadata: {json.dumps(node.metadata, indent=2)}")
+                node.evaluate()
+            except Exception as exc:
+                if on_node_event:
+                    on_node_event(node, "failed", {"error": exc})
+                raise
+            if on_node_event:
+                on_node_event(node, "finished", None)
 
 
 @Node(outputs=["sum"], metadata={"key": "value"})
@@ -52,7 +62,16 @@ print(math_graph)
 
 # evaluate the graph using the custom evaluator
 custom_eval = CustomEvaluator()
-custom_eval.evaluate(math_graph)
+
+
+def log_event(node, event, info):
+    if event == "failed":
+        print(f"Node {node.name} failed: {info['error']}")
+    else:
+        print(f"Node {node.name} {event}")
+
+
+custom_eval.evaluate(math_graph, on_node_event=log_event)
 
 print(f"Result of first sum: {first_sum.outputs['sum'].value}")
 print(f"Result of second sum: {second_sum.outputs['sum'].value}")

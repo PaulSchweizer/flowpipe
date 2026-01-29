@@ -176,6 +176,15 @@ Now build the house:
 graph.evaluate(mode='threading')  # Options are linear, threading and multiprocessing
 ```
 
+You can also pass a node lifecycle hook to observe evaluation progress (events: started, finished, failed):
+
+```python
+def on_node_event(node, event, info):
+    print(f"{node.name}: {event}")
+
+graph.evaluate(mode="threading", on_node_event=on_node_event)
+```
+
 Output:
 
 ```c
@@ -261,7 +270,7 @@ If your nodes just need sequential, threaded or multiprocessing evaluation, the 
 Evaluators allow you to take control of node evaluation order, or their scheduling.
 See `flowpipe/evaluator.py` to see the `Graph.evaluate()` method's evaluation schemes.
 
-To use a custom evaluator, subclass `flowpipe.evaluator.Evaluator`, and provide at least an `_evaluate_nodes(self, nodes)` method.
+To use a custom evaluator, subclass `flowpipe.evaluator.Evaluator`, and provide at least an `_evaluate_nodes(self, nodes, on_node_event=None)` method.
 This method should take a list of nodes and call their respective `node.evalaute()` methods (along with any other task you want to do for each node being evaluated).
 To use a cusom evaluator, create it and call its `Evalator.evaluate()` method with the Graph to evaluate as an argument:
 

@@ -4,10 +4,11 @@ from __future__ import annotations
 
 import logging
 import time
+from collections.abc import Callable
 from concurrent import futures
 from multiprocessing import Manager, Process
 from pickle import PicklingError
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Literal, Optional
 
 from .errors import FlowpipeMultiprocessingError
 
@@ -16,6 +17,11 @@ if TYPE_CHECKING:  # pragma: no cover
     from .node import INode
 
 log = logging.getLogger(__name__)
+
+NodeEvent = Literal["started", "finished", "failed"]
+NodeEventCallback = Callable[
+    ["INode", NodeEvent, Optional[dict[str, Any]]], None
+]
 
 
 class Evaluator:
@@ -35,7 +41,9 @@ class Evaluator:
         return graph.evaluation_sequence
 
     def _nodes_to_evaluate(
-        self, graph: Graph, skip_clean: bool
+        self,
+        graph: Graph,
+        skip_clean: bool,
     ) -> list[INode]:
         """Get the nodes to evaluate, in order."""
         nodes = self._evaluation_sequence(graph)
@@ -43,28 +51,43 @@ class Evaluator:
             nodes = [n for n in nodes if n.is_dirty]
         return nodes
 
-    def _evaluate_nodes(self, nodes: list[INode]) -> None:
+    def _evaluate_nodes(
+        self,
+        nodes: list[INode],
+        on_node_event: Optional[NodeEventCallback] = None,
+    ) -> None:
         """Perform the actual node evaluation."""
         raise NotImplementedError  # pragma: no cover
 
-    def evaluate(self, graph: Graph, skip_clean: bool = False) -> None:
+    def evaluate(
+        self,
+        graph: Graph,
+        skip_clean: bool = False,
+        on_node_event: Optional[NodeEventCallback] = None,
+    ) -> None:
         """Evaluate the graph.
 
         Args:
             graph (flowpipe.Graph): The graph to evaluate.
             skip_clean (bool): Whether to skip nodes that are clean.
+            on_node_event (callable): Optional callback invoked for node
+                lifecycle events: started, finished, failed.
             data_persistence (bool): If false, the data on plugs that have
                 connections gets cleared (set to None). This reduces the
                 reference count of objects.
         """
         nodes = self._nodes_to_evaluate(graph, skip_clean)
-        self._evaluate_nodes(nodes)
+        self._evaluate_nodes(nodes, on_node_event=on_node_event)
 
 
 class LinearEvaluator(Evaluator):
     """Evaluate the graph linearly in a single thread."""
 
-    def _evaluate_nodes(self, nodes: list[INode]) -> None:
+    def _evaluate_nodes(
+        self,
+        nodes: list[INode],
+        on_node_event: Optional[NodeEventCallback] = None,
+    ) -> None:
         """Evaluate the graph linearly in a single thread.
 
         Args:
@@ -72,13 +95,22 @@ class LinearEvaluator(Evaluator):
 
         """
         for node in nodes:
-            node.evaluate()
+            if on_node_event:
+                on_node_event(node, "started", None)
+            try:
+                node.evaluate()
+            except Exception as exc:
+                if on_node_event:
+                    on_node_event(node, "failed", {"error": exc})
+                raise
+            if on_node_event:
+                on_node_event(node, "finished", None)
 
 
 class ThreadedEvaluator(Evaluator):
     """Evaluate each node in a separate thread."""
 
-    def __init__(self, max_workers: int | None = None):
+    def __init__(self, max_workers: Optional[int] = None):
         """Intialize with the graph and how many threads to use.
 
         Args:
@@ -88,7 +120,11 @@ class ThreadedEvaluator(Evaluator):
         """
         self.max_workers = max_workers
 
-    def _evaluate_nodes(self, nodes: list[INode]) -> None:
+    def _evaluate_nodes(
+        self,
+        nodes: list[INode],
+        on_node_event: Optional[NodeEventCallback] = None,
+    ) -> None:
         """Evaluate each node in a separate thread.
 
         Args:
@@ -102,7 +138,8 @@ class ThreadedEvaluator(Evaluator):
             node.evaluate()
             return node
 
-        running_futures: dict = {}
+        running_futures: dict[str, futures.Future] = {}
+        future_to_node: dict[futures.Future, INode] = {}
         with futures.ThreadPoolExecutor(max_workers=self.max_workers) as tpe:
             while nodes_to_evaluate or running_futures:
                 log.debug(
@@ -115,8 +152,11 @@ class ThreadedEvaluator(Evaluator):
                 not_submitted = []
                 for node in nodes_to_evaluate:
                     if not any(n.is_dirty for n in node.upstream_nodes):
+                        if on_node_event:
+                            on_node_event(node, "started", None)
                         fut = tpe.submit(node_runner, node)
                         running_futures[node.name] = fut
+                        future_to_node[fut] = node
                     else:
                         not_submitted.append(node)
                 nodes_to_evaluate = not_submitted
@@ -133,8 +173,7 @@ class ThreadedEvaluator(Evaluator):
                             if nn.is_dirty
                         ]
                         log.debug(
-                            "Node to evaluate: %s\n"
-                            "- Dirty upstream nodes:\n%s",
+                            "Node to evaluate: %s\n- Dirty upstream nodes:\n%s",
                             node.name,
                             "\n".join(dirty_upstream),
                         )
@@ -150,7 +189,15 @@ class ThreadedEvaluator(Evaluator):
                     return_when=futures.FIRST_COMPLETED,
                 )
                 for future in status.done:
-                    del running_futures[future.result().name]
+                    node = future_to_node.pop(future)
+                    del running_futures[node.name]
+                    exc = future.exception()
+                    if exc:
+                        if on_node_event:
+                            on_node_event(node, "failed", {"error": exc})
+                        raise exc
+                    if on_node_event:
+                        on_node_event(node, "finished", None)
 
 
 class LegacyMultiprocessingEvaluator(Evaluator):
@@ -166,7 +213,11 @@ class LegacyMultiprocessingEvaluator(Evaluator):
         """
         self.submission_delay = submission_delay
 
-    def _evaluate_nodes(self, nodes: list[INode]):
+    def _evaluate_nodes(
+        self,
+        nodes: list[INode],
+        on_node_event: Optional[NodeEventCallback] = None,
+    ) -> None:
         # create copy to prevent side effects
         nodes_to_evaluate = list(nodes)
         manager = Manager()
@@ -186,7 +237,16 @@ class LegacyMultiprocessingEvaluator(Evaluator):
                 if process and not process.is_alive():
                     # If the node is done computing, drop it from the list
                     nodes_to_evaluate.remove(node)
+                    if process.exitcode:
+                        error = RuntimeError(
+                            f"Node process exited with code {process.exitcode}"
+                        )
+                        if on_node_event:
+                            on_node_event(node, "failed", {"error": error})
+                        raise error
                     _update_node(node, nodes_data[node.identifier])
+                    if on_node_event:
+                        on_node_event(node, "finished", None)
                     continue
                 if node.name not in processes and upstream_ready(node):
                     # If all deps are ready and no thread is active, create one
@@ -212,6 +272,8 @@ class LegacyMultiprocessingEvaluator(Evaluator):
                     )
                     processes[node.name].daemon = True
                     processes[node.name].start()
+                    if on_node_event:
+                        on_node_event(node, "started", None)
 
             time.sleep(self.submission_delay)
 
