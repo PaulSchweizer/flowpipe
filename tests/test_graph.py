@@ -752,6 +752,80 @@ def test_evaluate_can_skip_clean_nodes():
     assert nodes[0] == dirty_node
 
 
+def test_on_node_event_linear_order(clear_default_graph):
+    graph = Graph(name="on_node_event_linear")
+
+    @Node(outputs=["out"])
+    def Add(in_):
+        return {"out": in_}
+
+    n1 = Add(name="n1", graph=graph, in_=1)
+    n2 = Add(name="n2", graph=graph)
+    n1.outputs["out"] >> n2.inputs["in_"]
+
+    events: list[tuple[str, str, object | None]] = []
+
+    def on_node_event(node, event, info):
+        events.append((node.name, event, info))
+
+    graph.evaluate(mode="linear", on_node_event=on_node_event)
+
+    assert [e[:2] for e in events] == [
+        ("n1", "started"),
+        ("n1", "finished"),
+        ("n2", "started"),
+        ("n2", "finished"),
+    ]
+    assert all(info is None for _, _, info in events)
+
+
+def test_on_node_event_failed_linear(clear_default_graph):
+    graph = Graph(name="on_node_event_failed")
+
+    @Node(outputs=["out"])
+    def Fail(in_):
+        raise ValueError("boom")
+
+    Fail(name="n1", graph=graph, in_=1)
+
+    events: list[tuple[str, str, object | None]] = []
+
+    def on_node_event(node, event, info):
+        events.append((node.name, event, info))
+
+    with pytest.raises(ValueError):
+        graph.evaluate(mode="linear", on_node_event=on_node_event)
+
+    assert [e[:2] for e in events] == [("n1", "started"), ("n1", "failed")]
+    assert isinstance(events[1][2]["error"], ValueError)
+
+
+def test_on_node_event_threading(clear_default_graph):
+    graph = Graph(name="on_node_event_threading")
+
+    @Node(outputs=["out"])
+    def Add(in_):
+        return {"out": in_}
+
+    n1 = Add(name="n1", graph=graph, in_=1)
+    n2 = Add(name="n2", graph=graph)
+    n1.outputs["out"] >> n2.inputs["in_"]
+
+    events: list[tuple[str, str]] = []
+
+    def on_node_event(node, event, info):
+        events.append((node.name, event))
+
+    graph.evaluate(
+        mode="threading", max_workers=2, on_node_event=on_node_event
+    )
+
+    assert ("n1", "started") in events
+    assert ("n1", "finished") in events
+    assert ("n2", "started") in events
+    assert ("n2", "finished") in events
+
+
 def test_is_dirty_only_gets_updated_if_is_dirty_status_actually_changes(
     clear_default_graph,
 ):
