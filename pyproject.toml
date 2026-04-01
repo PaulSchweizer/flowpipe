@@ -64,4 +64,4 @@ pylint = "^3.3.9"
 pytest-cov = "^7.0.0"
 pytest = "^7.4.2"
 isort = { version = "^6.1.0", extras = ["pyproject"] }
-mypy = "^1.6.1"
+mypy = "^1.19.1"
